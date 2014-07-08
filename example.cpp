@@ -19,8 +19,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 void init(NVGcontext *vg) {
-    bndSetFont(nvgCreateFont(vg, "system", "droidsans.ttf"));
-    bndSetIconImage(nvgCreateImage(vg, "blender_icons.png"));
+    bndSetFont(nvgCreateFont(vg, "system", "../droidsans.ttf"));
+    bndSetIconImage(nvgCreateImage(vg, "../blender_icons16.png"));
 }
 
 void draw(NVGcontext *vg, float w, float h) {
