@@ -35,7 +35,7 @@ extern "C" {
 
 /*
 
-Revision 1 (2014-07-08)
+Revision 2 (2014-07-08)
 
 Summary
 -------
@@ -177,6 +177,8 @@ typedef enum BNDcornerFlags {
 
 // default widget height
 #define BND_WIDGET_HEIGHT 21
+// default toolbutton width (if icon only)
+#define BND_TOOL_WIDTH 20
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -397,6 +399,7 @@ void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 
 #ifdef BLENDISH_IMPLEMENTATION
 
+#include <memory.h>
 #include <math.h>
 
 #ifdef _MSC_VER
@@ -779,7 +782,6 @@ void bndMenuLabel(NVGcontext *ctx,
 void bndMenuItem(NVGcontext *ctx, 
     float x, float y, float w, float h, BNDwidgetState state, 
     int iconid, const char *label) {
-    NVGcolor shade_top, shade_down;
     if (state != BND_DEFAULT) {
         bndInnerBox(ctx,x,y,w,h,0,0,0,0, 
             bndOffsetColor(bnd_theme.menuItemTheme.innerSelectedColor, 
@@ -876,7 +878,7 @@ void bndIcon(NVGcontext *ctx, float x, float y, int iconid) {
         nvgImagePattern(ctx,x-u,y-v,
         BND_ICON_SHEET_WIDTH,
         BND_ICON_SHEET_HEIGHT,
-        0,bnd_icon_image,0));
+        0,bnd_icon_image,0,1));
     nvgFill(ctx);
 }
 
@@ -979,15 +981,15 @@ void bndIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
         nvgBeginPath(ctx);
         nvgFillColor(ctx, color);
         if (value) {
-            float label_width = nvgTextBounds(ctx, label, NULL, NULL);
-            float sep_width = nvgTextBounds(ctx, 
+            float label_width = nvgTextBounds(ctx, 1, 1, label, NULL, NULL);
+            float sep_width = nvgTextBounds(ctx, 1, 1,
                 BND_LABEL_SEPARATOR, NULL, NULL);
             
             nvgTextAlign(ctx, NVG_ALIGN_LEFT|NVG_ALIGN_BASELINE);
             x += pleft;
             if (align == BND_CENTER) {
                 float width = label_width + sep_width
-                    + nvgTextBounds(ctx, value, NULL, NULL);
+                    + nvgTextBounds(ctx, 1, 1, value, NULL, NULL);
                 x += ((w-BND_PAD_RIGHT-pleft)-width)*0.5f;
             }
             y += h-6;
