@@ -49,7 +49,7 @@ void draw(NVGcontext *vg, float w, float h) {
     bndRadioButton(vg,x,y,80,BND_WIDGET_HEIGHT,BND_CORNER_NONE,BND_ACTIVE,
         -1,"Active");
 
-    y += 40;
+    y += 25;
     bndLabel(vg,x,y,120,BND_WIDGET_HEIGHT,-1,"Label:");
     y += BND_WIDGET_HEIGHT;
     bndChoiceButton(vg,x,y,80,BND_WIDGET_HEIGHT,BND_CORNER_NONE,BND_DEFAULT,
@@ -60,6 +60,10 @@ void draw(NVGcontext *vg, float w, float h) {
     y += 25;
     bndChoiceButton(vg,x,y,80,BND_WIDGET_HEIGHT,BND_CORNER_NONE,BND_ACTIVE,
         -1, "Active");
+        
+    y += 25;
+    int ry = y;
+    int rx = x;
     
     y = 10;
     x += 130;
@@ -82,7 +86,7 @@ void draw(NVGcontext *vg, float w, float h) {
     int mx = x-30;
     int my = y-12;
     int mw = 120;
-    bndMenuBackground(vg,mx,my,mw,240,BND_CORNER_TOP);
+    bndMenuBackground(vg,mx,my,mw,120,BND_CORNER_TOP);
     bndMenuLabel(vg,mx,my,mw,BND_WIDGET_HEIGHT,-1,"Menu Title");
     my += BND_WIDGET_HEIGHT-2;
     bndMenuItem(vg,mx,my,mw,BND_WIDGET_HEIGHT,BND_DEFAULT,
@@ -132,6 +136,24 @@ void draw(NVGcontext *vg, float w, float h) {
     y += 25;
     bndSlider(vg,x,y,240,BND_WIDGET_HEIGHT,BND_CORNER_NONE,BND_ACTIVE,
         progress_value,"Active",progress_label);
+
+    int rw = x+240-rx;
+    float s_offset = sinf(glfwGetTime()/2.0)*0.5+0.5;
+    float s_size = cosf(glfwGetTime()/3.11)*0.5+0.5;
+    
+    bndScrollBar(vg,rx,ry,rw,BND_SCROLLBAR_HEIGHT,BND_DEFAULT,s_offset,s_size);
+    ry += 20;
+    bndScrollBar(vg,rx,ry,rw,BND_SCROLLBAR_HEIGHT,BND_HOVER,s_offset,s_size);
+    ry += 20;
+    bndScrollBar(vg,rx,ry,rw,BND_SCROLLBAR_HEIGHT,BND_ACTIVE,s_offset,s_size);
+    
+    rx += rw + 20;
+    ry = 10;
+    bndScrollBar(vg,rx,ry,BND_SCROLLBAR_WIDTH,240,BND_DEFAULT,s_offset,s_size);
+    rx += 20;
+    bndScrollBar(vg,rx,ry,BND_SCROLLBAR_WIDTH,240,BND_HOVER,s_offset,s_size);
+    rx += 20;
+    bndScrollBar(vg,rx,ry,BND_SCROLLBAR_WIDTH,240,BND_ACTIVE,s_offset,s_size);
     
     x = ox;
     y += 40;

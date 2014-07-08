@@ -35,7 +35,7 @@ extern "C" {
 
 /*
 
-Revision 2 (2014-07-08)
+Revision 3 (2014-07-08)
 
 Summary
 -------
@@ -123,6 +123,8 @@ typedef struct BNDtheme {
     BNDwidgetTheme numberFieldTheme;
     // theme for slider controls
     BNDwidgetTheme sliderTheme;
+    // theme for scrollbars
+    BNDwidgetTheme scrollBarTheme;
     // theme for menu backgrounds and tooltips
     BNDwidgetTheme menuTheme;
     // theme for menu items
@@ -179,6 +181,11 @@ typedef enum BNDcornerFlags {
 #define BND_WIDGET_HEIGHT 21
 // default toolbutton width (if icon only)
 #define BND_TOOL_WIDTH 20
+
+// width of vertical scrollbar
+#define BND_SCROLLBAR_WIDTH 13
+// height of horizontal scrollbar
+#define BND_SCROLLBAR_HEIGHT 14
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -277,6 +284,16 @@ void bndSlider(NVGcontext *ctx,
     float x, float y, float w, float h, int flags, BNDwidgetState state, 
     float progress, const char *label, const char *value);
 
+// Draw scrollbar with its lower left origin at (x,y) and size of (w,h),
+// where state denotes the widgets current UI state.
+// offset is in the range 0..1 and controls the position of the scroll handle
+// size is in the range 0..1 and controls the size of the scroll handle
+// horizontal widget looks best when height is BND_SCROLLBAR_HEIGHT,
+// vertical looks best when width is BND_SCROLLBAR_WIDTH
+void bndScrollBar(NVGcontext *ctx, 
+    float x, float y, float w, float h, BNDwidgetState state, 
+    float offset, float size);
+    
 // Draw a menu background with its lower left origin at (x,y) and size of (w,h),
 // where flags is one or multiple flags from BNDcornerFlags.
 void bndMenuBackground(NVGcontext *ctx, 
@@ -356,7 +373,8 @@ void bndDropShadow(NVGcontext *ctx, float x, float y, float w, float h,
     float r, float feather, float alpha);
 
 // Draw the inner part of a widget box, with a gradient from shade_top to 
-// shade_down.
+// shade_down. If h>w, the gradient will be horizontal instead of
+// vertical.
 void bndInnerBox(NVGcontext *ctx, float x, float y, float w, float h, 
     float cr0, float cr1, float cr2, float cr3,
     NVGcolor shade_top, NVGcolor shade_down);
@@ -475,6 +493,11 @@ void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 // alpha of menu popup shadow
 #define BND_SHADOW_ALPHA 0.5
 
+// radius of scrollbar
+#define BND_SCROLLBAR_RADIUS 7
+// shade intensity of active scrollbar
+#define BND_SCROLLBAR_ACTIVE_SHADE 15
+
 ////////////////////////////////////////////////////////////////////////////////
 
 BND_INLINE float bnd_clamp(float v, float mn, float mx) {
@@ -563,6 +586,17 @@ static BNDtheme bnd_theme = {
         BND_COLOR_TEXT_SELECTED, // color_text_selected        
         -20, // shade_top
         0, // shade_down
+    },
+    // scrollBarTheme
+    {
+        {{{ 0.196,0.196,0.196,1 }}}, // color_outline
+        {{{ 0.502,0.502,0.502,1 }}}, // color_item
+        {{{ 0.314, 0.314, 0.314,0.706 }}}, // color_inner
+        {{{ 0.392, 0.392, 0.392,0.706 }}}, // color_inner_selected
+        BND_COLOR_TEXT, // color_text
+        BND_COLOR_TEXT_SELECTED, // color_text_selected        
+        5, // shade_top
+        -5, // shade_down
     },
     // menuTheme
     {
@@ -757,6 +791,53 @@ void bndSlider(NVGcontext *ctx,
         BND_LABEL_FONT_SIZE, label, value);
 }
 
+void bndScrollBar(NVGcontext *ctx, 
+    float x, float y, float w, float h, BNDwidgetState state, 
+    float offset, float size) {
+    
+    bndBevelInset(ctx,x,y,w,h,
+        BND_SCROLLBAR_RADIUS, BND_SCROLLBAR_RADIUS);
+    bndInnerBox(ctx,x,y,w,h,
+        BND_SCROLLBAR_RADIUS,BND_SCROLLBAR_RADIUS,
+        BND_SCROLLBAR_RADIUS,BND_SCROLLBAR_RADIUS,
+        bndOffsetColor(
+            bnd_theme.scrollBarTheme.innerColor, 3*bnd_theme.scrollBarTheme.shadeDown),
+        bndOffsetColor(
+            bnd_theme.scrollBarTheme.innerColor, 3*bnd_theme.scrollBarTheme.shadeTop));
+    bndOutlineBox(ctx,x,y,w,h,
+        BND_SCROLLBAR_RADIUS,BND_SCROLLBAR_RADIUS,
+        BND_SCROLLBAR_RADIUS,BND_SCROLLBAR_RADIUS,
+        bndTransparent(bnd_theme.scrollBarTheme.outlineColor));
+    
+    NVGcolor itemColor = bndOffsetColor(
+        bnd_theme.scrollBarTheme.itemColor,
+        (state == BND_ACTIVE)?BND_SCROLLBAR_ACTIVE_SHADE:0);
+
+    size = bnd_clamp(size,0,1);
+    offset = bnd_clamp(offset,0,1);
+    if (h>w) {
+        float hs = fmaxf(size*h, w+1);
+        y = y + (h-hs)*offset;
+        h = hs;
+    } else {
+        float ws = fmaxf(size*w, h-1);
+        x = x + (w-ws)*offset;
+        w = ws;
+    }
+    
+    bndInnerBox(ctx,x,y,w,h,
+        BND_SCROLLBAR_RADIUS,BND_SCROLLBAR_RADIUS,
+        BND_SCROLLBAR_RADIUS,BND_SCROLLBAR_RADIUS,
+        bndOffsetColor(
+            itemColor, 3*bnd_theme.scrollBarTheme.shadeTop), 
+        bndOffsetColor(
+            itemColor, 3*bnd_theme.scrollBarTheme.shadeDown));
+    bndOutlineBox(ctx,x,y,w,h,
+        BND_SCROLLBAR_RADIUS,BND_SCROLLBAR_RADIUS,
+        BND_SCROLLBAR_RADIUS,BND_SCROLLBAR_RADIUS,
+        bndTransparent(bnd_theme.scrollBarTheme.outlineColor));
+}
+
 void bndMenuBackground(NVGcontext *ctx, 
     float x, float y, float w, float h, int flags) {
     float cr[4];
@@ -916,7 +997,8 @@ void bndInnerBox(NVGcontext *ctx, float x, float y, float w, float h,
     nvgBeginPath(ctx);
     bndRoundedBox(ctx,x+1,y+1,w-2,h-3,
         fmaxf(0,cr0-1),fmaxf(0,cr1-1),fmaxf(0,cr2-1),fmaxf(0,cr3-1));
-    nvgFillPaint(ctx,
+    nvgFillPaint(ctx,((h-2)>w)?
+        nvgLinearGradient(ctx,x,y,x+w,y,shade_top,shade_down):
         nvgLinearGradient(ctx,x,y,x,y+h,shade_top,shade_down));
     nvgFill(ctx);
 }
