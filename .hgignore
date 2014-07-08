@@ -9,4 +9,4 @@ syntax: glob
 syntax: regexp
 
 ^build
-^dist
+^nanovg
