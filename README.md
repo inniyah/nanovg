@@ -3,4 +3,4 @@
 To render correctly, Blendish needs both [icon sheet](https://svn.blender.org/svnroot/bf-blender/trunk/blender/release/datafiles/blender_icons16.png) and [font](https://svn.blender.org/svnroot/bf-blender/trunk/blender/release/datafiles/fonts/) from the 
 Blender repository. See source code for more information.
 
-![demo.png](https://bitbucket.org/repo/zAzpBG/images/846771290-demo.png)
+![blendish_demo.png](https://bitbucket.org/repo/zAzpBG/images/3891331937-blendish_demo.png)
