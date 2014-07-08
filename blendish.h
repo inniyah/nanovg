@@ -343,6 +343,13 @@ void bndInnerColors(NVGcolor *shade_top, NVGcolor *shade_down,
 // widgets state.
 NVGcolor bndTextColor(const BNDwidgetTheme *theme, BNDwidgetState state);
 
+// computes the bounds of the scrollbar handle from the scrollbar size
+// and the handles offset and size.
+// offset is in the range 0..1 and defines the position of the scroll handle
+// size is in the range 0..1 and defines the size of the scroll handle
+void bndScrollHandleRect(float *x, float *y, float *w, float *h,
+    float offset, float size);
+
 // Add a rounded box path at position (x,y) with size (w,h) and a separate 
 // radius for each corner listed in clockwise order, so that cr0 = top left,
 // cr1 = top right, cr2 = bottom right, cr3 = bottom left;
@@ -813,17 +820,7 @@ void bndScrollBar(NVGcontext *ctx,
         bnd_theme.scrollBarTheme.itemColor,
         (state == BND_ACTIVE)?BND_SCROLLBAR_ACTIVE_SHADE:0);
 
-    size = bnd_clamp(size,0,1);
-    offset = bnd_clamp(offset,0,1);
-    if (h>w) {
-        float hs = fmaxf(size*h, w+1);
-        y = y + (h-hs)*offset;
-        h = hs;
-    } else {
-        float ws = fmaxf(size*w, h-1);
-        x = x + (w-ws)*offset;
-        w = ws;
-    }
+    bndScrollHandleRect(&x,&y,&w,&h,offset,size);
     
     bndInnerBox(ctx,x,y,w,h,
         BND_SCROLLBAR_RADIUS,BND_SCROLLBAR_RADIUS,
@@ -1128,6 +1125,21 @@ void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color) 
     nvgClosePath(ctx);
     nvgFillColor(ctx,color);
     nvgFill(ctx);
+}
+
+void bndScrollHandleRect(float *x, float *y, float *w, float *h,
+    float offset, float size) {
+    size = bnd_clamp(size,0,1);
+    offset = bnd_clamp(offset,0,1);
+    if ((*h) > (*w)) {
+        float hs = fmaxf(size*(*h), (*w)+1);
+        *y = (*y) + ((*h)-hs)*offset;
+        *h = hs;
+    } else {
+        float ws = fmaxf(size*(*w), (*h)-1);
+        *x = (*x) + ((*w)-ws)*offset;
+        *w = ws;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
