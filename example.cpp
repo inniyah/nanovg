@@ -147,6 +147,22 @@ void draw(NVGcontext *vg, float w, float h) {
     ry += 20;
     bndScrollBar(vg,rx,ry,rw,BND_SCROLLBAR_HEIGHT,BND_ACTIVE,s_offset,s_size);
     
+    const char edit_text[] = "The quick brown fox";
+    int textlen = strlen(edit_text)+1;
+    int t = int(glfwGetTime()*2);
+    int idx1 = (t/textlen)%textlen;
+    int idx2 = idx1 + (t%(textlen-idx1));
+    
+    ry += 25;
+    bndTextField(vg,rx,ry,240,BND_WIDGET_HEIGHT,BND_CORNER_NONE,BND_DEFAULT,
+        -1, edit_text, idx1, idx2);
+    ry += 25;
+    bndTextField(vg,rx,ry,240,BND_WIDGET_HEIGHT,BND_CORNER_NONE,BND_HOVER,
+        -1, edit_text, idx1, idx2);
+    ry += 25;
+    bndTextField(vg,rx,ry,240,BND_WIDGET_HEIGHT,BND_CORNER_NONE,BND_ACTIVE,
+        -1, edit_text, idx1, idx2);
+    
     rx += rw + 20;
     ry = 10;
     bndScrollBar(vg,rx,ry,BND_SCROLLBAR_WIDTH,240,BND_DEFAULT,s_offset,s_size);

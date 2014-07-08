@@ -80,6 +80,7 @@ before including blendish.h, otherwise the file will be in header-only mode.
 #ifndef BLENDISH_NO_NVG_TYPEDEFS
 typedef struct NVGcontext NVGcontext;
 typedef struct NVGcolor NVGcolor;
+typedef struct NVGglyphPosition NVGglyphPosition;
 #endif
 
 // describes the theme used to draw a single widget or widget box;
@@ -114,6 +115,8 @@ typedef struct BNDtheme {
     BNDwidgetTheme toolTheme;
     // theme for radio buttons
     BNDwidgetTheme radioTheme;
+    // theme for text fields
+    BNDwidgetTheme textFieldTheme;
     // theme for option buttons (checkboxes)
     BNDwidgetTheme optionTheme;
     // theme for choice buttons (comboboxes)
@@ -125,7 +128,9 @@ typedef struct BNDtheme {
     BNDwidgetTheme sliderTheme;
     // theme for scrollbars
     BNDwidgetTheme scrollBarTheme;
-    // theme for menu backgrounds and tooltips
+    // theme for tooltips
+    BNDwidgetTheme tooltipTheme;
+    // theme for menu backgrounds
     BNDwidgetTheme menuTheme;
     // theme for menu items
     BNDwidgetTheme menuItemTheme;
@@ -242,6 +247,19 @@ void bndRadioButton(NVGcontext *ctx,
     float x, float y, float w, float h, int flags, BNDwidgetState state, 
     int iconid, const char *label);
     
+// Draw a text field with its lower left origin at (x,y) and size of (w,h),
+// where flags is one or multiple flags from BNDcornerFlags and state denotes
+// the widgets current UI state.
+// if iconid >= 0, an icon will be added to the widget
+// if text is not NULL, text will be printed to the widget
+// cbegin must be >= 0 and <= strlen(text) and denotes the beginning of the caret
+// cend must be >= cbegin and <= strlen(text) and denotes the end of the caret
+// if cend < cbegin, then no caret will be drawn
+// widget looks best when height is BND_WIDGET_HEIGHT
+void bndTextField(NVGcontext *ctx, 
+    float x, float y, float w, float h, int flags, BNDwidgetState state, 
+    int iconid, const char *text, int cbegin, int cend);
+    
 // Draw an option button with its lower left origin at (x,y) and size of (w,h),
 // where flags is one or multiple flags from BNDcornerFlags and state denotes
 // the widgets current UI state.
@@ -314,7 +332,10 @@ void bndMenuLabel(NVGcontext *ctx,
 void bndMenuItem(NVGcontext *ctx, 
     float x, float y, float w, float h, BNDwidgetState state, 
     int iconid, const char *label);
-    
+
+// Draw a tooltip background with its lower left origin at (x,y) and size of (w,h)
+void bndTooltipBackground(NVGcontext *ctx, float x, float y, float w, float h);
+        
 ////////////////////////////////////////////////////////////////////////////////
 
 // Low Level Functions
@@ -398,10 +419,23 @@ void bndOutlineBox(NVGcontext *ctx, float x, float y, float w, float h,
 // and color.
 // if value is not NULL, label and value will be drawn with a ":" separator
 // inbetween.
-void bndIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
+void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, NVGcolor color, int align, float fontsize, const char *label, 
     const char *value);
 
+// Draw an optional icon specified by <iconid>, an optional label and 
+// a caret with given fontsize and color within a widget box.
+// if iconid is >= 0, an icon will be drawn and the labels remaining space
+// will be adjusted.
+// if label is not NULL, it will be drawn with the specified alignment, fontsize
+// and color.
+// cbegin must be >= 0 and <= strlen(text) and denotes the beginning of the caret
+// cend must be >= cbegin and <= strlen(text) and denotes the end of the caret
+// if cend < cbegin, then no caret will be drawn
+void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
+    int iconid, NVGcolor color, float fontsize, const char *label, 
+    NVGcolor caretcolor, int cbegin, int cend);
+    
 // Draw a checkmark for an option box with the given upper left coordinates
 // (ox,oy) with the specified color.
 void bndCheck(NVGcontext *ctx, float ox, float oy, NVGcolor color);
@@ -490,6 +524,9 @@ void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 // height of option button checkbox
 #define BND_OPTION_HEIGHT 15
 
+// radius of text field
+#define BND_TEXT_RADIUS 4
+
 // radius of number button
 #define BND_NUMBER_RADIUS 10
 
@@ -504,6 +541,9 @@ void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 #define BND_SCROLLBAR_RADIUS 7
 // shade intensity of active scrollbar
 #define BND_SCROLLBAR_ACTIVE_SHADE 15
+
+// max glyphs for position testing
+#define BND_MAX_GLYPHS 1024
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -549,6 +589,17 @@ static BNDtheme bnd_theme = {
         BND_COLOR_TEXT, // color_text_selected        
         15, // shade_top
         -15, // shade_down
+    },
+    // textFieldTheme
+    {
+        {{{ 0.098,0.098,0.098,1 }}}, // color_outline
+        {{{ 0.353, 0.353, 0.353,1 }}}, // color_item
+        {{{ 0.6, 0.6, 0.6,1 }}}, // color_inner
+        {{{ 0.6, 0.6, 0.6,1 }}}, // color_inner_selected
+        BND_COLOR_TEXT, // color_text
+        BND_COLOR_TEXT_SELECTED, // color_text_selected        
+        0, // shade_top
+        25, // shade_down
     },
     // optionTheme
     {
@@ -605,6 +656,17 @@ static BNDtheme bnd_theme = {
         5, // shade_top
         -5, // shade_down
     },
+    // tooltipTheme
+    {
+        {{{ 0,0,0,1 }}}, // color_outline
+        {{{ 0.392,0.392,0.392,1 }}}, // color_item
+        {{{ 0.098, 0.098, 0.098, 0.902 }}}, // color_inner
+        {{{ 0.176, 0.176, 0.176, 0.902 }}}, // color_inner_selected
+        {{{ 0.627, 0.627, 0.627, 1 }}}, // color_text
+        BND_COLOR_TEXT_SELECTED, // color_text_selected        
+        0, // shade_top
+        0, // shade_down
+    },
     // menuTheme
     {
         {{{ 0,0,0,1 }}}, // color_outline
@@ -657,7 +719,7 @@ void bndSetFont(int font) {
 
 void bndLabel(NVGcontext *ctx, 
     float x, float y, float w, float h, int iconid, const char *label) {
-    bndIconLabel(ctx,x,y,w,h,iconid,
+    bndIconLabelValue(ctx,x,y,w,h,iconid,
         bnd_theme.regularTheme.textColor, BND_LEFT,
         BND_LABEL_FONT_SIZE, label, NULL);
 }
@@ -674,7 +736,7 @@ void bndToolButton(NVGcontext *ctx,
     bndInnerBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3], shade_top, shade_down);
     bndOutlineBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3],
         bndTransparent(bnd_theme.toolTheme.outlineColor));
-    bndIconLabel(ctx,x,y,w,h,iconid,
+    bndIconLabelValue(ctx,x,y,w,h,iconid,
         bndTextColor(&bnd_theme.toolTheme, state), BND_CENTER,
         BND_LABEL_FONT_SIZE, label, NULL);
 }
@@ -691,9 +753,29 @@ void bndRadioButton(NVGcontext *ctx,
     bndInnerBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3], shade_top, shade_down);
     bndOutlineBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3],
         bndTransparent(bnd_theme.radioTheme.outlineColor));
-    bndIconLabel(ctx,x,y,w,h,iconid,
+    bndIconLabelValue(ctx,x,y,w,h,iconid,
         bndTextColor(&bnd_theme.radioTheme, state), BND_CENTER,
         BND_LABEL_FONT_SIZE, label, NULL);
+}
+
+void bndTextField(NVGcontext *ctx, 
+    float x, float y, float w, float h, int flags, BNDwidgetState state, 
+    int iconid, const char *text, int cbegin, int cend) {
+    float cr[4];
+    NVGcolor shade_top, shade_down;
+    
+    bndSelectCorners(cr, BND_TEXT_RADIUS, flags);
+    bndBevelInset(ctx,x,y,w,h,cr[2],cr[3]);    
+    bndInnerColors(&shade_top, &shade_down, &bnd_theme.textFieldTheme, state, 0);
+    bndInnerBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3], shade_top, shade_down);
+    bndOutlineBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3],
+        bndTransparent(bnd_theme.textFieldTheme.outlineColor));
+    if (state != BND_ACTIVE) {
+        cend = -1;
+    }
+    bndIconLabelCaret(ctx,x,y,w,h,iconid,
+        bndTextColor(&bnd_theme.textFieldTheme, state), BND_LABEL_FONT_SIZE, 
+        text, bnd_theme.textFieldTheme.itemColor, cbegin, cend);
 }
 
 void bndOptionButton(NVGcontext *ctx, 
@@ -720,7 +802,7 @@ void bndOptionButton(NVGcontext *ctx,
     if (state == BND_ACTIVE) {
         bndCheck(ctx,ox,oy, bndTransparent(bnd_theme.optionTheme.itemColor));
     }
-    bndIconLabel(ctx,x+12,y,w-12,h,-1,
+    bndIconLabelValue(ctx,x+12,y,w-12,h,-1,
         bndTextColor(&bnd_theme.optionTheme, state), BND_LEFT,
         BND_LABEL_FONT_SIZE, label, NULL);
 }
@@ -737,7 +819,7 @@ void bndChoiceButton(NVGcontext *ctx,
     bndInnerBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3], shade_top, shade_down);
     bndOutlineBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3],
         bndTransparent(bnd_theme.choiceTheme.outlineColor));
-    bndIconLabel(ctx,x,y,w,h,iconid,
+    bndIconLabelValue(ctx,x,y,w,h,iconid,
         bndTextColor(&bnd_theme.choiceTheme, state), BND_LEFT,
         BND_LABEL_FONT_SIZE, label, NULL);
     bndUpDownArrow(ctx,x+w-10,y+10,5,
@@ -756,7 +838,7 @@ void bndNumberField(NVGcontext *ctx,
     bndInnerBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3], shade_top, shade_down);
     bndOutlineBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3],
         bndTransparent(bnd_theme.numberFieldTheme.outlineColor));
-    bndIconLabel(ctx,x,y,w,h,-1,
+    bndIconLabelValue(ctx,x,y,w,h,-1,
         bndTextColor(&bnd_theme.numberFieldTheme, state), BND_CENTER,
         BND_LABEL_FONT_SIZE, label, value);
     bndArrow(ctx,x+8,y+10,-BND_NUMBER_ARROW_SIZE,
@@ -793,7 +875,7 @@ void bndSlider(NVGcontext *ctx,
     
     bndOutlineBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3],
         bndTransparent(bnd_theme.sliderTheme.outlineColor));
-    bndIconLabel(ctx,x,y,w,h,-1,
+    bndIconLabelValue(ctx,x,y,w,h,-1,
         bndTextColor(&bnd_theme.sliderTheme, state), BND_CENTER,
         BND_LABEL_FONT_SIZE, label, value);
 }
@@ -850,9 +932,24 @@ void bndMenuBackground(NVGcontext *ctx,
         BND_SHADOW_FEATHER,BND_SHADOW_ALPHA);
 }
 
+void bndTooltipBackground(NVGcontext *ctx, float x, float y, float w, float h) {
+    NVGcolor shade_top, shade_down;
+    
+    bndInnerColors(&shade_top, &shade_down, &bnd_theme.tooltipTheme,
+        BND_DEFAULT, 0);
+    bndInnerBox(ctx,x,y,w,h+1,
+        BND_MENU_RADIUS,BND_MENU_RADIUS,BND_MENU_RADIUS,BND_MENU_RADIUS,
+        shade_top, shade_down);
+    bndOutlineBox(ctx,x,y,w,h+1,
+        BND_MENU_RADIUS,BND_MENU_RADIUS,BND_MENU_RADIUS,BND_MENU_RADIUS,
+        bndTransparent(bnd_theme.tooltipTheme.outlineColor));
+    bndDropShadow(ctx,x,y,w,h,BND_MENU_RADIUS,
+        BND_SHADOW_FEATHER,BND_SHADOW_ALPHA);
+}
+
 void bndMenuLabel(NVGcontext *ctx, 
     float x, float y, float w, float h, int iconid, const char *label) {
-    bndIconLabel(ctx,x,y,w,h,iconid,
+    bndIconLabelValue(ctx,x,y,w,h,iconid,
         bnd_theme.menuTheme.textColor, BND_LEFT,
         BND_LABEL_FONT_SIZE, label, NULL);
 }
@@ -868,7 +965,7 @@ void bndMenuItem(NVGcontext *ctx,
                 bnd_theme.menuItemTheme.shadeDown));
         state = BND_ACTIVE;
     }
-    bndIconLabel(ctx,x,y,w,h,iconid,
+    bndIconLabelValue(ctx,x,y,w,h,iconid,
         bndTextColor(&bnd_theme.menuItemTheme, state), BND_LEFT,
         BND_LABEL_FONT_SIZE, label, NULL);
 }
@@ -1044,7 +1141,7 @@ NVGcolor bndTextColor(const BNDwidgetTheme *theme, BNDwidgetState state) {
     return (state == BND_ACTIVE)?theme->textSelectedColor:theme->textColor;
 }
 
-void bndIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
+void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, NVGcolor color, int align, float fontsize, const char *label, 
     const char *value) {
     float pleft = BND_PAD_LEFT;
@@ -1086,6 +1183,60 @@ void bndIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
     } else if (iconid >= 0) {
         bndIcon(ctx,x+2,y+2,iconid);
     }
+}
+
+void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
+    int iconid, NVGcolor color, float fontsize, const char *label, 
+    NVGcolor caretcolor, int cbegin, int cend) {
+    float bounds[4];
+    float pleft = BND_TEXT_RADIUS;
+    if (!label) return;
+    if (iconid >= 0) {
+        bndIcon(ctx,x+4,y+2,iconid);
+        pleft += BND_ICON_SHEET_RES;
+    }
+    
+    if (bnd_font < 0) return;
+    
+    x+=pleft;
+    y+=h-6;
+
+    nvgFontFaceId(ctx, bnd_font);
+    nvgFontSize(ctx, fontsize);
+    nvgTextAlign(ctx, NVG_ALIGN_LEFT|NVG_ALIGN_BASELINE);
+
+    if (cend >= cbegin) {
+        float c0,c1;
+        const char *cb;const char *ce;
+        static NVGglyphPosition glyphs[BND_MAX_GLYPHS];
+        int nglyphs = nvgTextGlyphPositions(
+            ctx, x, y, label, label+cend+1, glyphs, BND_MAX_GLYPHS);
+        c0=glyphs[0].x;
+        c1=glyphs[nglyphs-1].x;
+        cb = label+cbegin; ce = label+cend;
+        // TODO: this is slow
+        for (int i=0; i < nglyphs; ++i) {
+            if (glyphs[i].str == cb)
+                c0 = glyphs[i].x;
+            if (glyphs[i].str == ce)
+                c1 = glyphs[i].x;
+        }
+        
+        nvgTextBounds(ctx,x,y,label,NULL, bounds);
+        nvgBeginPath(ctx);
+        if (cbegin == cend) {
+            nvgFillColor(ctx, nvgRGBf(0.337,0.502,0.761));
+            nvgRect(ctx, c0-1, bounds[1], 2, bounds[3]-bounds[1]);
+        } else {
+            nvgFillColor(ctx, caretcolor);
+            nvgRect(ctx, c0-1, bounds[1], c1-c0+1, bounds[3]-bounds[1]);
+        }
+        nvgFill(ctx);
+    }
+    
+    nvgBeginPath(ctx);
+    nvgFillColor(ctx, color);
+    nvgTextBox(ctx,x,y,w-BND_TEXT_RADIUS-pleft,label, NULL);
 }
 
 void bndCheck(NVGcontext *ctx, float ox, float oy, NVGcolor color) {
