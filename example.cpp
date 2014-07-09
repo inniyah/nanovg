@@ -16,6 +16,77 @@
 #define BLENDISH_IMPLEMENTATION
 #include "blendish.h"
 
+#include <assert.h>
+
+////////////////////////////////////////////////////////////////////////////////
+
+#define UI_IMPLEMENTATION
+#ifndef _UI_H_
+#define _UI_H_
+
+typedef struct UIcontext UIcontext;
+
+UIcontext *uiCreateContext();
+void uiMakeCurrent(UIcontext *ctx);
+void uiDestroyContext(UIcontext *ctx);
+
+void uiSetButton(int button, int enabled);
+int uiGetButton(int button);
+
+void uiSetCursor(int x, int y);
+void uiGetCursor(int *x, int *y);
+
+#endif // _UI_H_
+
+#ifdef UI_IMPLEMENTATION
+
+struct UIcontext {
+    int cx, cy;
+    unsigned long long buttons;
+};
+
+static UIcontext *ui_context = NULL;
+
+UIcontext *uiCreateContext() {
+    UIcontext *ctx = (UIcontext *)malloc(sizeof(UIcontext));
+    return ctx;
+}
+
+void uiMakeCurrent(UIcontext *ctx) {
+    ui_context = ctx;
+}
+
+void uiDestroyContext(UIcontext *ctx) {
+    free(ctx);
+}
+
+void uiSetButton(int button, int enabled) {
+    assert(ui_context);
+    unsigned long long mask = 1ull<<button;
+    ui_context->buttons = (enabled)?
+        (ui_context->buttons | mask):
+        (ui_context->buttons & ~mask);
+}
+
+int uiGetButton(int button) {
+    assert(ui_context);
+    return (ui_context->buttons & (1ull<<button))?1:0;
+}
+
+void uiSetCursor(int x, int y) {
+    assert(ui_context);
+    ui_context->cx = x;
+    ui_context->cy = y;
+}
+
+void uiGetCursor(int *x, int *y) {
+    assert(ui_context);
+    *x = ui_context->cx;
+    *y = ui_context->cy;
+}
+
+#endif // UI_IMPLEMENTATION
+
 ////////////////////////////////////////////////////////////////////////////////
 
 void init(NVGcontext *vg) {
@@ -209,6 +280,9 @@ void draw(NVGcontext *vg, float w, float h) {
     x += BND_TOOL_WIDTH-1;
     bndRadioButton(vg,x,y,BND_TOOL_WIDTH,BND_WIDGET_HEIGHT,BND_CORNER_LEFT,
         BND_DEFAULT,BND_ICONID(5,11),NULL);
+         
+    
+   
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -216,6 +290,17 @@ void draw(NVGcontext *vg, float w, float h) {
 void errorcb(int error, const char* desc)
 {
 	printf("GLFW error %d: %s\n", error, desc);
+}
+
+static void mousebutton(GLFWwindow *window, int button, int action, int mods) {
+	NVG_NOTUSED(window);
+	NVG_NOTUSED(mods);
+    uiSetButton(button, (action==GLFW_PRESS)?1:0);
+}
+
+static void cursorpos(GLFWwindow *window, double x, double y) {
+	NVG_NOTUSED(window);
+    uiSetCursor((int)x,(int)y);
 }
 
 static void key(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -230,6 +315,10 @@ int main()
 {
 	GLFWwindow* window;
 	struct NVGcontext* vg = NULL;
+    UIcontext *uictx;
+    
+    uictx = uiCreateContext();
+    uiMakeCurrent(uictx);
 
 	if (!glfwInit()) {
 		printf("Failed to init GLFW.");
@@ -252,6 +341,8 @@ int main()
 	}
 
 	glfwSetKeyCallback(window, key);
+    glfwSetCursorPosCallback(window, cursorpos);
+    glfwSetMouseButtonCallback(window, mousebutton);
 
 	glfwMakeContextCurrent(window);
 #ifdef NANOVG_GLEW
@@ -303,6 +394,8 @@ int main()
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+
+    uiDestroyContext(uictx);
 
 	nvgDeleteGL3(vg);
 

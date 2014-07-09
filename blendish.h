@@ -35,7 +35,7 @@ extern "C" {
 
 /*
 
-Revision 3 (2014-07-08)
+Revision 4 (2014-07-09)
 
 Summary
 -------
@@ -544,6 +544,9 @@ void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 
 // max glyphs for position testing
 #define BND_MAX_GLYPHS 1024
+
+// text distance from bottom
+#define BND_TEXT_PAD_DOWN 7
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1168,7 +1171,7 @@ void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, float h,
                     + nvgTextBounds(ctx, 1, 1, value, NULL, NULL);
                 x += ((w-BND_PAD_RIGHT-pleft)-width)*0.5f;
             }
-            y += h-6;
+            y += h-BND_TEXT_PAD_DOWN;
             nvgText(ctx, x, y, label, NULL);
             x += label_width;
             nvgText(ctx, x, y, BND_LABEL_SEPARATOR, NULL);
@@ -1178,7 +1181,8 @@ void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, float h,
             nvgTextAlign(ctx, 
                 (align==BND_LEFT)?(NVG_ALIGN_LEFT|NVG_ALIGN_BASELINE):
                 (NVG_ALIGN_CENTER|NVG_ALIGN_BASELINE));
-            nvgTextBox(ctx,x+pleft,y+h-6,w-BND_PAD_RIGHT-pleft,label, NULL);
+            nvgTextBox(ctx,x+pleft,y+h-BND_TEXT_PAD_DOWN,
+                w-BND_PAD_RIGHT-pleft,label, NULL);
         }
     } else if (iconid >= 0) {
         bndIcon(ctx,x+2,y+2,iconid);
@@ -1199,7 +1203,7 @@ void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
     if (bnd_font < 0) return;
     
     x+=pleft;
-    y+=h-6;
+    y+=h-BND_TEXT_PAD_DOWN;
 
     nvgFontFaceId(ctx, bnd_font);
     nvgFontSize(ctx, fontsize);
