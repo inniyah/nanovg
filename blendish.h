@@ -498,7 +498,7 @@ void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 // shade intensity of beveled insets
 #define BND_BEVEL_SHADE 30
 // shade intensity of hovered inner boxes
-#define BND_HOVER_SHADE 30
+#define BND_HOVER_SHADE 15
 
 // width of icon sheet
 #define BND_ICON_SHEET_WIDTH 602
