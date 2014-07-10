@@ -163,9 +163,9 @@ int uiRow(int parent, int spacing);
 
 // layout all added items and update the internal state according to the
 // current cursor position and button states.
-// It is safe to immediately draw the items after a call to uiLayout().
+// It is safe to immediately draw the items after a call to uiProcess().
 // this is an O(N) operation for N = number of declared items.
-void uiLayout();
+void uiProcess();
 
 // returns the number of child items a container item contains. If the item 
 // is not a container or does not contain any items, 0 is returned.
@@ -208,17 +208,17 @@ int uiGetSpacing(int item);
 int uiGetKind(int item);
 
 // returns the items layout rectangle relative to its parent. If uiGetRect()
-// is called before uiLayout(), the values of the returned rectangle are
+// is called before uiProcess(), the values of the returned rectangle are
 // undefined.
 UIrect uiGetRect(int item);
 
 // returns the items layout rectangle in absolute coordinates. If 
-// uiGetAbsoluteRect() is called before uiLayout(), the values of the returned
+// uiGetAbsoluteRect() is called before uiProcess(), the values of the returned
 // rectangle are undefined.
 UIrect uiGetScreenRect(int item);
 
 // explicitly assign a layout rectangle to an item; If uiSetRect() is called
-// after uiLayout(), behavior is undefined.
+// after uiProcess(), behavior is undefined.
 // This function is primarily used to position the root element.
 void uiSetRect(int item, int x, int y, int w, int h);
 
@@ -227,7 +227,7 @@ void uiSetRect(int item, int x, int y, int w, int h);
 const void *uiGetData(int item);
 
 // return the application-dependent handle of the item as passed to uiItem().
-int uiGetHandle(int item);
+UIhandle uiGetHandle(int item);
 
 // return the current state of the item.
 // The returned value is one of UI_COLD, UI_HOT, UI_ACTIVE.
@@ -236,6 +236,27 @@ int uiGetState(int item);
 // set the handler callback for an interactive item. The meaning of the
 // callback is dependent on the item kind.
 void uiSetHandler(int item, UIhandler handler);
+
+// return the handler callback for an item as passed to uiSetHandler()
+UIhandler uiGetHandler(int item);
+
+// set the state of a toggleable item to active. If set, uiGetState() will
+// always return UI_ACTIVE.
+// enabled is 1 for active, 0 for default behavior
+void uiSetActive(int item, int enabled);
+
+// returns the active state of a toggleable item;
+// the function returns 1 if the item is always active, 0 for default behavior.
+int uiGetActive(int item);
+
+// set an interactive item to activate on button-down. The default behavior
+// is to call the handler callback when the button is released; if set, 
+// the handler will already be called if the button is pressed.
+void uiSetEarlyHandler(int item, int enabled);
+
+// returns the setting passed to uiSetEarlyHandler();
+// the function returns 1 if the setting is active, 0 for default behavior.
+int uiGetEarlyHandler(int item);
 
 #endif // _UI_H_
 
@@ -246,7 +267,19 @@ void uiSetHandler(int item, UIhandler handler);
 
 #define UI_MAX_KIND 16
 
+typedef enum UIflags {
+    // if true, item is always active
+    UI_FLAG_ALWAYS_ACTIVE = (1<<0),
+    // if true, activate on mousedown, not mouseup
+    UI_FLAG_EARLY_HANDLER = (1<<1),
+} UIflags;
+
 typedef struct UIitem {
+    // declaration independent unique handle (for persistence)
+    UIhandle handle;
+    // handler
+    UIhandler handler;
+    
     // container structure
     
     // number of kids
@@ -267,8 +300,6 @@ typedef struct UIitem {
     
     // attributes
     
-    // declaration independent unique handle (for persistence)
-    UIhandle handle;
     // layout rectangle
     UIrect rect;
     // absolute position
@@ -279,8 +310,8 @@ typedef struct UIitem {
     int data;
     // layouting containers: spacing between items
     int spacing;
-    // handler
-    UIhandler handler;
+    // a combination of UIflags
+    int flags;
 } UIitem;
 
 struct UIcontext {
@@ -289,6 +320,7 @@ struct UIcontext {
     
     UIhandle hot;
     UIhandle active;
+    int handle_item;
     
     int count;    
     UIitem items[UI_MAX_ITEMS];
@@ -463,18 +495,49 @@ int uiGetKind(int item) {
     return uiItemPtr(item)->kind;
 }
 
+static void uiSetFlag(int item, int flag, int enabled) {
+    if (enabled)
+        uiItemPtr(item)->flags |= flag;
+    else
+        uiItemPtr(item)->flags &= ~flag;
+}
+
+static int uiGetFlag(int item, int flag) {
+    return (uiItemPtr(item)->flags & flag)?1:0;
+}
+
+void uiSetActive(int item, int enabled) {
+    uiSetFlag(item, UI_FLAG_ALWAYS_ACTIVE, enabled);
+}
+
+int uiGetActive(int item) {
+    return uiGetFlag(item, UI_FLAG_ALWAYS_ACTIVE);
+}
+
+void uiSetEarlyHandler(int item, int enabled) {
+    uiSetFlag(item, UI_FLAG_EARLY_HANDLER, enabled);
+}
+
+int uiGetEarlyHandler(int item) {
+    return uiGetFlag(item, UI_FLAG_EARLY_HANDLER);
+}
+
 const void *uiGetData(int item) {
     UIitem *pitem = uiItemPtr(item);
     if (pitem->data < 0) return NULL;
     return ui_context->data + pitem->data;
 }
 
-int uiGetHandle(int item) {
+UIhandle uiGetHandle(int item) {
     return uiItemPtr(item)->handle;
 }
 
 void uiSetHandler(int item, UIhandler handler) {
     uiItemPtr(item)->handler = handler;
+}
+
+UIhandler uiGetHandler(int item) {
+    return uiItemPtr(item)->handler;
 }
 
 int uiGetChildId(int item) {
@@ -602,8 +665,15 @@ void uiUpdateItemState(int item, int x, int y) {
             && (cy<pitem->rect.h)) {
             ui_context->hot = pitem->handle;
             
+            // button down, no widget activated
             if (!ui_context->active && uiGetButton(0)) {
                 ui_context->active = pitem->handle;
+                if (pitem->flags & UI_FLAG_EARLY_HANDLER) {
+                    ui_context->handle_item = item;
+                }
+            } else if ( // button up, this widget is active
+                (ui_context->active == pitem->handle) && !uiGetButton(0)) {
+                ui_context->handle_item = item;
             }
         }
     }
@@ -616,11 +686,18 @@ void uiUpdateItemState(int item, int x, int y) {
 
 }
 
-void uiLayout() {
+void uiProcess() {
+    ui_context->handle_item = -1;
     uiLayoutItem(0);
     uiUpdateItemState(0, 0, 0);
     if (!uiGetButton(0)) {
         ui_context->active = 0;
+    }
+    if (ui_context->handle_item >= 0) {
+        UIhandler handler = uiGetHandler(ui_context->handle_item);
+        if (handler) {
+            handler(ui_context->handle_item);
+        }
     }
 }
 
@@ -635,6 +712,8 @@ int uiIsHot(int item) {
 }
 
 int uiGetState(int item) {
+    UIitem *pitem = uiItemPtr(item);
+    if (pitem->flags & UI_FLAG_ALWAYS_ACTIVE) return UI_ACTIVE;
     return (!uiIsHot(item))?UI_COLD:(uiIsActive(item))?UI_ACTIVE:UI_HOT;
 
 }
