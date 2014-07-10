@@ -192,6 +192,13 @@ typedef enum BNDcornerFlags {
 // height of horizontal scrollbar
 #define BND_SCROLLBAR_HEIGHT 14
 
+// default vertical spacing
+#define BND_VSPACING 1
+// default vertical spacing between groups
+#define BND_VSPACING_GROUP 8
+// default horizontal spacing
+#define BND_HSPACING 8
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // set the current theme all widgets will be drawn with.
