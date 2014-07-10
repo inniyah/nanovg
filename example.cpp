@@ -66,7 +66,7 @@ int cornerFlags(int item) {
 }
 
 void drawUI(NVGcontext *vg, int item, int x, int y) {
-    UIData *data = (UIData *)uiGetData(item);
+    const UIData *data = (const UIData *)uiGetData(item);
     UIrect rect = uiGetRect(item);
     rect.x += x;
     rect.y += y;
@@ -86,8 +86,9 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
                         data->iconid,data->label);
                 } break;
                 case ST_RADIO:{
+                    BNDwidgetState state = (BNDwidgetState)uiGetState(item);
                     bndRadioButton(vg,rect.x,rect.y,rect.w,rect.h,
-                        cornerFlags(item),(BNDwidgetState)uiGetState(item),
+                        cornerFlags(item),state,
                         data->iconid,data->label);
                 } break;
             }
@@ -100,6 +101,42 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
         drawUI(vg, kid, rect.x, rect.y);
         kid = uiNextSibling(kid);
     }
+}
+
+int label(int parent, int iconid, const char *label) {
+    UIData data = { sizeof(UIData), ST_DEFAULT, iconid, label };
+    return uiItem(parent, 0, UI_LABEL, 0, BND_WIDGET_HEIGHT, &data);
+}
+
+int button(int parent, UIhandle handle, int iconid, const char *label, 
+    UIhandler handler) {
+    UIData data = { sizeof(UIData), ST_DEFAULT, iconid, label };
+    int item = uiItem(parent, handle, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
+    uiSetHandler(item, handler);
+    return item;
+}
+
+static UIhandle radio_handle = 0;
+
+void radiohandler(int item) {
+    radio_handle = uiGetHandle(item);
+    uiSetActive(item, 1);
+}
+
+int radio(int parent, UIhandle handle, int iconid, const char *label) {
+    UIData data = { sizeof(UIData), ST_RADIO, iconid, label };
+    int w = (label)?0:BND_TOOL_WIDTH;
+    int item = uiItem(parent, handle, UI_BUTTON, w, BND_WIDGET_HEIGHT, &data);
+    uiSetHandler(item, radiohandler);
+    uiSetEarlyHandler(item, true);
+    if (radio_handle == handle)
+        uiSetActive(item, 1);    
+    return item;
+}
+
+void demohandler(int item) {
+    const UIData *data = (const UIData *)uiGetData(item);
+    printf("clicked: %lld %s\n", uiGetHandle(item), data->label);
 }
 
 void draw(NVGcontext *vg, float w, float h) {
@@ -288,60 +325,40 @@ void draw(NVGcontext *vg, float w, float h) {
     bndRadioButton(vg,x,y,BND_TOOL_WIDTH,BND_WIDGET_HEIGHT,BND_CORNER_LEFT,
         BND_DEFAULT,BND_ICONID(5,11),NULL);
     
+    // some OUI stuff
+    
     uiClear();
     
     uiSetRect(0,600,10,250,400);
-    
+
     int col = uiColumn(0,1);
-    UIData data = { sizeof(UIData), ST_DEFAULT, BND_ICONID(6,3), "Item 1" };
-    uiItem(col, 1, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
-    data.label = "Item 2";
-    uiItem(col, 2, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
+    button(col, 1, BND_ICONID(6,3), "Item 1", demohandler);
+    button(col, 2, BND_ICONID(6,3), "Item 2", demohandler);
     {
         int row = uiRow(col,-1);
-        data.subtype = ST_RADIO;
-        data.label = "Item 3.0";
-        uiItem(row, 3, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
-        data.label = NULL;
-        data.iconid = BND_ICONID(0,10);
-        uiItem(row, 4, UI_BUTTON, BND_TOOL_WIDTH, BND_WIDGET_HEIGHT, &data);
-        data.label = NULL;
-        data.iconid = BND_ICONID(1,10);
-        uiItem(row, 5, UI_BUTTON, BND_TOOL_WIDTH, BND_WIDGET_HEIGHT, &data);
-        data.iconid = BND_ICONID(6,3);
-        data.label = "Item 3.3";
-        uiItem(row, 6, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
-        data.subtype = ST_DEFAULT;
+        radio(row, 3, BND_ICONID(6,3), "Item 3.0");
+        radio(row, 4, BND_ICONID(0,10), NULL);
+        radio(row, 5, BND_ICONID(1,10), NULL);
+        radio(row, 6, BND_ICONID(6,3), "Item 3.3");
     }
     
     {
         int row = uiRow(col,8);
         int coll = uiColumn(row,-2);
-        data.label = "Items 4.0:";
-        data.iconid = -1;
-        uiItem(coll, 0, UI_LABEL, 0, BND_WIDGET_HEIGHT, &data);
+        label(coll, -1, "Items 4.0:");
         coll = uiColumn(coll,-2);
-        data.label = "Item 4.0.0";
-        data.iconid = BND_ICONID(6,3);
-        uiItem(coll, 7, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
-        data.label = "Item 4.0.1";
-        uiItem(coll, 8, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);        
+        button(coll, 7, BND_ICONID(6,3), "Item 4.0.0", demohandler);
+        button(coll, 8, BND_ICONID(6,3), "Item 4.0.1", demohandler);
         int colr = uiColumn(row,-2);
-        data.label = "Items 4.1:";
-        data.iconid = -1;
-        uiItem(colr, 0, UI_LABEL, 0, BND_WIDGET_HEIGHT, &data);
+        label(colr, -1, "Items 4.1:");
         colr = uiColumn(colr,-2);
-        data.label = "Item 4.1.0";
-        data.iconid = BND_ICONID(6,3);
-        uiItem(colr, 9, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
-        data.label = "Item 4.1.1";
-        uiItem(colr,10, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);        
+        button(colr, 9, BND_ICONID(6,3), "Item 4.1.0", demohandler);
+        button(colr,10, BND_ICONID(6,3), "Item 4.1.1", demohandler);
     }
     
-    data.label = "Item 5";
-    uiItem(col,11, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
+    button(col, 11, BND_ICONID(6,3), "Item 5", NULL);
     
-    uiLayout();
+    uiProcess();
     
     
     drawUI(vg, 0, 0, 0);
