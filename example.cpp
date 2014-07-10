@@ -21,8 +21,16 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
+typedef enum {
+    // default
+    ST_DEFAULT = 0,
+    // radio button
+    ST_RADIO = 1,
+} SubType;
+
 typedef struct {
     int size;
+    int subtype;
     int iconid;
     const char *label;
 } UIData;
@@ -69,17 +77,20 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
             bndLabel(vg,rect.x,rect.y,rect.w,rect.h,
                 data->iconid,data->label);
         } break;
-        case UI_RADIO: {
-            assert(data);
-            bndRadioButton(vg,rect.x,rect.y,rect.w,rect.h,
-                cornerFlags(item),(BNDwidgetState)uiGetState(item),
-                data->iconid,data->label);
-        } break;
         case UI_BUTTON: {
             assert(data);
-            bndToolButton(vg,rect.x,rect.y,rect.w,rect.h,
-                cornerFlags(item),(BNDwidgetState)uiGetState(item),
-                data->iconid,data->label);
+            switch(data->subtype) {
+                default: {
+                    bndToolButton(vg,rect.x,rect.y,rect.w,rect.h,
+                        cornerFlags(item),(BNDwidgetState)uiGetState(item),
+                        data->iconid,data->label);
+                } break;
+                case ST_RADIO:{
+                    bndRadioButton(vg,rect.x,rect.y,rect.w,rect.h,
+                        cornerFlags(item),(BNDwidgetState)uiGetState(item),
+                        data->iconid,data->label);
+                } break;
+            }
         } break;
         default: break;
     }
@@ -282,26 +293,28 @@ void draw(NVGcontext *vg, float w, float h) {
     uiSetRect(0,600,10,250,400);
     
     int col = uiColumn(0,1);
-    UIData data = { sizeof(UIData), BND_ICONID(6,3), "Item 1" };
+    UIData data = { sizeof(UIData), ST_DEFAULT, BND_ICONID(6,3), "Item 1" };
     uiItem(col, 1, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
     data.label = "Item 2";
     uiItem(col, 2, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
-    { // nested row    
+    {
         int row = uiRow(col,-1);
+        data.subtype = ST_RADIO;
         data.label = "Item 3.0";
-        uiItem(row, 3, UI_RADIO, 0, BND_WIDGET_HEIGHT, &data);
+        uiItem(row, 3, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
         data.label = NULL;
         data.iconid = BND_ICONID(0,10);
-        uiItem(row, 4, UI_RADIO, BND_TOOL_WIDTH, BND_WIDGET_HEIGHT, &data);
+        uiItem(row, 4, UI_BUTTON, BND_TOOL_WIDTH, BND_WIDGET_HEIGHT, &data);
         data.label = NULL;
         data.iconid = BND_ICONID(1,10);
-        uiItem(row, 5, UI_RADIO, BND_TOOL_WIDTH, BND_WIDGET_HEIGHT, &data);
+        uiItem(row, 5, UI_BUTTON, BND_TOOL_WIDTH, BND_WIDGET_HEIGHT, &data);
         data.iconid = BND_ICONID(6,3);
         data.label = "Item 3.3";
-        uiItem(row, 6, UI_RADIO, 0, BND_WIDGET_HEIGHT, &data);
+        uiItem(row, 6, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
+        data.subtype = ST_DEFAULT;
     }
     
-    { // two columns
+    {
         int row = uiRow(col,8);
         int coll = uiColumn(row,-2);
         data.label = "Items 4.0:";
