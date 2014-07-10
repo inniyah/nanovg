@@ -35,76 +35,211 @@ user interfaces; the intended use is for bootstrap situations where only basic
 UI services are needed.
 */
 
+// item states as returned by uiGetState()
+
+// the item is inactive
 #define UI_COLD   0x0000
+// the item is inactive, but the cursor is hovering over this item
 #define UI_HOT    0x0001
+// the item is toggled or activated (depends on item kind)
 #define UI_ACTIVE 0x0002
+// the item is unresponsive
+#define UI_FROZEN 0x0003
     
-// containers
+// item kinds
+    
+// this is a reserved kind and only used by the root item 0
 #define UI_ROOT   0x0100
+// Column container. Arranges child items vertically and adjusts their width to
+// the width of the column. Items of fixed width will only be truncated, but not
+// expanded.
 #define UI_COLUMN 0x0101
+// Row container. Arranges items horizontally and distributes their width to
+// match the width of the row. Items of fixed width will only be truncated, but
+// not expanded. The remaining space will be equally distributed among all items
+// of dynamic width.
 #define UI_ROW    0x0102
 
-// controls
+// Label control. The control is non-interactive and will not call any handlers.
 #define UI_LABEL  0x0203
+// Button control. Will call the buttons handler when activated.
 #define UI_BUTTON 0x0204
-#define UI_RADIO  0x0205
 
+// maximum number of items that may be added
 #define UI_MAX_ITEMS 4096
+// maximum size in bytes reserved for storage of application dependent data
+// as passed to uiItem().
 #define UI_MAX_BUFFERSIZE 1048576
+// maximum size in bytes of a single data buffer passed to uiItem().
 #define UI_MAX_DATASIZE 4096
+// maximum depth of nested containers
 #define UI_MAX_DEPTH 64
 
+// opaque UI context
 typedef struct UIcontext UIcontext;
+
+// application defined context handle
 typedef unsigned long long UIhandle;
 
+// handler callback
+typedef void (*UIhandler)(int item);
+
+// layout rectangle
 typedef struct UIrect {
     int x, y, w, h;
 } UIrect;
 
+// exemplary buffer of variable size to pass to the data argument of uiItem(); 
+// see uiItem() for more information.
 typedef struct UIdata {
     int size;
     unsigned char content[1];
 } UIdata;
 
+// unless declared otherwise, all operations have the complexity O(1).
+
+// create a new UI context; call uiMakeCurrent() to make this context the
+// current context.
 UIcontext *uiCreateContext();
+
+// select an UI context as the current context; a context must always be 
+// selected before using any of the other UI functions
 void uiMakeCurrent(UIcontext *ctx);
+
+// release the memory of an UI context created with uiCreateContext(); if the
+// context is the current context, the current context will be set to NULL
 void uiDestroyContext(UIcontext *ctx);
 
+// sets a mouse or gamepad button as pressed/released
+// button is in the range 0..63 and maps to an application defined input
+// source.
+// enabled is 1 for pressed, 0 for released
 void uiSetButton(int button, int enabled);
+
+// returns the current state of an application dependent input button
+// as set by uiSetButton().
+// the function returns 1 if the button has been set to pressed, 0 for released.
 int uiGetButton(int button);
 
+// sets the current cursor position (usually belonging to a mouse) to the
+// screen coordinates at (x,y)
 void uiSetCursor(int x, int y);
+
+// returns the current cursor position in screen coordinates as set by 
+// uiSetCursor()
 void uiGetCursor(int *x, int *y);
 
+// clear the item buffer; uiClear() should be called before each UI declaration
+// to avoid concatenation of the same UI multiple times.
+// After the call, all previously declared item IDs are invalid, and all
+// application dependent context data has been freed.
 void uiClear();
 
+// add a new UI item with size (w,h) and return the new items ID.
+// parent is the item ID of the containing item; an item ID of 0 refers to the
+// root item.
+// handle is an application defined 64-bit handle. If handle is 0, the item
+// will not be interactive.
+// kind is one of UI_COLUMN, UI_ROW, UI_LABEL, UI_BUTTON and influences the
+// items behavior in layouting and input handling.
+// If w or h are 0, the dimension is marked as dynamic and will be rescaled
+// accordingly by the containing element.
+// if data is not NULL, it points to an application defined buffer conforming
+// to the declaration of UIdata; The first element must always be a 32-bit 
+// integer denoting the size of the structure in bytes. The contents of data
+// will be copied and can be read back later using uiGetData(). The data
+// pointer passed to uiItem() is allowed to become invalid right after the call.
 int uiItem(int parent, UIhandle handle, int kind, 
-    int w, int h, void *data);
+    int w, int h, const void *data);
+
+// add a new UI item of type UI_COLUMN.
+// this is a shorthand of the equivalent call
+// int id = uiItem(parent,0,UI_COLUMN,0,0,NULL); uiSetSpacing(id, spacing);
 int uiColumn(int parent, int spacing);
+
+// this is a shorthand of the equivalent call
+// int id = uiItem(parent,0,UI_ROW,0,0,NULL); uiSetSpacing(id, spacing);
 int uiRow(int parent, int spacing);
 
+// layout all added items and update the internal state according to the
+// current cursor position and button states.
+// It is safe to immediately draw the items after a call to uiLayout().
+// this is an O(N) operation for N = number of declared items.
 void uiLayout();
 
+// returns the number of child items a container item contains. If the item 
+// is not a container or does not contain any items, 0 is returned.
+// if item is 0, the child item count of the root item will be returned.
+int uiGetChildCount(int item);
+
+// returns the first child item of a container item. If the item is not
+// a container or does not contain any items, -1 is returned.
+// if item is 0, the first child item of the root item will be returned.
 int uiFirstChild(int item);
+
+// returns the last child item of a container item. If the item is not
+// a container or does not contain any items, -1 is returned.
+// if item is 0, the last child item of the root item will be returned.
 int uiLastChild(int item);
-int uiNextSibling(int item);
+
+// returns an items parent container item.
+// if item is 0, -1 will be returned.
 int uiParent(int item);
 
+// returns an items child index relative to its parent. If the item is the
+// first item, the return value is 0; If the item is the last item, the return
+// value is equivalent to uiGetChildCount(uiParent(item))-1.
+// if item is 0, 0 will be returned.
+int uiGetChildId(int item);
+
+// returns an items next sibling in the list of the parent containers children.
+// if item is 0 or the item is the last child item, -1 will be returned.
+int uiNextSibling(int item);
+
+// assign a spacing value by which child items of a container items will be
+// separated. If item is not a container type, the call has no effect.
 void uiSetSpacing(int item, int spacing);
+
+// returns the current spacing value assigned to item by uiSetSpacing()
 int uiGetSpacing(int item);
 
+// returns the kind of the item as passed to uiItem().
+// The returned value is one of UI_COLUMN, UI_ROW, UI_LABEL, UI_BUTTON.
 int uiGetKind(int item);
+
+// returns the items layout rectangle relative to its parent. If uiGetRect()
+// is called before uiLayout(), the values of the returned rectangle are
+// undefined.
 UIrect uiGetRect(int item);
+
+// returns the items layout rectangle in absolute coordinates. If 
+// uiGetAbsoluteRect() is called before uiLayout(), the values of the returned
+// rectangle are undefined.
 UIrect uiGetScreenRect(int item);
+
+// explicitly assign a layout rectangle to an item; If uiSetRect() is called
+// after uiLayout(), behavior is undefined.
+// This function is primarily used to position the root element.
 void uiSetRect(int item, int x, int y, int w, int h);
-void *uiGetData(int item);
-int uiGetChildId(int item);
-int uiGetChildCount(int item);
+
+// return the application-dependent context data for an item as passed to
+// uiItem(). The memory of the pointer is managed by the UI context.
+const void *uiGetData(int item);
+
+// return the application-dependent handle of the item as passed to uiItem().
 int uiGetHandle(int item);
+
+// return the current state of the item.
+// The returned value is one of UI_COLD, UI_HOT, UI_ACTIVE.
 int uiGetState(int item);
+
+// set the handler callback for an interactive item. The meaning of the
+// callback is dependent on the item kind.
+void uiSetHandler(int item, UIhandler handler);
 
 #endif // _UI_H_
 
+#define UI_IMPLEMENTATION
 #ifdef UI_IMPLEMENTATION
 
 #include <assert.h>
@@ -112,23 +247,40 @@ int uiGetState(int item);
 #define UI_MAX_KIND 16
 
 typedef struct UIitem {
-    UIhandle handle;
-    int parent;
+    // container structure
+    
     // number of kids
     int numkids;
-    // index of kid relative to parent
-    int kidid;
-    UIrect rect;
-    int absx,absy;
-    int kind;
-    int data;
-    int spacing;
     // index of first kid
     int firstkid;
     // index of last kid
     int lastkid;
+    
+    // child structure
+    
+    // parent item
+    int parent;
+    // index of kid relative to parent
+    int kidid;
     // index of next sibling with same parent
     int nextitem;
+    
+    // attributes
+    
+    // declaration independent unique handle (for persistence)
+    UIhandle handle;
+    // layout rectangle
+    UIrect rect;
+    // absolute position
+    int absx,absy;
+    // widget type
+    int kind;
+    // index of data or -1 for none
+    int data;
+    // layouting containers: spacing between items
+    int spacing;
+    // handler
+    UIhandler handler;
 } UIitem;
 
 struct UIcontext {
@@ -154,10 +306,13 @@ UIcontext *uiCreateContext() {
 
 void uiMakeCurrent(UIcontext *ctx) {
     ui_context = ctx;
-    uiClear();
+    if (ui_context)
+        uiClear();
 }
 
 void uiDestroyContext(UIcontext *ctx) {
+    if (ui_context == ctx)
+        uiMakeCurrent(NULL);
     free(ctx);
 }
 
@@ -208,7 +363,7 @@ void uiClear() {
     item->data = -1;
 }
 
-int uiAllocItem(int parent, UIhandle handle, int kind, void *data) {
+int uiAllocItem(int parent, UIhandle handle, int kind, const void *data) {
     assert(ui_context && (ui_context->count < UI_MAX_ITEMS));
     assert(parent >= 0);
     int idx = ui_context->count++;
@@ -240,7 +395,7 @@ int uiAllocItem(int parent, UIhandle handle, int kind, void *data) {
     return idx;
 }
 
-int uiItem(int parent, UIhandle handle, int kind, int w, int h, void *data) {
+int uiItem(int parent, UIhandle handle, int kind, int w, int h, const void *data) {
     int idx = uiAllocItem(parent, handle, kind, data);
     UIitem *item = uiItemPtr(idx);
     item->rect.w = w;
@@ -308,7 +463,7 @@ int uiGetKind(int item) {
     return uiItemPtr(item)->kind;
 }
 
-void *uiGetData(int item) {
+const void *uiGetData(int item) {
     UIitem *pitem = uiItemPtr(item);
     if (pitem->data < 0) return NULL;
     return ui_context->data + pitem->data;
@@ -316,6 +471,10 @@ void *uiGetData(int item) {
 
 int uiGetHandle(int item) {
     return uiItemPtr(item)->handle;
+}
+
+void uiSetHandler(int item, UIhandler handler) {
+    uiItemPtr(item)->handler = handler;
 }
 
 int uiGetChildId(int item) {
@@ -326,19 +485,17 @@ int uiGetChildCount(int item) {
     return uiItemPtr(item)->numkids;
 }
 
-void uiLayoutItem(int item, int x, int y);
-void uiLayoutChildren(int item, int x, int y) {
+void uiLayoutItem(int item);
+void uiLayoutChildren(int item) {
     int kid = uiFirstChild(item);
     while (kid > 0) {
-        uiLayoutItem(kid, x, y);
+        uiLayoutItem(kid);
         kid = uiNextSibling(kid);
     }
 }
 
-void uiLayoutItem(int item, int x, int y) {
+void uiLayoutItem(int item) {
     UIrect rect = uiGetRect(item);
-    rect.x += x;
-    rect.y += y;
     
     switch(uiGetKind(item)) {
         case UI_COLUMN:
@@ -352,7 +509,7 @@ void uiLayoutItem(int item, int x, int y) {
                 kid = uiNextSibling(kid);
             }
             
-            uiLayoutChildren(item, rect.x, rect.y);
+            uiLayoutChildren(item);
             
             int spacing = uiItemPtr(item)->spacing;
             int h = -spacing;
@@ -415,7 +572,7 @@ void uiLayoutItem(int item, int x, int y) {
                 kid = uiNextSibling(kid);
             }
             
-            uiLayoutChildren(item, rect.x, rect.y);
+            uiLayoutChildren(item);
 
             // adjust row height to tallest child
             kid = uiFirstChild(item);
@@ -460,7 +617,7 @@ void uiUpdateItemState(int item, int x, int y) {
 }
 
 void uiLayout() {
-    uiLayoutItem(0, 0, 0);
+    uiLayoutItem(0);
     uiUpdateItemState(0, 0, 0);
     if (!uiGetButton(0)) {
         ui_context->active = 0;
