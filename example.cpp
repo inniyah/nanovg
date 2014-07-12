@@ -34,6 +34,8 @@ typedef enum {
     ST_COLUMN = 4,
     // row
     ST_ROW = 5,
+    // check button
+    ST_CHECK = 6,
 } SubType;
 
 typedef struct {
@@ -45,6 +47,12 @@ typedef struct {
     int iconid;
     const char *label;
 } UIButtonData;
+
+typedef struct {
+    UIData head;
+    const char *label;
+    int *option;
+} UICheckData;
 
 typedef struct {
     UIData head;
@@ -125,6 +133,14 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
                     cornerFlags(item),(BNDwidgetState)uiGetState(item),
                     data->iconid,data->label);
             } break;
+            case ST_CHECK: {
+                const UICheckData *data = (UICheckData*)head;
+                BNDwidgetState state = (BNDwidgetState)uiGetState(item);
+                if (*data->option)
+                    state = BND_ACTIVE;
+                bndOptionButton(vg,rect.x,rect.y,rect.w,rect.h, state,
+                    data->label);
+            } break;
             case ST_RADIO:{
                 const UIRadioData *data = (UIRadioData*)head;
                 BNDwidgetState state = (BNDwidgetState)uiGetState(item);
@@ -187,6 +203,30 @@ int button(int parent, UIhandle handle, int iconid, const char *label,
     data->head.subtype = ST_BUTTON;
     data->iconid = iconid;
     data->label = label;
+    uiAppend(parent, item);
+    return item;
+}
+
+void checkhandler(int item, UIevent event) {
+    const UICheckData *data = (const UICheckData *)uiGetData(item);
+    *data->option = !(*data->option);
+}
+
+int check(int parent, UIhandle handle, const char *label, int *option) {
+    // create new ui item
+    int item = uiItem(); 
+    // set persistent handle for item that is used
+    // to track activity over time
+    uiSetHandle(item, handle);
+    // set size of wiget; horizontal size is dynamic, vertical is fixed
+    uiSetSize(item, 0, BND_WIDGET_HEIGHT);
+    // attach event handler e.g. demohandler above
+    uiSetHandler(item, checkhandler, UI_BUTTON0_DOWN);
+    // store some custom data with the button that we use for styling
+    UICheckData *data = (UICheckData *)uiAllocData(item, sizeof(UICheckData));
+    data->head.subtype = ST_CHECK;
+    data->label = label;
+    data->option = option;
     uiAppend(parent, item);
     return item;
 }
@@ -568,6 +608,12 @@ void draw(NVGcontext *vg, float w, float h) {
     }
     
     button(col, 11, BND_ICONID(6,3), "Item 5", NULL);
+    
+    static int option1,option2,option3;
+    
+    check(col, 12, "Item 6", &option1);
+    check(col, 13, "Item 7", &option2);
+    check(col, 14, "Item 8", &option3);
     
     uiProcess();
     
