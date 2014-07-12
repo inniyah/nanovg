@@ -30,6 +30,10 @@ typedef enum {
     ST_RADIO = 2,
     // progress slider 
     ST_SLIDER = 3,
+    // column
+    ST_COLUMN = 4,
+    // row
+    ST_ROW = 5,
 } SubType;
 
 typedef struct {
@@ -66,24 +70,37 @@ void init(NVGcontext *vg) {
 // the container the item is in has negative spacing, and the item
 // is first or last element in a sequence of 2 or more elements.
 int cornerFlags(int item) {
-    /*
     int parent = uiParent(item);
-    int spacing = uiGetSpacing(parent);
-    if (spacing >= 0) return BND_CORNER_NONE;
     int numkids = uiGetChildCount(parent);
-    int numid = uiGetChildId(item);
     if (numkids < 2) return BND_CORNER_NONE;
-    UIuvec2 flags = uiGetLayoutFlags(parent);
-    if (flags.x & UI_LAYOUT_PACK) {
-        if (!numid) return BND_CORNER_RIGHT;
-        else if (numid == numkids-1) return BND_CORNER_LEFT;
-        else return BND_CORNER_ALL;
-    } else if (flags.y & UI_LAYOUT_PACK) {
-        if (!numid) return BND_CORNER_DOWN;
-        else if (numid == numkids-1) return BND_CORNER_TOP;
-        else return BND_CORNER_ALL;
-    }*/
+    const UIData *head = (const UIData *)uiGetData(parent);
+    if (head) {
+        int numid = uiGetChildId(item);
+        switch(head->subtype) {
+        case ST_COLUMN: {
+                if (!numid) return BND_CORNER_DOWN;
+                else if (numid == numkids-1) return BND_CORNER_TOP;
+                else return BND_CORNER_ALL;
+        } break;
+        case ST_ROW: {
+                if (!numid) return BND_CORNER_RIGHT;
+                else if (numid == numkids-1) return BND_CORNER_LEFT;
+                else return BND_CORNER_ALL;
+        } break;
+        default: break;
+        }
+    }
     return BND_CORNER_NONE;
+}
+
+void testrect(NVGcontext *vg, UIrect rect) {
+#if 0    
+    nvgBeginPath(vg);
+    nvgRect(vg,rect.x+0.5,rect.y+0.5,rect.w-1,rect.h-1);
+    nvgStrokeColor(vg,nvgRGBf(1,0,0));
+    nvgStrokeWidth(vg,1);
+    nvgStroke(vg);    
+#endif    
 }
 
 void drawUI(NVGcontext *vg, int item, int x, int y) {
@@ -93,7 +110,9 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
     rect.y += y; 
     if (head) {
         switch(head->subtype) {
-            default:
+            default: {
+                testrect(vg,rect);
+            } break;
             case ST_LABEL: {
                 assert(head);
                 const UIButtonData *data = (UIButtonData*)head;
@@ -126,11 +145,7 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
             } break;
         }
     } else {
-        nvgBeginPath(vg);
-        nvgRect(vg,rect.x+0.5,rect.y+0.5,rect.w-1,rect.h-1);
-        nvgStrokeColor(vg,nvgRGBf(1,0,0));
-        nvgStrokeWidth(vg,1);
-        nvgStroke(vg);
+        testrect(vg,rect);
     }
     
     int kid = uiFirstChild(item);
@@ -140,58 +155,92 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
     }
 }
 
-int label(int iconid, const char *label) {    
+int label(int parent, int iconid, const char *label) {    
     int item = uiItem();
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     UIButtonData *data = (UIButtonData *)uiAllocData(item, sizeof(UIButtonData));
     data->head.subtype = ST_LABEL;
     data->iconid = iconid;
     data->label = label;
+    uiAppend(parent, item);
     return item;
 }
 
-int button(UIhandle handle, int iconid, const char *label, 
+void demohandler(int item, UIevent event) {
+    const UIButtonData *data = (const UIButtonData *)uiGetData(item);
+    printf("clicked: %lld %s\n", uiGetHandle(item), data->label);
+}
+
+int button(int parent, UIhandle handle, int iconid, const char *label, 
     UIhandler handler) {
-    int item = uiItem();
+    // create new ui item
+    int item = uiItem(); 
+    // set persistent handle for item that is used
+    // to track activity over time
     uiSetHandle(item, handle);
+    // set size of wiget; horizontal size is dynamic, vertical is fixed
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
+    // attach event handler e.g. demohandler above
     uiSetHandler(item, handler, UI_BUTTON0_HOT_UP);
+    // store some custom data with the button that we use for styling
     UIButtonData *data = (UIButtonData *)uiAllocData(item, sizeof(UIButtonData));
     data->head.subtype = ST_BUTTON;
     data->iconid = iconid;
     data->label = label;
+    uiAppend(parent, item);
     return item;
 }
 
 // simple logic for a slider
+
+// starting offset of the currently active slider
 static float sliderstart = 0.0;
+
+// event handler for slider (same handler for all sliders)
 void sliderhandler(int item, UIevent event) {
+    // retrieve the custom data we saved with the slider
     UISliderData *data = (UISliderData *)uiGetData(item);
     switch(event) {
         default: break;
         case UI_BUTTON0_DOWN: {
+            // button was pressed for the first time; capture initial
+            // slider value.
             sliderstart = *data->progress;
         } break;
         case UI_BUTTON0_CAPTURE: {
+            // called for every frame that the button is pressed.
+            // get the delta between the click point and the current
+            // mouse position
             UIvec2 pos = uiGetCursorStartDelta();
+            // get the items layouted rectangle
             UIrect rc = uiGetRect(item);
+            // calculate our new offset and clamp
             float value = sliderstart + ((float)pos.x / (float)rc.w);
             value = (value<0)?0:(value>1)?1:value;
+            // assign the new value
             *data->progress = value;
         } break;
     }
 }
 
-int slider(UIhandle handle, const char *label, float *progress) {
+int slider(int parent, UIhandle handle, const char *label, float *progress) {
+    // create new ui item
     int item = uiItem();
+    // set persistent handle for item that is used
+    // to track activity over time
     uiSetHandle(item, handle);
+    // set size of wiget; horizontal size is dynamic, vertical is fixed
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
+    // attach our slider event handler and capture two classes of events
     uiSetHandler(item, sliderhandler, 
         UI_BUTTON0_DOWN | UI_BUTTON0_CAPTURE);
+    // store some custom data with the button that we use for styling
+    // and logic, e.g. the pointer to the data we want to alter.
     UISliderData *data = (UISliderData *)uiAllocData(item, sizeof(UISliderData));
     data->head.subtype = ST_SLIDER;
     data->label = label;
     data->progress = progress;
+    uiAppend(parent, item);
     return item;
 }
 
@@ -201,7 +250,7 @@ void radiohandler(int item, UIevent event) {
     *data->value = uiGetChildId(item);
 }
 
-int radio(UIhandle handle, int iconid, const char *label, int *value) {
+int radio(int parent, UIhandle handle, int iconid, const char *label, int *value) {
     int item = uiItem();
     uiSetHandle(item, handle);
     uiSetSize(item, label?0:BND_TOOL_WIDTH, BND_WIDGET_HEIGHT);
@@ -211,30 +260,82 @@ int radio(UIhandle handle, int iconid, const char *label, int *value) {
     data->label = label;
     data->value = value;
     uiSetHandler(item, radiohandler, UI_BUTTON0_DOWN);
+    uiAppend(parent, item);
     return item;
 }
 
-int addVList(int parent, int item) {
-    int last = uiLastChild(parent);
-    uiSetRelativeTo(item, -1, last, -1, -1);
+void columnhandler(int parent, UIevent event) {
+    int item = uiLastChild(parent);
+    int last = uiPrevSibling(item);
+    // mark the new item as positioned under the previous item
+    uiSetRelToTop(item, last);
+    // fill parent horizontally, anchor to previous item vertically
     uiSetLayout(item, UI_HFILL|UI_TOP);
-    uiSetParent(item, parent);
+    // if not the first item, add a margin of 1
     uiSetMargins(item, 0, (last < 0)?0:1, 0, 0);
+}
+
+int column(int parent) {
+    int item = uiItem();
+    uiSetHandler(item, columnhandler, UI_APPEND);
+    uiAppend(parent, item);
     return item;
 }
 
-int addHGroup(int parent, int item) {
-    int last = uiLastChild(parent);
-    uiSetRelativeTo(item, last, -1, -1, -1);
-    uiSetLayout(item, UI_LEFT);
-    uiSetParent(item, parent);
+void vgrouphandler(int parent, UIevent event) {
+    int item = uiLastChild(parent);
+    int last = uiPrevSibling(item);
+    // mark the new item as positioned under the previous item
+    uiSetRelToTop(item, last);
+    // fill parent horizontally, anchor to previous item vertically
+    uiSetLayout(item, UI_HFILL|UI_TOP);
+    // if not the first item, add a margin
+    uiSetMargins(item, 0, (last < 0)?0:-2, 0, 0);
+}
+
+int vgroup(int parent) {
+    int item = uiItem();
+    UIData *data = (UIData *)uiAllocData(item, sizeof(UIData));
+    data->subtype = ST_COLUMN;
+    uiSetHandler(item, vgrouphandler, UI_APPEND);
+    uiAppend(parent, item);
+    return item;
+}
+
+void hgrouphandler(int parent, UIevent event) {
+    int item = uiLastChild(parent);
+    int last = uiPrevSibling(item);
+    uiSetRelToLeft(item, last);
+    if (last > 0)
+        uiSetRelToRight(last, item);
+    uiSetLayout(item, UI_LEFT|UI_RIGHT);
     uiSetMargins(item, (last < 0)?0:-1, 0, 0, 0);
+}
+
+int hgroup(int parent) {
+    int item = uiItem();
+    UIData *data = (UIData *)uiAllocData(item, sizeof(UIData));
+    data->subtype = ST_ROW;
+    uiSetHandler(item, hgrouphandler, UI_APPEND);
+    uiAppend(parent, item);
     return item;
 }
 
-void demohandler(int item, UIevent event) {
-    const UIButtonData *data = (const UIButtonData *)uiGetData(item);
-    printf("clicked: %lld %s\n", uiGetHandle(item), data->label);
+void rowhandler(int parent, UIevent event) {
+    int item = uiLastChild(parent);
+    int last = uiPrevSibling(item);
+    uiSetRelToLeft(item, last);
+    if (last > 0)
+        uiSetRelToRight(last, item);
+    uiSetLayout(item, UI_LEFT|UI_RIGHT);
+    uiSetMargins(item, (last < 0)?0:8, 0, 0, 0);
+}
+
+int row(int parent) {
+    int item = uiItem();
+    uiSetHandler(item, rowhandler, UI_APPEND);
+    uiAppend(parent, item);
+    return item;
 }
 
 void draw(NVGcontext *vg, float w, float h) {
@@ -427,31 +528,28 @@ void draw(NVGcontext *vg, float w, float h) {
     
     uiClear();
     
+    int root = uiItem(); 
     // position root element
     uiSetLayout(0,UI_LEFT|UI_TOP);
     uiSetMargins(0,600,10,0,0);
     uiSetSize(0,250,400);
     
-    int c = button(1, BND_ICONID(6,3), "Item 1", demohandler);
-    uiSetParent(c, 0);
-    uiSetSize(c, 100, 100);
-    uiSetLayout(c, UI_CENTER);
+    int col = column(0);
+    uiSetLayout(col, UI_TOP|UI_HFILL);
     
-    
-    addVList(0, button(1, BND_ICONID(6,3), "Item 1", demohandler));
-    addVList(0, button(2, BND_ICONID(6,3), "Item 2", demohandler));
+    button(col, 1, BND_ICONID(6,3), "Item 1", demohandler);
+    button(col, 2, BND_ICONID(6,3), "Item 2", demohandler);
     
     static int enum1 = 0;
     
     {
-        int h = addVList(0, uiItem());
-        addHGroup(h, radio(3, BND_ICONID(6,3), "Item 3.0", &enum1));
-        addHGroup(h, radio(4, BND_ICONID(0,10), NULL, &enum1));
-        addHGroup(h, radio(5, BND_ICONID(1,10), NULL, &enum1));
-        addHGroup(h, radio(6, BND_ICONID(6,3), "Item 3.3", &enum1));
+        int h = hgroup(col);
+        radio(h, 3, BND_ICONID(6,3), "Item 3.0", &enum1);
+        radio(h, 4, BND_ICONID(0,10), NULL, &enum1);
+        radio(h, 5, BND_ICONID(1,10), NULL, &enum1);
+        radio(h, 6, BND_ICONID(6,3), "Item 3.3", &enum1);
     }
     
-    /*
     static float progress1 = 0.25f;
     static float progress2 = 0.75f;
     
@@ -470,7 +568,6 @@ void draw(NVGcontext *vg, float w, float h) {
     }
     
     button(col, 11, BND_ICONID(6,3), "Item 5", NULL);
-    */
     
     uiProcess();
     
