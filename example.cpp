@@ -22,18 +22,38 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 typedef enum {
-    // default
-    ST_DEFAULT = 0,
+    // label
+    ST_LABEL = 0,
+    // button
+    ST_BUTTON = 1,
     // radio button
-    ST_RADIO = 1,
+    ST_RADIO = 2,
+    // progress slider 
+    ST_SLIDER = 3,
 } SubType;
 
 typedef struct {
-    int size;
     int subtype;
+} UIData;
+
+typedef struct {
+    UIData head;
     int iconid;
     const char *label;
-} UIData;
+} UIButtonData;
+
+typedef struct {
+    UIData head;
+    int iconid;
+    const char *label;
+    int *value;
+} UIRadioData;
+
+typedef struct {
+    UIData head;
+    const char *label;
+    float *progress;
+} UISliderData;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -42,58 +62,75 @@ void init(NVGcontext *vg) {
     bndSetIconImage(nvgCreateImage(vg, "../blender_icons16.png"));
 }
 
+// calculate which corners are sharp for an item, depending on whether
+// the container the item is in has negative spacing, and the item
+// is first or last element in a sequence of 2 or more elements.
 int cornerFlags(int item) {
+    /*
     int parent = uiParent(item);
     int spacing = uiGetSpacing(parent);
     if (spacing >= 0) return BND_CORNER_NONE;
     int numkids = uiGetChildCount(parent);
     int numid = uiGetChildId(item);
-    if (numkids == 0) return BND_CORNER_NONE;
-    switch(uiGetKind(parent)) {
-        case UI_COLUMN: {
-            if (!numid) return BND_CORNER_DOWN;
-            else if (numid == numkids-1) return BND_CORNER_TOP;
-            else return BND_CORNER_ALL;
-        } break;
-        case UI_ROW: {
-            if (!numid) return BND_CORNER_RIGHT;
-            else if (numid == numkids-1) return BND_CORNER_LEFT;
-            else return BND_CORNER_ALL;
-        } break;
-        default: break;
-    }
+    if (numkids < 2) return BND_CORNER_NONE;
+    UIuvec2 flags = uiGetLayoutFlags(parent);
+    if (flags.x & UI_LAYOUT_PACK) {
+        if (!numid) return BND_CORNER_RIGHT;
+        else if (numid == numkids-1) return BND_CORNER_LEFT;
+        else return BND_CORNER_ALL;
+    } else if (flags.y & UI_LAYOUT_PACK) {
+        if (!numid) return BND_CORNER_DOWN;
+        else if (numid == numkids-1) return BND_CORNER_TOP;
+        else return BND_CORNER_ALL;
+    }*/
     return BND_CORNER_NONE;
 }
 
 void drawUI(NVGcontext *vg, int item, int x, int y) {
-    const UIData *data = (const UIData *)uiGetData(item);
+    const UIData *head = (const UIData *)uiGetData(item);
     UIrect rect = uiGetRect(item);
     rect.x += x;
-    rect.y += y;
-    
-    switch(uiGetKind(item)) {
-        case UI_LABEL: {
-            assert(data);
-            bndLabel(vg,rect.x,rect.y,rect.w,rect.h,
-                data->iconid,data->label);
-        } break;
-        case UI_BUTTON: {
-            assert(data);
-            switch(data->subtype) {
-                default: {
-                    bndToolButton(vg,rect.x,rect.y,rect.w,rect.h,
-                        cornerFlags(item),(BNDwidgetState)uiGetState(item),
-                        data->iconid,data->label);
-                } break;
-                case ST_RADIO:{
-                    BNDwidgetState state = (BNDwidgetState)uiGetState(item);
-                    bndRadioButton(vg,rect.x,rect.y,rect.w,rect.h,
-                        cornerFlags(item),state,
-                        data->iconid,data->label);
-                } break;
-            }
-        } break;
-        default: break;
+    rect.y += y; 
+    if (head) {
+        switch(head->subtype) {
+            default:
+            case ST_LABEL: {
+                assert(head);
+                const UIButtonData *data = (UIButtonData*)head;
+                bndLabel(vg,rect.x,rect.y,rect.w,rect.h,
+                    data->iconid,data->label);
+            } break;
+            case ST_BUTTON: {
+                const UIButtonData *data = (UIButtonData*)head;
+                bndToolButton(vg,rect.x,rect.y,rect.w,rect.h,
+                    cornerFlags(item),(BNDwidgetState)uiGetState(item),
+                    data->iconid,data->label);
+            } break;
+            case ST_RADIO:{
+                const UIRadioData *data = (UIRadioData*)head;
+                BNDwidgetState state = (BNDwidgetState)uiGetState(item);
+                if (*data->value == uiGetChildId(item))
+                    state = BND_ACTIVE;
+                bndRadioButton(vg,rect.x,rect.y,rect.w,rect.h,
+                    cornerFlags(item),state,
+                    data->iconid,data->label);
+            } break;
+            case ST_SLIDER:{
+                const UISliderData *data = (UISliderData*)head;
+                BNDwidgetState state = (BNDwidgetState)uiGetState(item);
+                static char value[32];
+                sprintf(value,"%.0f%%",(*data->progress)*100.0f);
+                bndSlider(vg,rect.x,rect.y,rect.w,rect.h,
+                    cornerFlags(item),state,
+                    *data->progress,data->label,value);
+            } break;
+        }
+    } else {
+        nvgBeginPath(vg);
+        nvgRect(vg,rect.x+0.5,rect.y+0.5,rect.w-1,rect.h-1);
+        nvgStrokeColor(vg,nvgRGBf(1,0,0));
+        nvgStrokeWidth(vg,1);
+        nvgStroke(vg);
     }
     
     int kid = uiFirstChild(item);
@@ -103,39 +140,100 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
     }
 }
 
-int label(int parent, int iconid, const char *label) {
-    UIData data = { sizeof(UIData), ST_DEFAULT, iconid, label };
-    return uiItem(parent, 0, UI_LABEL, 0, BND_WIDGET_HEIGHT, &data);
+int label(int iconid, const char *label) {    
+    int item = uiItem();
+    uiSetSize(item, 0, BND_WIDGET_HEIGHT);
+    UIButtonData *data = (UIButtonData *)uiAllocData(item, sizeof(UIButtonData));
+    data->head.subtype = ST_LABEL;
+    data->iconid = iconid;
+    data->label = label;
+    return item;
 }
 
-int button(int parent, UIhandle handle, int iconid, const char *label, 
+int button(UIhandle handle, int iconid, const char *label, 
     UIhandler handler) {
-    UIData data = { sizeof(UIData), ST_DEFAULT, iconid, label };
-    int item = uiItem(parent, handle, UI_BUTTON, 0, BND_WIDGET_HEIGHT, &data);
-    uiSetHandler(item, handler);
+    int item = uiItem();
+    uiSetHandle(item, handle);
+    uiSetSize(item, 0, BND_WIDGET_HEIGHT);
+    uiSetHandler(item, handler, UI_BUTTON0_HOT_UP);
+    UIButtonData *data = (UIButtonData *)uiAllocData(item, sizeof(UIButtonData));
+    data->head.subtype = ST_BUTTON;
+    data->iconid = iconid;
+    data->label = label;
     return item;
 }
 
-static UIhandle radio_handle = 0;
-
-void radiohandler(int item) {
-    radio_handle = uiGetHandle(item);
-    uiSetActive(item, 1);
+// simple logic for a slider
+static float sliderstart = 0.0;
+void sliderhandler(int item, UIevent event) {
+    UISliderData *data = (UISliderData *)uiGetData(item);
+    switch(event) {
+        default: break;
+        case UI_BUTTON0_DOWN: {
+            sliderstart = *data->progress;
+        } break;
+        case UI_BUTTON0_CAPTURE: {
+            UIvec2 pos = uiGetCursorStartDelta();
+            UIrect rc = uiGetRect(item);
+            float value = sliderstart + ((float)pos.x / (float)rc.w);
+            value = (value<0)?0:(value>1)?1:value;
+            *data->progress = value;
+        } break;
+    }
 }
 
-int radio(int parent, UIhandle handle, int iconid, const char *label) {
-    UIData data = { sizeof(UIData), ST_RADIO, iconid, label };
-    int w = (label)?0:BND_TOOL_WIDTH;
-    int item = uiItem(parent, handle, UI_BUTTON, w, BND_WIDGET_HEIGHT, &data);
-    uiSetHandler(item, radiohandler);
-    uiSetEarlyHandler(item, true);
-    if (radio_handle == handle)
-        uiSetActive(item, 1);    
+int slider(UIhandle handle, const char *label, float *progress) {
+    int item = uiItem();
+    uiSetHandle(item, handle);
+    uiSetSize(item, 0, BND_WIDGET_HEIGHT);
+    uiSetHandler(item, sliderhandler, 
+        UI_BUTTON0_DOWN | UI_BUTTON0_CAPTURE);
+    UISliderData *data = (UISliderData *)uiAllocData(item, sizeof(UISliderData));
+    data->head.subtype = ST_SLIDER;
+    data->label = label;
+    data->progress = progress;
     return item;
 }
 
-void demohandler(int item) {
-    const UIData *data = (const UIData *)uiGetData(item);
+// simple logic for a radio button
+void radiohandler(int item, UIevent event) {
+    UIRadioData *data = (UIRadioData *)uiGetData(item);
+    *data->value = uiGetChildId(item);
+}
+
+int radio(UIhandle handle, int iconid, const char *label, int *value) {
+    int item = uiItem();
+    uiSetHandle(item, handle);
+    uiSetSize(item, label?0:BND_TOOL_WIDTH, BND_WIDGET_HEIGHT);
+    UIRadioData *data = (UIRadioData *)uiAllocData(item, sizeof(UIRadioData));
+    data->head.subtype = ST_RADIO;
+    data->iconid = iconid;
+    data->label = label;
+    data->value = value;
+    uiSetHandler(item, radiohandler, UI_BUTTON0_DOWN);
+    return item;
+}
+
+int addVList(int parent, int item) {
+    int last = uiLastChild(parent);
+    uiSetRelativeTo(item, -1, last, -1, -1);
+    uiSetLayout(item, UI_HFILL|UI_TOP);
+    uiSetParent(item, parent);
+    uiSetMargins(item, 0, (last < 0)?0:1, 0, 0);
+    return item;
+}
+
+int addHGroup(int parent, int item) {
+    int last = uiLastChild(parent);
+    uiSetRelativeTo(item, last, -1, -1, -1);
+    uiSetLayout(item, UI_LEFT);
+    uiSetParent(item, parent);
+    uiSetMargins(item, (last < 0)?0:-1, 0, 0, 0);
+    return item;
+}
+
+void demohandler(int item, UIevent event) {
+    const UIButtonData *data = (const UIButtonData *)uiGetData(item);
     printf("clicked: %lld %s\n", uiGetHandle(item), data->label);
 }
 
@@ -329,34 +427,50 @@ void draw(NVGcontext *vg, float w, float h) {
     
     uiClear();
     
-    uiSetRect(0,600,10,250,400);
-
-    int col = uiColumn(0,1);
-    button(col, 1, BND_ICONID(6,3), "Item 1", demohandler);
-    button(col, 2, BND_ICONID(6,3), "Item 2", demohandler);
-    {
-        int row = uiRow(col,-1);
-        radio(row, 3, BND_ICONID(6,3), "Item 3.0");
-        radio(row, 4, BND_ICONID(0,10), NULL);
-        radio(row, 5, BND_ICONID(1,10), NULL);
-        radio(row, 6, BND_ICONID(6,3), "Item 3.3");
-    }
+    // position root element
+    uiSetLayout(0,UI_LEFT|UI_TOP);
+    uiSetMargins(0,600,10,0,0);
+    uiSetSize(0,250,400);
+    
+    int c = button(1, BND_ICONID(6,3), "Item 1", demohandler);
+    uiSetParent(c, 0);
+    uiSetSize(c, 100, 100);
+    uiSetLayout(c, UI_CENTER);
+    
+    
+    addVList(0, button(1, BND_ICONID(6,3), "Item 1", demohandler));
+    addVList(0, button(2, BND_ICONID(6,3), "Item 2", demohandler));
+    
+    static int enum1 = 0;
     
     {
-        int row = uiRow(col,8);
-        int coll = uiColumn(row,-2);
+        int h = addVList(0, uiItem());
+        addHGroup(h, radio(3, BND_ICONID(6,3), "Item 3.0", &enum1));
+        addHGroup(h, radio(4, BND_ICONID(0,10), NULL, &enum1));
+        addHGroup(h, radio(5, BND_ICONID(1,10), NULL, &enum1));
+        addHGroup(h, radio(6, BND_ICONID(6,3), "Item 3.3", &enum1));
+    }
+    
+    /*
+    static float progress1 = 0.25f;
+    static float progress2 = 0.75f;
+    
+    {
+        int rows = row(col);
+        int coll = vgroup(rows);
         label(coll, -1, "Items 4.0:");
-        coll = uiColumn(coll,-2);
+        coll = vgroup(coll);
         button(coll, 7, BND_ICONID(6,3), "Item 4.0.0", demohandler);
         button(coll, 8, BND_ICONID(6,3), "Item 4.0.1", demohandler);
-        int colr = uiColumn(row,-2);
+        int colr = vgroup(rows);
         label(colr, -1, "Items 4.1:");
-        colr = uiColumn(colr,-2);
-        button(colr, 9, BND_ICONID(6,3), "Item 4.1.0", demohandler);
-        button(colr,10, BND_ICONID(6,3), "Item 4.1.1", demohandler);
+        colr = vgroup(colr);
+        slider(colr, 9, "Item 4.1.0", &progress1);
+        slider(colr,10, "Item 4.1.1", &progress2);
     }
     
     button(col, 11, BND_ICONID(6,3), "Item 5", NULL);
+    */
     
     uiProcess();
     
@@ -413,7 +527,7 @@ int main()
 #endif
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 
-	window = glfwCreateWindow(1000, 600, "Blendish Demo", NULL, NULL);
+	window = glfwCreateWindow(1000, 600, "OUI Blendish Demo", NULL, NULL);
 	if (!window) {
 		glfwTerminate();
 		return -1;
