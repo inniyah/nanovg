@@ -16,7 +16,7 @@
 #define BLENDISH_IMPLEMENTATION
 #include "blendish.h"
 
-#define UI_IMPLEMENTATION
+#define OUI_IMPLEMENTATION
 #include "oui.h"
 
 ////////////////////////////////////////////////////////////////////////////////
