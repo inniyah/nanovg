@@ -310,6 +310,9 @@ UIvec2 uiGetCursor();
 // returns the offset of the cursor relative to the last call to uiProcess()
 UIvec2 uiGetCursorDelta();
 
+// returns the beginning point of a drag operation.
+UIvec2 uiGetCursorStart();
+
 // returns the offset of the cursor relative to the beginning point of a drag
 // operation.
 UIvec2 uiGetCursorStartDelta();
@@ -468,6 +471,11 @@ int uiGetChildId(int item);
 // undefined.
 UIrect uiGetRect(int item);
 
+// when called from an input event handler, returns the active items absolute
+// layout rectangle. If uiGetActiveRect() is called outside of a handler,
+// the values of the returned rectangle are undefined.
+UIrect uiGetActiveRect();
+
 // return the width of the item as set by uiSetSize()
 int uiGetWidth(int item);
 // return the height of the item as set by uiSetSize()
@@ -593,6 +601,8 @@ struct UIcontext {
     UIhandle active_handle;
     int hot_item;
     int active_item;
+    UIrect hot_rect;
+    UIrect active_rect;
     UIstate state;
     
     int count;    
@@ -667,6 +677,11 @@ void uiSetCursor(int x, int y) {
 UIvec2 uiGetCursor() {
     assert(ui_context);
     return ui_context->cursor;
+}
+
+UIvec2 uiGetCursorStart() {
+    assert(ui_context);
+    return ui_context->start_cursor;
 }
 
 UIvec2 uiGetCursorDelta() {
@@ -984,6 +999,11 @@ UIrect uiGetRect(int item) {
     return uiItemPtr(item)->rect;
 }
 
+UIrect uiGetActiveRect() {
+    assert(ui_context);
+    return ui_context->active_rect;
+}
+
 int uiFirstChild(int item) {
     return uiItemPtr(item)->firstkid;
 }
@@ -1056,22 +1076,27 @@ int uiGetChildCount(int item) {
     return uiItemPtr(item)->numkids;
 }
 
-int uiFindItem(int item, int x, int y) {
+int uiFindItem(int item, int x, int y, int ox, int oy) {
     UIitem *pitem = uiItemPtr(item);
     if (pitem->frozen) return -1;
     UIrect rect = pitem->rect;
     x -= rect.x;
     y -= rect.y;
+    ox += rect.x;
+    oy += rect.y;
     if ((x>=0)
      && (y>=0)
      && (x<rect.w)
      && (y<rect.h)) {
         int kid = uiFirstChild(item);
         while (kid >= 0) {
-            int best_hit = uiFindItem(kid,x,y);
+            int best_hit = uiFindItem(kid,x,y,ox,oy);
             if (best_hit >= 0) return best_hit;
             kid = uiNextSibling(kid);
         }
+        rect.x += ox;
+        rect.y += oy;
+        ui_context->hot_rect = rect;
         return item;
     }
     return -1;
@@ -1084,15 +1109,16 @@ void uiProcess() {
     uiItemPtr(0)->rect.x = uiItemPtr(0)->margins[0];
     uiItemPtr(0)->rect.y = uiItemPtr(0)->margins[1];    
     uiLayoutItem(0);
-    int hot = uiFindItem(0, ui_context->cursor.x, ui_context->cursor.y);
+    int hot = uiFindItem(0, 
+        ui_context->cursor.x, ui_context->cursor.y, 0, 0);
 
     switch(ui_context->state) {
     default:
     case UI_STATE_IDLE: {
+        ui_context->start_cursor = ui_context->cursor;
         if (uiGetButton(0)) {
-            ui_context->start_cursor = ui_context->cursor;
-            ui_context->last_cursor = ui_context->cursor;
             ui_context->hot_item = -1;
+            ui_context->active_rect = ui_context->hot_rect;
             ui_context->active_item = hot;
             if (ui_context->active_item >= 0) {
                 uiNotifyItem(ui_context->active_item, UI_BUTTON0_DOWN);
