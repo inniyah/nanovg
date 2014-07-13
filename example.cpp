@@ -70,7 +70,7 @@ typedef struct {
 ////////////////////////////////////////////////////////////////////////////////
 
 void init(NVGcontext *vg) {
-    bndSetFont(nvgCreateFont(vg, "system", "../droidsans.ttf"));
+    bndSetFont(nvgCreateFont(vg, "system", "../DejaVuSans.ttf"));
     bndSetIconImage(nvgCreateImage(vg, "../blender_icons16.png"));
 }
 
