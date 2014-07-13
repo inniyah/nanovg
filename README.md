@@ -9,3 +9,7 @@ Blender repository. See source code for more information.
 
 The repository also hosts **OUI** (short for "Open UI", spoken like the french "oui" for "yes"), a platform agnostic single-header C library for layouting GUI elements and
 handling related user input. Together with a set of widget drawing and logic routines it can be used to build complex user interfaces.
+
+Here's a screenshot of Blendish styling a set of layouted OUI items (also contained in example.cpp).
+
+![oui_frozen.png](https://bitbucket.org/repo/zAzpBG/images/1655961333-oui_frozen.png)
