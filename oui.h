@@ -26,10 +26,7 @@ THE SOFTWARE.
 #define _OUI_H_
 
 /*
-Revision 1 (2014-07-13)
-*/
-
-/*
+Revision 2 (2014-07-13)
 
 OUI (short for "Open UI", spoken like the french "oui" for "yes") is a
 platform agnostic single-header C library for layouting GUI elements and
@@ -172,7 +169,7 @@ void app_draw_ui(AppRenderContext *ctx, int item, int x, int y) {
     
     // iterate through all children and draw
     int kid = uiFirstChild(item);
-    while (kid > 0) {
+    while (kid >= 0) {
         app_draw_ui(ctx, kid, rect.x, rect.y);
         kid = uiNextSibling(kid);
     }
@@ -181,17 +178,6 @@ void app_draw_ui(AppRenderContext *ctx, int item, int x, int y) {
 See example.cpp in the repository for a full usage example.
 
 */
-
-// item states as returned by uiGetState()
-
-// the item is inactive
-#define UI_COLD   0x0000
-// the item is inactive, but the cursor is hovering over this item
-#define UI_HOT    0x0001
-// the item is toggled or activated (depends on item kind)
-#define UI_ACTIVE 0x0002
-// the item is unresponsive
-#define UI_FROZEN 0x0003
 
 // limits
 
@@ -212,6 +198,19 @@ typedef struct UIcontext UIcontext;
 
 // application defined context handle
 typedef unsigned long long UIhandle;
+
+// item states as returned by uiGetState()
+
+typedef enum UIitemState {
+    // the item is inactive
+    UI_COLD = 0,
+    // the item is inactive, but the cursor is hovering over this item
+    UI_HOT = 1,
+    // the item is toggled or activated (depends on item kind)
+    UI_ACTIVE = 2,
+    // the item is unresponsive
+    UI_FROZEN = 3
+} UIitemState;
 
 // layout flags
 typedef enum UIlayoutFlags {
@@ -351,6 +350,15 @@ void uiProcess();
 // create a new UI item and return the new items ID.
 int uiItem();
 
+// set an items state to frozen; the UI will not recurse into frozen items
+// when searching for hot or active items; subsequently, frozen items and
+// their child items will not cause mouse event notifications.
+// The frozen state is not applied recursively; uiGetState() will report
+// UI_COLD for child items. Upon encountering a frozen item, the drawing
+// routine needs to handle rendering of child items appropriately.
+// see example.cpp for a demonstration.
+void uiSetFrozen(int item, int enable);
+
 // set the application-dependent handle of an item.
 // handle is an application defined 64-bit handle. If handle is 0, the item
 // will not be interactive.
@@ -370,6 +378,7 @@ void uiSetHandler(int item, UIhandler handler, int flags);
 // assign an item to a container.
 // an item ID of 0 refers to the root item.
 // if child is already assigned to a parent, an assertion will be thrown.
+// the function returns the child item ID
 int uiAppend(int item, int child);
 
 // set the size of the item; a size of 0 indicates the dimension to be 
@@ -427,8 +436,8 @@ int uiPrevSibling(int item);
 
 // return the current state of the item. This state is only valid after
 // a call to uiProcess().
-// The returned value is one of UI_COLD, UI_HOT, UI_ACTIVE.
-int uiGetState(int item);
+// The returned value is one of UI_COLD, UI_HOT, UI_ACTIVE, UI_FROZEN.
+UIitemState uiGetState(int item);
 
 // return the application-dependent handle of the item as passed to uiSetHandle().
 UIhandle uiGetHandle(int item);
@@ -553,6 +562,7 @@ typedef struct UIitem {
     
     // attributes
     
+    int frozen;
     // index of data or -1 for none
     int data;
     // size of data
@@ -732,6 +742,11 @@ int uiAppend(int item, int child) {
     return child;
 }
 
+void uiSetFrozen(int item, int enable) {
+    UIitem *pitem = uiItemPtr(item);
+    pitem->frozen = enable;
+}
+
 void uiSetSize(int item, int w, int h) {
     UIitem *pitem = uiItemPtr(item);
     pitem->size.x = w;
@@ -848,7 +863,7 @@ UI_INLINE void uiComputeSizeDim(UIitem *pitem, int dim) {
     } else {
         int size = 0;
         int kid = pitem->firstkid;
-        while (kid > 0) {
+        while (kid >= 0) {
             UIitem *pkid = uiItemPtr(kid);
             if (!(pkid->visited & (1<<dim))) {
                 size = ui_max(size, uiComputeChainSize(pkid, dim));
@@ -866,7 +881,7 @@ static void uiComputeBestSize(int item) {
     pitem->visited = 0;
     // children expand the size
     int kid = uiFirstChild(item);
-    while (kid > 0) {
+    while (kid >= 0) {
         uiComputeBestSize(kid);
         kid = uiNextSibling(kid);
     }
@@ -889,8 +904,8 @@ static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, int *dyncount, int
     int wr = pparent->rect.v[wdim];
     
     int flags = pitem->layout_flags>>dim;
-    int hasl = (flags & UI_LEFT) && (pitem->relto[dim] > 0);
-    int hasr = (flags & UI_RIGHT) && (pitem->relto[wdim] > 0);
+    int hasl = (flags & UI_LEFT) && (pitem->relto[dim] >= 0);
+    int hasr = (flags & UI_RIGHT) && (pitem->relto[wdim] >= 0);
     
     if (hasl) {
         UIitem *pl = uiItemPtr(pitem->relto[dim]);
@@ -944,7 +959,7 @@ static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, int *dyncount, int
 
 UI_INLINE void uiLayoutItemDim(UIitem *pitem, int dim) {
     int kid = pitem->firstkid;
-    while (kid > 0) {
+    while (kid >= 0) {
         UIitem *pkid = uiItemPtr(kid);
         int dyncount = 0;
         uiLayoutChildItem(pitem, pkid, &dyncount, dim);
@@ -959,7 +974,7 @@ static void uiLayoutItem(int item) {
     uiLayoutItemDim(pitem, 1);
     
     int kid = uiFirstChild(item);
-    while (kid > 0) {
+    while (kid >= 0) {
         uiLayoutItem(kid);
         kid = uiNextSibling(kid);
     }
@@ -1042,7 +1057,9 @@ int uiGetChildCount(int item) {
 }
 
 int uiFindItem(int item, int x, int y) {
-    UIrect rect = uiGetRect(item);
+    UIitem *pitem = uiItemPtr(item);
+    if (pitem->frozen) return -1;
+    UIrect rect = pitem->rect;
     x -= rect.x;
     y -= rect.y;
     if ((x>=0)
@@ -1050,7 +1067,7 @@ int uiFindItem(int item, int x, int y) {
      && (x<rect.w)
      && (y<rect.h)) {
         int kid = uiFirstChild(item);
-        while (kid > 0) {
+        while (kid >= 0) {
             int best_hit = uiFindItem(kid,x,y);
             if (best_hit >= 0) return best_hit;
             kid = uiNextSibling(kid);
@@ -1114,18 +1131,19 @@ void uiProcess() {
         uiGetHandle(ui_context->active_item):0;
 }
 
-int uiIsActive(int item) {
+static int uiIsActive(int item) {
     assert(ui_context);
     return ui_context->active_item == item;
 }
 
-int uiIsHot(int item) {
+static int uiIsHot(int item) {
     assert(ui_context);
     return ui_context->hot_item == item;
 }
 
-int uiGetState(int item) {
+UIitemState uiGetState(int item) {
     UIitem *pitem = uiItemPtr(item);
+    if (pitem->frozen) return UI_FROZEN;
     if (uiIsActive(item)) {
         if (pitem->event_flags & (UI_BUTTON0_CAPTURE|UI_BUTTON0_UP)) return UI_ACTIVE;
         if ((pitem->event_flags & UI_BUTTON0_HOT_UP)

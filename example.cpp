@@ -116,6 +116,9 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
     UIrect rect = uiGetRect(item);
     rect.x += x;
     rect.y += y; 
+    if (uiGetState(item) == UI_FROZEN) {
+        nvgGlobalAlpha(vg, 0.5);
+    }
     if (head) {
         switch(head->subtype) {
             default: {
@@ -168,6 +171,9 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
     while (kid > 0) {
         drawUI(vg, kid, rect.x, rect.y);
         kid = uiNextSibling(kid);
+    }
+    if (uiGetState(item) == UI_FROZEN) {
+        nvgGlobalAlpha(vg, 1.0);
     }
 }
 
@@ -565,6 +571,14 @@ void draw(NVGcontext *vg, float w, float h) {
         BND_DEFAULT,BND_ICONID(5,11),NULL);
     
     // some OUI stuff
+
+    // some persistent variables for demonstration
+    static int enum1 = 0;
+    static float progress1 = 0.25f;
+    static float progress2 = 0.75f;
+    static int option1 = 1;
+    static int option2 = 0;
+    static int option3 = 0;
     
     uiClear();
     
@@ -580,8 +594,6 @@ void draw(NVGcontext *vg, float w, float h) {
     button(col, 1, BND_ICONID(6,3), "Item 1", demohandler);
     button(col, 2, BND_ICONID(6,3), "Item 2", demohandler);
     
-    static int enum1 = 0;
-    
     {
         int h = hgroup(col);
         radio(h, 3, BND_ICONID(6,3), "Item 3.0", &enum1);
@@ -589,9 +601,6 @@ void draw(NVGcontext *vg, float w, float h) {
         radio(h, 5, BND_ICONID(1,10), NULL, &enum1);
         radio(h, 6, BND_ICONID(6,3), "Item 3.3", &enum1);
     }
-    
-    static float progress1 = 0.25f;
-    static float progress2 = 0.75f;
     
     {
         int rows = row(col);
@@ -601,6 +610,7 @@ void draw(NVGcontext *vg, float w, float h) {
         button(coll, 7, BND_ICONID(6,3), "Item 4.0.0", demohandler);
         button(coll, 8, BND_ICONID(6,3), "Item 4.0.1", demohandler);
         int colr = vgroup(rows);
+        uiSetFrozen(colr, option1);
         label(colr, -1, "Items 4.1:");
         colr = vgroup(colr);
         slider(colr, 9, "Item 4.1.0", &progress1);
@@ -609,9 +619,7 @@ void draw(NVGcontext *vg, float w, float h) {
     
     button(col, 11, BND_ICONID(6,3), "Item 5", NULL);
     
-    static int option1,option2,option3;
-    
-    check(col, 12, "Item 6", &option1);
+    check(col, 12, "Frozen", &option1);
     check(col, 13, "Item 7", &option2);
     check(col, 14, "Item 8", &option3);
     
