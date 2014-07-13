@@ -4,3 +4,8 @@ To render correctly, Blendish needs both [icon sheet](https://svn.blender.org/sv
 Blender repository. See source code for more information.
 
 ![blendish_demo.png](https://bitbucket.org/repo/zAzpBG/images/3891331937-blendish_demo.png)
+
+![oui_logo.png](https://bitbucket.org/repo/zAzpBG/images/4211571908-oui_logo.png)
+
+The repository also hosts **OUI** (short for "Open UI", spoken like the french "oui" for "yes"), a platform agnostic single-header C library for layouting GUI elements and
+handling related user input. Together with a set of widget drawing and logic routines it can be used to build complex user interfaces.
