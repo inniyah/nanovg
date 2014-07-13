@@ -22,21 +22,163 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef _UI_H_
-#define _UI_H_
+#ifndef _OUI_H_
+#define _OUI_H_
+
+/*
+Revision 1 (2014-07-13)
+*/
 
 /*
 
-OUI (spoken like the french "oui" for "yes") is a single-header library for
-layouting GUI elements and handling their user input.
+OUI (short for "Open UI", spoken like the french "oui" for "yes") is a
+platform agnostic single-header C library for layouting GUI elements and
+handling their user input. Together with a set of widget drawing and logic 
+routines it can be used to build complex user interfaces.
+
+OUI is a semi-immediate GUI. Widget declarations are persistent for the duration
+of the setup and evaluation, but do not need to be kept around longer than one
+frame.
 
 OUI has no widget types; instead, it provides only one kind of element, "Items",
-which can be expanded to behave as containers, buttons, sliders, radio
+which can be taylored to the application by the user and expanded with custom
+buffers and event handlers to behave as containers, buttons, sliders, radio
 buttons, and so on.
 
-Together with a set of widget drawing routines it can be used to build flowing
-user interfaces; the intended use is for bootstrap situations where only basic
-UI services are needed.
+OUI also does not draw anything; Instead it provides a set of functions to
+iterate and query the layouted items in order to allow client code to render
+each widget with its current state using a preferred graphics library.
+
+A basic setup for OUI usage looks like this:
+
+void app_main(...) {
+    UIcontext *context = uiCreateContext();
+    uiMakeCurrent(context);
+
+    while (app_running()) {
+        // update position of mouse cursor; the ui can also be updated
+        // from received events.
+        uiSetCursor(app_get_mouse_x(), app_get_mouse_y());
+        // update button state
+        for (int i = 0; i < 3; ++i)
+            uiSetButton(i, app_get_button_state(i));
+        
+        // begin new UI declarations
+        uiClear();
+        
+        // - UI setup code goes here -
+        app_setup_ui();
+        
+        // layout UI, update states and fire handlers
+        uiProcess();
+        
+        // draw UI
+        app_draw_ui(render_context,0,0,0);
+    }
+
+    uiDestroyContext(context);
+}
+
+Here's an example setup for a checkbox control:
+
+typedef struct CheckBoxData {
+    int type;
+    const char *label;
+    bool *checked;
+} CheckBoxData;
+
+// called when the item is clicked (see checkbox())
+void app_checkbox_handler(int item, UIevent event) {
+    
+    // retrieve custom data (see checkbox())
+    const CheckBoxData *data = (const CheckBoxData *)uiGetData(item);
+    
+    // toggle value
+    *data->checked = !(*data->checked);
+}
+
+// creates a checkbox control for a pointer to a boolean and attaches it to 
+// a parent item.
+int checkbox(int parent, UIhandle handle, const char *label, bool *checked) {
+    
+    // create new ui item
+    int item = uiItem(); 
+    
+    // set persistent handle for item that is used
+    // to track activity over time
+    uiSetHandle(item, handle);
+    
+    // set size of wiget; horizontal size is dynamic, vertical is fixed
+    uiSetSize(item, 0, APP_WIDGET_HEIGHT);
+    
+    // attach checkbox handler, set to fire as soon as the left button is
+    // pressed; UI_BUTTON0_HOT_UP is also a popular alternative.
+    uiSetHandler(item, app_checkbox_handler, UI_BUTTON0_DOWN);
+    
+    // store some custom data with the checkbox that we use for rendering
+    // and value changes.
+    CheckBoxData *data = (CheckBoxData *)uiAllocData(item, sizeof(CheckBoxData));
+    // assign a custom typeid to the data so the renderer knows how to
+    // render this control.
+    data->type = APP_WIDGET_CHECKBOX;
+    data->label = label;
+    data->checked = checked;
+    
+    // append to parent
+    uiAppend(parent, item);
+    
+    return item;
+}
+
+A simple recursive drawing routine can look like this:
+
+void app_draw_ui(AppRenderContext *ctx, int item, int x, int y) {
+    // retrieve custom data and cast it to an int; we assume the first member
+    // of every widget data item to be an "int type" field.
+    const int *type = (const int *)uiGetData(item);
+    
+    // get the widgets relative rectangle and offset by the parents
+    // absolute position.
+    UIrect rect = uiGetRect(item);
+    rect.x += x;
+    rect.y += y; 
+    
+    // if a type is set, this is a specialized widget
+    if (type) {
+        switch(*type) {
+            default: break;
+            case APP_WIDGET_LABEL: {
+                // ...
+            } break;
+            case APP_WIDGET_BUTTON: {
+                // ...
+            } break;
+            case APP_WIDGET_CHECKBOX: {
+                // cast to the full data type
+                const CheckBoxData *data = (CheckBoxData*)type;
+                
+                // get the widgets current state
+                int state = uiGetState(item);
+                
+                // if the value is set, the state is always active
+                if (*data->checked)
+                    state = UI_ACTIVE;
+                
+                // draw the checkbox
+                app_draw_checkbox(ctx, rect, state, data->label);
+            } break;
+        }
+    }
+    
+    // iterate through all children and draw
+    int kid = uiFirstChild(item);
+    while (kid > 0) {
+        app_draw_ui(ctx, kid, rect.x, rect.y);
+        kid = uiNextSibling(kid);
+    }
+}
+
+See example.cpp in the repository for a full usage example.
 
 */
 
@@ -50,6 +192,8 @@ UI services are needed.
 #define UI_ACTIVE 0x0002
 // the item is unresponsive
 #define UI_FROZEN 0x0003
+
+// limits
 
 // maximum number of items that may be added
 #define UI_MAX_ITEMS 4096
@@ -71,15 +215,25 @@ typedef unsigned long long UIhandle;
 
 // layout flags
 typedef enum UIlayoutFlags {
+    // anchor to left item or left side of parent
     UI_LEFT = 1,
+    // anchor to top item or top side of parent
     UI_TOP = 2,
+    // anchor to right item or right side of parent
     UI_RIGHT = 4,
+    // anchor to bottom item or bottom side of parent
     UI_DOWN = 8,
+    // anchor to both left and right item or parent borders
     UI_HFILL = 5,
+    // anchor to both top and bottom item or parent borders
     UI_VFILL = 10,
+    // center horizontally, with left margin as offset
     UI_HCENTER = 0,
+    // center vertically, with top margin as offset
     UI_VCENTER = 0,
+    // center in both directions, with left/top margin as offset
     UI_CENTER = 0,
+    // anchor to all four directions
     UI_FILL = 15,
 } UIlayoutFlags;
 
@@ -88,12 +242,21 @@ typedef enum UIevent {
     // on button 0 down
     UI_BUTTON0_DOWN = 0x01,
     // on button 0 up
+    // when this event has a handler, uiGetState() will return UI_ACTIVE as
+    // long as button 0 is down.
     UI_BUTTON0_UP = 0x02,
     // on button 0 up while item is hovered
+    // when this event has a handler, uiGetState() will return UI_ACTIVE
+    // when the cursor is hovering the items rectangle; this is the
+    // behavior expected for buttons.
     UI_BUTTON0_HOT_UP = 0x04,
-    // item is being captured (button 0 constantly pressed)
+    // item is being captured (button 0 constantly pressed); 
+    // when this event has a handler, uiGetState() will return UI_ACTIVE as
+    // long as button 0 is down.
     UI_BUTTON0_CAPTURE = 0x08,
-    // item has been added to container
+    // item has received a new child
+    // this can be used to allow container items to configure child items
+    // as they appear.
     UI_APPEND = 0x10,
 } UIevent;
 
@@ -118,8 +281,12 @@ typedef struct UIrect {
 
 // unless declared otherwise, all operations have the complexity O(1).
 
+// Context Management
+// ------------------
+
 // create a new UI context; call uiMakeCurrent() to make this context the
-// current context.
+// current context. The context is managed by the client and must be released
+// using uiDestroyContext()
 UIcontext *uiCreateContext();
 
 // select an UI context as the current context; a context must always be 
@@ -130,16 +297,8 @@ void uiMakeCurrent(UIcontext *ctx);
 // context is the current context, the current context will be set to NULL
 void uiDestroyContext(UIcontext *ctx);
 
-// sets a mouse or gamepad button as pressed/released
-// button is in the range 0..63 and maps to an application defined input
-// source.
-// enabled is 1 for pressed, 0 for released
-void uiSetButton(int button, int enabled);
-
-// returns the current state of an application dependent input button
-// as set by uiSetButton().
-// the function returns 1 if the button has been set to pressed, 0 for released.
-int uiGetButton(int button);
+// Input Control
+// -------------
 
 // sets the current cursor position (usually belonging to a mouse) to the
 // screen coordinates at (x,y)
@@ -156,30 +315,90 @@ UIvec2 uiGetCursorDelta();
 // operation.
 UIvec2 uiGetCursorStartDelta();
 
-// clear the item buffer; uiClear() should be called before each UI declaration
-// to avoid concatenation of the same UI multiple times.
+// sets a mouse or gamepad button as pressed/released
+// button is in the range 0..63 and maps to an application defined input
+// source.
+// enabled is 1 for pressed, 0 for released
+void uiSetButton(int button, int enabled);
+
+// returns the current state of an application dependent input button
+// as set by uiSetButton().
+// the function returns 1 if the button has been set to pressed, 0 for released.
+int uiGetButton(int button);
+
+// Stages
+// ------
+
+// clear the item buffer; uiClear() should be called before the first 
+// UI declaration for this frame to avoid concatenation of the same UI multiple 
+// times.
 // After the call, all previously declared item IDs are invalid, and all
 // application dependent context data has been freed.
 void uiClear();
 
+// layout all added items starting from the root item 0, update the
+// internal state according to the current cursor position and button states,
+// and call all registered handlers.
+// after calling uiProcess(), no further modifications to the item tree should
+// be done until the next call to uiClear().
+// It is safe to immediately draw the items after a call to uiProcess().
+// this is an O(N) operation for N = number of declared items.
+void uiProcess();
+
+// UI Declaration
+// --------------
+
 // create a new UI item and return the new items ID.
 int uiItem();
+
+// set the application-dependent handle of an item.
+// handle is an application defined 64-bit handle. If handle is 0, the item
+// will not be interactive.
+void uiSetHandle(int item, UIhandle handle);
+
+// allocate space for application-dependent context data and return the pointer
+// if successful. If no data has been allocated, a new pointer is returned. 
+// Otherwise, an assertion is thrown.
+// The memory of the pointer is managed by the UI context.
+void *uiAllocData(int item, int size);
+
+// set the handler callback for an interactive item. 
+// flags is a combination of UI_EVENT_* and designates for which events the 
+// handler should be called. 
+void uiSetHandler(int item, UIhandler handler, int flags);
 
 // assign an item to a container.
 // an item ID of 0 refers to the root item.
 // if child is already assigned to a parent, an assertion will be thrown.
 int uiAppend(int item, int child);
 
-// layout all added items and update the internal state according to the
-// current cursor position and button states.
-// It is safe to immediately draw the items after a call to uiProcess().
-// this is an O(N) operation for N = number of declared items.
-void uiProcess();
+// set the size of the item; a size of 0 indicates the dimension to be 
+// dynamic; if the size is set, the item can not expand beyond that size.
+void uiSetSize(int item, int w, int h);
 
-// returns the number of child items a container item contains. If the item 
-// is not a container or does not contain any items, 0 is returned.
-// if item is 0, the child item count of the root item will be returned.
-int uiGetChildCount(int item);
+// set the anchoring behavior of the item to one or multiple UIlayoutFlags
+void uiSetLayout(int item, int flags);
+
+// set the left, top, right and bottom margins of an item; when the item is
+// anchored to the parent or another item, the margin controls the distance
+// from the neighboring element.
+void uiSetMargins(int item, int l, int t, int r, int b);
+
+// anchor the item to another sibling within the same container, so that the
+// sibling is left to this item.
+void uiSetRelToLeft(int item, int other);
+// anchor the item to another sibling within the same container, so that the
+// sibling is above this item.
+void uiSetRelToTop(int item, int other);
+// anchor the item to another sibling within the same container, so that the
+// sibling is right to this item.
+void uiSetRelToRight(int item, int other);
+// anchor the item to another sibling within the same container, so that the
+// sibling is below this item.
+void uiSetRelToDown(int item, int other);
+
+// Iteration
+// ---------
 
 // returns the first child item of a container item. If the item is not
 // a container or does not contain any items, -1 is returned.
@@ -195,12 +414,6 @@ int uiLastChild(int item);
 // if item is 0, -1 will be returned.
 int uiParent(int item);
 
-// returns an items child index relative to its parent. If the item is the
-// first item, the return value is 0; If the item is the last item, the return
-// value is equivalent to uiGetChildCount(uiParent(item))-1.
-// if item is 0, 0 will be returned.
-int uiGetChildId(int item);
-
 // returns an items next sibling in the list of the parent containers children.
 // if item is 0 or the item is the last child item, -1 will be returned.
 int uiNextSibling(int item);
@@ -209,69 +422,76 @@ int uiNextSibling(int item);
 // if item is 0 or the item is the first child item, -1 will be returned.
 int uiPrevSibling(int item);
 
-void uiSetSize(int item, int w, int h);
-int uiGetWidth(int item);
-int uiGetHeight(int item);
-void uiSetLayout(int item, int flags);
-int uiGetLayout(int item);
-void uiSetMargins(int item, int t, int r, int b, int l);
-int uiGetMarginLeft(int item);
-int uiGetMarginTop(int item);
-int uiGetMarginRight(int item);
-int uiGetMarginDown(int item);
-void uiSetRelToLeft(int item, int other);
-int uiGetRelToLeft(int item);
-void uiSetRelToTop(int item, int other);
-int uiGetRelToTop(int item);
-void uiSetRelToRight(int item, int other);
-int uiGetRelToRight(int item);
-void uiSetRelToDown(int item, int other);
-int uiGetRelToDown(int item);
-
-// returns the items layout rectangle relative to the parent. If uiGetRect()
-// is called before uiProcess(), the values of the returned rectangle are
-// undefined.
-UIrect uiGetRect(int item);
-
-// allocate space for application-dependent context data and return the pointer
-// if successful. If no data has been allocated, a new pointer is returned. 
-// Otherwise, an assertion is thrown.
-// The memory of the pointer is managed by the UI context.
-void *uiAllocData(int item, int size);
-
-// return the application-dependent context data for an item as passed to
-// uiAllocData(). The memory of the pointer is managed by the UI context
-// and must not be altered.
-const void *uiGetData(int item);
-
-// set the application-dependent handle of an item.
-// handle is an application defined 64-bit handle. If handle is 0, the item
-// will not be interactive.
-void uiSetHandle(int item, UIhandle handle);
-
-// return the application-dependent handle of the item as passed to uiSetHandle().
-UIhandle uiGetHandle(int item);
+// Querying
+// --------
 
 // return the current state of the item. This state is only valid after
 // a call to uiProcess().
 // The returned value is one of UI_COLD, UI_HOT, UI_ACTIVE.
 int uiGetState(int item);
 
-// set the handler callback for an interactive item. 
-// flags is a combination of UI_EVENT_* and designates for which events the 
-// handler should be called. 
-void uiSetHandler(int item, UIhandler handler, int flags);
+// return the application-dependent handle of the item as passed to uiSetHandle().
+UIhandle uiGetHandle(int item);
+
+// return the application-dependent context data for an item as passed to
+// uiAllocData(). The memory of the pointer is managed by the UI context
+// and must not be altered.
+const void *uiGetData(int item);
 
 // return the handler callback for an item as passed to uiSetHandler()
 UIhandler uiGetHandler(int item);
-
 // return the handler flags for an item as passed to uiSetHandler()
 int uiGetHandlerFlags(int item);
 
-#endif // _UI_H_
+// returns the number of child items a container item contains. If the item 
+// is not a container or does not contain any items, 0 is returned.
+// if item is 0, the child item count of the root item will be returned.
+int uiGetChildCount(int item);
 
-#define UI_IMPLEMENTATION
-#ifdef UI_IMPLEMENTATION
+// returns an items child index relative to its parent. If the item is the
+// first item, the return value is 0; If the item is the last item, the return
+// value is equivalent to uiGetChildCount(uiParent(item))-1.
+// if item is 0, 0 will be returned.
+int uiGetChildId(int item);
+
+// returns the items layout rectangle relative to the parent. If uiGetRect()
+// is called before uiProcess(), the values of the returned rectangle are
+// undefined.
+UIrect uiGetRect(int item);
+
+// return the width of the item as set by uiSetSize()
+int uiGetWidth(int item);
+// return the height of the item as set by uiSetSize()
+int uiGetHeight(int item);
+
+// return the anchoring behavior as set by uiSetLayout()
+int uiGetLayout(int item);
+
+// return the left margin of the item as set with uiSetMargins()
+int uiGetMarginLeft(int item);
+// return the top margin of the item as set with uiSetMargins()
+int uiGetMarginTop(int item);
+// return the right margin of the item as set with uiSetMargins()
+int uiGetMarginRight(int item);
+// return the bottom margin of the item as set with uiSetMargins()
+int uiGetMarginDown(int item);
+
+// return the items anchored sibling as assigned with uiSetRelToLeft() 
+// or -1 if not set.
+int uiGetRelToLeft(int item);
+// return the items anchored sibling as assigned with uiSetRelToTop() 
+// or -1 if not set.
+int uiGetRelToTop(int item);
+// return the items anchored sibling as assigned with uiSetRelToRight() 
+// or -1 if not set.
+int uiGetRelToRight(int item);
+// return the items anchored sibling as assigned with uiSetRelToBottom() 
+// or -1 if not set.
+int uiGetRelToDown(int item);
+
+#endif // _OUI_H_
+
+#ifdef OUI_IMPLEMENTATION
 
 #include <assert.h>
 
@@ -319,6 +539,7 @@ typedef struct UIitem {
     int layout_flags;
     // size
     UIvec2 size;
+    // visited flags for layouting
     int visited;
     // margin offsets, interpretation depends on flags
     int margins[4];
@@ -916,4 +1137,4 @@ int uiGetState(int item) {
     return UI_COLD;
 }
 
-#endif // UI_IMPLEMENTATION
+#endif // OUI_IMPLEMENTATION
