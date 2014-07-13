@@ -1,5 +1,5 @@
 /*
-OUI - A minimal immediate GUI handling & layouting library
+OUI - A minimal semi-immediate GUI handling & layouting library
 
 Copyright (c) 2014 Leonard Ritter <leonard.ritter@duangle.com>
 
@@ -33,7 +33,7 @@ Revision 1 (2014-07-13)
 
 OUI (short for "Open UI", spoken like the french "oui" for "yes") is a
 platform agnostic single-header C library for layouting GUI elements and
-handling their user input. Together with a set of widget drawing and logic 
+handling related user input. Together with a set of widget drawing and logic 
 routines it can be used to build complex user interfaces.
 
 OUI is a semi-immediate GUI. Widget declarations are persistent for the duration
