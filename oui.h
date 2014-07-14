@@ -843,16 +843,15 @@ int uiGetRelToDown(int item) {
 UI_INLINE int uiComputeChainSize(UIitem *pkid, int dim) {
     UIitem *pitem = pkid;
     int wdim = dim+2;
-    int size = pitem->rect.v[wdim];
+    int size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
     int it = 0;
     pitem->visited |= 1<<dim;
     // traverse along left neighbors
     while ((pitem->layout_flags>>dim) & UI_LEFT) {
-        size += pitem->margins[dim];
         if (pitem->relto[dim] < 0) break;
         pitem = uiItemPtr(pitem->relto[dim]);
         pitem->visited |= 1<<dim;
-        size += pitem->rect.v[wdim];
+        size += pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
         it++;
         assert(it<1000000); // infinite loop
     }
@@ -860,11 +859,10 @@ UI_INLINE int uiComputeChainSize(UIitem *pkid, int dim) {
     pitem = pkid;
     it = 0;
     while ((pitem->layout_flags>>dim) & UI_RIGHT) {
-        size += pitem->margins[wdim];
         if (pitem->relto[wdim] < 0) break;
         pitem = uiItemPtr(pitem->relto[wdim]);
         pitem->visited |= 1<<dim;
-        size += pitem->rect.v[wdim];
+        size += pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
         it++;
         assert(it<1000000); // infinite loop
     }
