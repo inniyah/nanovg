@@ -389,7 +389,11 @@ void bndRoundedBox(NVGcontext *ctx, float x, float y, float w, float h,
 // Draw a flat panel without any decorations at position (x,y) with size (w,h)
 // and fills it with backgroundColor
 void bndBackground(NVGcontext *ctx, float x, float y, float w, float h);
-    
+
+// Draw a beveled border at position (x,y) with size (w,h) shaded with
+// lighter and darker versions of backgroundColor
+void bndBevel(NVGcontext *ctx, float x, float y, float w, float h);
+
 // Draw a lower inset for a rounded box at position (x,y) with size (w,h)
 // that gives the impression the surface has been pushed in.
 // cr2 and cr3 contain the radiuses of the bottom right and bottom left
@@ -495,8 +499,10 @@ void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 // alpha intensity of transparent items (0xa4)
 #define BND_TRANSPARENT_ALPHA 0.643
 
-// shade intensity of beveled insets
+// shade intensity of beveled panels
 #define BND_BEVEL_SHADE 30
+// shade intensity of beveled insets
+#define BND_INSET_BEVEL_SHADE 30
 // shade intensity of hovered inner boxes
 #define BND_HOVER_SHADE 15
 
@@ -1014,6 +1020,31 @@ NVGcolor bndOffsetColor(NVGcolor color, int delta) {
     ):color;
 }
 
+void bndBevel(NVGcontext *ctx, float x, float y, float w, float h) {
+    nvgStrokeWidth(ctx, 1);
+    
+    x += 0.5f;
+    y += 0.5f;
+    w -= 1;
+    h -= 1;
+    
+    nvgBeginPath(ctx);
+    nvgMoveTo(ctx, x, y+h);
+    nvgLineTo(ctx, x+w, y+h);
+    nvgLineTo(ctx, x+w, y);
+    nvgStrokeColor(ctx, bndTransparent(
+        bndOffsetColor(bnd_theme.backgroundColor, -BND_BEVEL_SHADE)));
+    nvgStroke(ctx);
+    
+    nvgBeginPath(ctx);
+    nvgMoveTo(ctx, x, y+h);
+    nvgLineTo(ctx, x, y);
+    nvgLineTo(ctx, x+w, y);
+    nvgStrokeColor(ctx, bndTransparent(
+        bndOffsetColor(bnd_theme.backgroundColor, BND_BEVEL_SHADE)));
+    nvgStroke(ctx);
+}
+
 void bndBevelInset(NVGcontext *ctx, float x, float y, float w, float h,
     float cr2, float cr3) {
     float d;
@@ -1029,7 +1060,7 @@ void bndBevelInset(NVGcontext *ctx, float x, float y, float w, float h,
     nvgArcTo(ctx, x,y+h, x,y, cr3);
     
     NVGcolor bevelColor = bndOffsetColor(bnd_theme.backgroundColor, 
-        BND_BEVEL_SHADE);
+        BND_INSET_BEVEL_SHADE);
     
     nvgStrokeWidth(ctx, 1);
     nvgStrokePaint(ctx,

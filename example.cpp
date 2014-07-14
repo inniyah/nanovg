@@ -36,6 +36,8 @@ typedef enum {
     ST_ROW = 5,
     // check button
     ST_CHECK = 6,
+    // panel
+    ST_PANEL = 7,
 } SubType;
 
 typedef struct {
@@ -123,6 +125,9 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
         switch(head->subtype) {
             default: {
                 testrect(vg,rect);
+            } break;
+            case ST_PANEL: {
+                bndBevel(vg,rect.x,rect.y,rect.w,rect.h);
             } break;
             case ST_LABEL: {
                 assert(head);
@@ -319,6 +324,13 @@ void columnhandler(int parent, UIevent event) {
     uiSetLayout(item, UI_HFILL|UI_TOP);
     // if not the first item, add a margin of 1
     uiSetMargins(item, 0, (last < 0)?0:1, 0, 0);
+}
+
+int panel() {
+    int item = uiItem();
+    UIData *data = (UIData *)uiAllocData(item, sizeof(UIData));
+    data->subtype = ST_PANEL;
+    return item;
 }
 
 int column(int parent) {
@@ -582,13 +594,14 @@ void draw(NVGcontext *vg, float w, float h) {
     
     uiClear();
     
-    int root = uiItem(); 
+    int root = panel();
     // position root element
     uiSetLayout(0,UI_LEFT|UI_TOP);
     uiSetMargins(0,600,10,0,0);
     uiSetSize(0,250,400);
     
-    int col = column(0);
+    int col = column(root);
+    uiSetMargins(col, 10, 10, 10, 10);
     uiSetLayout(col, UI_TOP|UI_HFILL);
     
     button(col, 1, BND_ICONID(6,3), "Item 1", demohandler);
