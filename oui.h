@@ -843,7 +843,9 @@ int uiGetRelToDown(int item) {
 UI_INLINE int uiComputeChainSize(UIitem *pkid, int dim) {
     UIitem *pitem = pkid;
     int wdim = dim+2;
-    int size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
+    int size = 0;
+    if (pitem->rect.v[wdim])
+        size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
     int it = 0;
     pitem->visited |= 1<<dim;
     // traverse along left neighbors
@@ -851,7 +853,8 @@ UI_INLINE int uiComputeChainSize(UIitem *pkid, int dim) {
         if (pitem->relto[dim] < 0) break;
         pitem = uiItemPtr(pitem->relto[dim]);
         pitem->visited |= 1<<dim;
-        size += pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
+        if (pitem->rect.v[wdim])
+            size += pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
         it++;
         assert(it<1000000); // infinite loop
     }
@@ -862,7 +865,8 @@ UI_INLINE int uiComputeChainSize(UIitem *pkid, int dim) {
         if (pitem->relto[wdim] < 0) break;
         pitem = uiItemPtr(pitem->relto[wdim]);
         pitem->visited |= 1<<dim;
-        size += pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
+        if (pitem->rect.v[wdim])
+            size += pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
         it++;
         assert(it<1000000); // infinite loop
     }
@@ -871,21 +875,21 @@ UI_INLINE int uiComputeChainSize(UIitem *pkid, int dim) {
 
 UI_INLINE void uiComputeSizeDim(UIitem *pitem, int dim) {
     int wdim = dim+2;
+    int size = 0;
+    int kid = pitem->firstkid;
+    while (kid >= 0) {
+        UIitem *pkid = uiItemPtr(kid);
+        if (!(pkid->visited & (1<<dim))) {
+            size = ui_max(size, uiComputeChainSize(pkid, dim));
+        }
+        kid = uiNextSibling(kid);
+    }
+    pitem->computed_size.v[dim] = size;
+        
     if (pitem->size.v[dim]) {
         pitem->rect.v[wdim] = pitem->size.v[dim];
     } else {
-        int size = 0;
-        int kid = pitem->firstkid;
-        while (kid >= 0) {
-            UIitem *pkid = uiItemPtr(kid);
-            if (!(pkid->visited & (1<<dim))) {
-                size = ui_max(size, uiComputeChainSize(pkid, dim));
-            }
-            kid = uiNextSibling(kid);
-        }
-    
         pitem->rect.v[wdim] = size;
-        pitem->computed_size.v[dim] = size;
     }
 }
 
@@ -913,8 +917,8 @@ static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, int *dyncount, int
     
     int wdim = dim+2;
     
-    int wl = 0;
-    int wr = pparent->rect.v[wdim];
+    int x = 0;
+    int s = pparent->rect.v[wdim];
     
     int flags = pitem->layout_flags>>dim;
     int hasl = (flags & UI_LEFT) && (pitem->relto[dim] >= 0);
@@ -923,47 +927,47 @@ static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, int *dyncount, int
     if (hasl) {
         UIitem *pl = uiItemPtr(pitem->relto[dim]);
         uiLayoutChildItem(pparent, pl, dyncount, dim);
-        wl = pl->rect.v[dim]+pl->rect.v[wdim]+pl->margins[wdim];
-        wr -= wl;
+        x = pl->rect.v[dim]+pl->rect.v[wdim]+pl->margins[wdim];
+        s -= x;
     }
     if (hasr) {
         UIitem *pl = uiItemPtr(pitem->relto[wdim]);
         uiLayoutChildItem(pparent, pl, dyncount, dim);
-        wr = pl->rect.v[dim]-pl->margins[dim]-wl;
+        s = pl->rect.v[dim]-pl->margins[dim]-x;
     }
 
     switch(flags & UI_HFILL) {
     default:
     case UI_HCENTER: {
-        pitem->rect.v[dim] = wl+(wr-pitem->rect.v[wdim])/2+pitem->margins[dim];
+        pitem->rect.v[dim] = x+(s-pitem->rect.v[wdim])/2+pitem->margins[dim];
     } break;
     case UI_LEFT: {
-        pitem->rect.v[dim] = wl+pitem->margins[dim];
+        pitem->rect.v[dim] = x+pitem->margins[dim];
     } break;
     case UI_RIGHT: {
-        pitem->rect.v[dim] = wl+wr-pitem->rect.v[wdim]-pitem->margins[wdim];
+        pitem->rect.v[dim] = x+s-pitem->rect.v[wdim]-pitem->margins[wdim];
     } break;
     case UI_HFILL: {
         if (pitem->size.v[dim]) { // hard maximum size; can't stretch
             if (hasl)
-                pitem->rect.v[dim] = wl+wr-pitem->rect.v[wdim]-pitem->margins[wdim];
+                pitem->rect.v[dim] = x+s-pitem->rect.v[wdim]-pitem->margins[wdim];
             else
-                pitem->rect.v[dim] = wl+pitem->margins[dim];
+                pitem->rect.v[dim] = x+pitem->margins[dim];
         } else {
             if (1) { //!pitem->rect.v[wdim]) {
                 int width = (pparent->rect.v[wdim] - pparent->computed_size.v[dim]);
                 int space = width / (*dyncount);
                 //int rest = width - space*(*dyncount);
                 if (!hasl) {
-                    pitem->rect.v[dim] = wl+pitem->margins[dim];
-                    pitem->rect.v[wdim] = wr-pitem->margins[dim]-pitem->margins[wdim];
+                    pitem->rect.v[dim] = x+pitem->margins[dim];
+                    pitem->rect.v[wdim] = s-pitem->margins[dim]-pitem->margins[wdim];
                 } else {
                     pitem->rect.v[wdim] = space-pitem->margins[dim]-pitem->margins[wdim];
-                    pitem->rect.v[dim] = wl+wr-pitem->rect.v[wdim]-pitem->margins[wdim];
+                    pitem->rect.v[dim] = x+s-pitem->rect.v[wdim]-pitem->margins[wdim];
                 }
             } else {
-                pitem->rect.v[dim] = wl+pitem->margins[dim];
-                pitem->rect.v[wdim] = wr-pitem->margins[dim]-pitem->margins[wdim];
+                pitem->rect.v[dim] = x+pitem->margins[dim];
+                pitem->rect.v[wdim] = s-pitem->margins[dim]-pitem->margins[wdim];
             }
         }
     } break;
