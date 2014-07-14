@@ -956,10 +956,10 @@ static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, int *dyncount, int
     } break;
     case UI_HFILL: {
         if (pitem->size.v[dim]) { // hard maximum size; can't stretch
-            if (hasl)
-                pitem->rect.v[dim] = x+s-pitem->rect.v[wdim]-pitem->margins[wdim];
-            else
+            if (!hasl)
                 pitem->rect.v[dim] = x+pitem->margins[dim];
+            else
+                pitem->rect.v[dim] = x+s-pitem->rect.v[wdim]-pitem->margins[wdim];
         } else {
             if (1) { //!pitem->rect.v[wdim]) {
                 int width = (pparent->rect.v[wdim] - pparent->computed_size.v[dim]);
