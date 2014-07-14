@@ -840,12 +840,14 @@ int uiGetRelToDown(int item) {
 }
 
 
-UI_INLINE int uiComputeChainSize(UIitem *pkid, int dim) {
+UI_INLINE void uiComputeChainSize(UIitem *pkid, 
+    int *need_size, int *hard_size, int dim) {
     UIitem *pitem = pkid;
     int wdim = dim+2;
-    int size = 0;
-    if (pitem->rect.v[wdim])
-        size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
+    int size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
+    *need_size = size;
+    *hard_size = pitem->size.v[dim]?size:0;
+    
     int it = 0;
     pitem->visited |= 1<<dim;
     // traverse along left neighbors
@@ -853,8 +855,9 @@ UI_INLINE int uiComputeChainSize(UIitem *pkid, int dim) {
         if (pitem->relto[dim] < 0) break;
         pitem = uiItemPtr(pitem->relto[dim]);
         pitem->visited |= 1<<dim;
-        if (pitem->rect.v[wdim])
-            size += pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
+        size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
+        *need_size = (*need_size) + size;
+        *hard_size = (*hard_size) + (pitem->size.v[dim]?size:0);
         it++;
         assert(it<1000000); // infinite loop
     }
@@ -865,31 +868,35 @@ UI_INLINE int uiComputeChainSize(UIitem *pkid, int dim) {
         if (pitem->relto[wdim] < 0) break;
         pitem = uiItemPtr(pitem->relto[wdim]);
         pitem->visited |= 1<<dim;
-        if (pitem->rect.v[wdim])
-            size += pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
+        size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
+        *need_size = (*need_size) + size;
+        *hard_size = (*hard_size) + (pitem->size.v[dim]?size:0);
         it++;
         assert(it<1000000); // infinite loop
     }
-    return size;
 }
 
 UI_INLINE void uiComputeSizeDim(UIitem *pitem, int dim) {
     int wdim = dim+2;
-    int size = 0;
+    int need_size = 0;
+    int hard_size = 0;
     int kid = pitem->firstkid;
     while (kid >= 0) {
         UIitem *pkid = uiItemPtr(kid);
         if (!(pkid->visited & (1<<dim))) {
-            size = ui_max(size, uiComputeChainSize(pkid, dim));
+            int ns,hs;
+            uiComputeChainSize(pkid, &ns, &hs, dim);
+            need_size = ui_max(need_size, ns);
+            hard_size = ui_max(hard_size, hs);
         }
         kid = uiNextSibling(kid);
     }
-    pitem->computed_size.v[dim] = size;
-        
+    pitem->computed_size.v[dim] = hard_size;
+    
     if (pitem->size.v[dim]) {
         pitem->rect.v[wdim] = pitem->size.v[dim];
     } else {
-        pitem->rect.v[wdim] = size;
+        pitem->rect.v[wdim] = need_size;
     }
 }
 
