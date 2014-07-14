@@ -344,6 +344,15 @@ void bndMenuItem(NVGcontext *ctx,
 void bndTooltipBackground(NVGcontext *ctx, float x, float y, float w, float h);
         
 ////////////////////////////////////////////////////////////////////////////////
+        
+// Estimator Functions
+// -------------------
+// Use these functions to estimate sizes for widgets with your NVGcontext.
+
+// returns the ideal width for a label with given icon and text
+float bndLabelWidth(NVGcontext *ctx, int iconid, const char *label);
+        
+////////////////////////////////////////////////////////////////////////////////
 
 // Low Level Functions
 // -------------------
@@ -984,6 +993,21 @@ void bndMenuItem(NVGcontext *ctx,
     bndIconLabelValue(ctx,x,y,w,h,iconid,
         bndTextColor(&bnd_theme.menuItemTheme, state), BND_LEFT,
         BND_LABEL_FONT_SIZE, label, NULL);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+float bndLabelWidth(NVGcontext *ctx, int iconid, const char *label) {
+    int w = BND_PAD_LEFT + BND_PAD_RIGHT;
+    if (iconid >= 0) {
+        w += BND_ICON_SHEET_RES;
+    }
+    if (label && (bnd_font >= 0)) {
+        nvgFontFaceId(ctx, bnd_font);
+        nvgFontSize(ctx, BND_LABEL_FONT_SIZE);
+        w += nvgTextBounds(ctx, 1, 1, label, NULL, NULL);
+    }
+    return w;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
