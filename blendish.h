@@ -199,6 +199,10 @@ typedef enum BNDcornerFlags {
 // default horizontal spacing
 #define BND_HSPACING 8
 
+// alpha of disabled widget groups
+// can be used in conjunction with nvgGlobalAlpha()
+#define BND_DISABLED_ALPHA 0.5
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // set the current theme all widgets will be drawn with.

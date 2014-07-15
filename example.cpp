@@ -119,7 +119,7 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
     rect.x += x;
     rect.y += y; 
     if (uiGetState(item) == UI_FROZEN) {
-        nvgGlobalAlpha(vg, 0.5);
+        nvgGlobalAlpha(vg, BND_DISABLED_ALPHA);
     }
     if (head) {
         switch(head->subtype) {
