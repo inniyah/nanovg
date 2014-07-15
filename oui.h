@@ -900,18 +900,17 @@ UI_INLINE void uiComputeSizeDim(UIitem *pitem, int dim) {
     }
 }
 
-static void uiComputeBestSize(int item) {
+static void uiComputeBestSize(int item, int dim) {
     UIitem *pitem = uiItemPtr(item);
     pitem->visited = 0;
     // children expand the size
     int kid = uiFirstChild(item);
     while (kid >= 0) {
-        uiComputeBestSize(kid);
+        uiComputeBestSize(kid, dim);
         kid = uiNextSibling(kid);
     }
     
-    uiComputeSizeDim(pitem, 0);
-    uiComputeSizeDim(pitem, 1);
+    uiComputeSizeDim(pitem, dim);
 }
 
 static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, int *dyncount, int dim) {
@@ -991,15 +990,14 @@ UI_INLINE void uiLayoutItemDim(UIitem *pitem, int dim) {
     }
 }
 
-static void uiLayoutItem(int item) {
+static void uiLayoutItem(int item, int dim) {
     UIitem *pitem = uiItemPtr(item);
     
-    uiLayoutItemDim(pitem, 0);
-    uiLayoutItemDim(pitem, 1);
+    uiLayoutItemDim(pitem, dim);
     
     int kid = uiFirstChild(item);
     while (kid >= 0) {
-        uiLayoutItem(kid);
+        uiLayoutItem(kid, dim);
         kid = uiNextSibling(kid);
     }
 }
@@ -1113,11 +1111,19 @@ int uiFindItem(int item, int x, int y, int ox, int oy) {
 
 void uiProcess() {
     if (!ui_context->count) return;
-    uiComputeBestSize(0);
+    
+    // compute widths
+    uiComputeBestSize(0,0);
     // position root element rect
     uiItemPtr(0)->rect.x = uiItemPtr(0)->margins[0];
+    uiLayoutItem(0,0);
+    
+    // compute heights
+    uiComputeBestSize(0,1);
+    // position root element rect
     uiItemPtr(0)->rect.y = uiItemPtr(0)->margins[1];    
-    uiLayoutItem(0);
+    uiLayoutItem(0,1);
+    
     int hot = uiFindItem(0, 
         ui_context->cursor.x, ui_context->cursor.y, 0, 0);
 
