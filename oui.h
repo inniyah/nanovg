@@ -722,7 +722,8 @@ void uiClear() {
 }
 
 int uiItem() {
-    assert(ui_context && (ui_context->count < UI_MAX_ITEMS));
+    assert(ui_context);
+    assert(ui_context->count < UI_MAX_ITEMS);
     int idx = ui_context->count++;
     UIitem *item = uiItemPtr(idx);
     memset(item, 0, sizeof(UIitem));
