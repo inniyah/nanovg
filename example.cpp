@@ -636,10 +636,9 @@ void draw(NVGcontext *vg, float w, float h) {
     check(col, 13, "Item 7", &option2);
     check(col, 14, "Item 8", &option3);
     
-    uiProcess();
-    
-    
+    uiLayout();
     drawUI(vg, 0, 0, 0);
+    uiProcess();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

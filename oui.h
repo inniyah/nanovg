@@ -338,12 +338,18 @@ int uiGetButton(int button);
 // application dependent context data has been freed.
 void uiClear();
 
-// layout all added items starting from the root item 0, update the
-// internal state according to the current cursor position and button states,
-// and call all registered handlers.
+// layout all added items starting from the root item 0.
+// after calling uiLayout(), no further modifications to the item tree should
+// be done until the next call to uiClear().
+// It is safe to immediately draw the items after a call to uiLayout().
+// this is an O(N) operation for N = number of declared items.
+void uiLayout();
+
+// update the internal state according to the current cursor position and 
+// button states, and call all registered handlers.
 // after calling uiProcess(), no further modifications to the item tree should
 // be done until the next call to uiClear().
-// It is safe to immediately draw the items after a call to uiProcess().
+// Items should be drawn before a call to uiProcess()
 // this is an O(N) operation for N = number of declared items.
 void uiProcess();
 
@@ -1109,9 +1115,9 @@ int uiFindItem(int item, int x, int y, int ox, int oy) {
     return -1;
 }
 
-void uiProcess() {
+void uiLayout() {
     if (!ui_context->count) return;
-    
+
     // compute widths
     uiComputeBestSize(0,0);
     // position root element rect
@@ -1123,6 +1129,10 @@ void uiProcess() {
     // position root element rect
     uiItemPtr(0)->rect.y = uiItemPtr(0)->margins[1];    
     uiLayoutItem(0,1);
+}
+
+void uiProcess() {
+    if (!ui_context->count) return;
     
     int hot = uiFindItem(0, 
         ui_context->cursor.x, ui_context->cursor.y, 0, 0);
