@@ -920,13 +920,10 @@ static void uiComputeBestSize(int item, int dim) {
     uiComputeSizeDim(pitem, dim);
 }
 
-static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, int *dyncount, int dim) {
+static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, 
+    int *dyncount, int *consumed_space, int dim) {
     if (pitem->visited & (4<<dim)) return;
     pitem->visited |= (4<<dim);
-    
-    if (!pitem->size.v[dim]) {
-        *dyncount = (*dyncount)+1;
-    }
     
     int wdim = dim+2;
     
@@ -937,15 +934,24 @@ static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, int *dyncount, int
     int hasl = (flags & UI_LEFT) && (pitem->relto[dim] >= 0);
     int hasr = (flags & UI_RIGHT) && (pitem->relto[wdim] >= 0);
     
+    if ((flags & UI_HFILL) != UI_HFILL) {
+        *consumed_space = (*consumed_space)
+            + pitem->rect.v[wdim]
+            + pitem->margins[wdim]
+            + pitem->margins[dim];
+    } else if (!pitem->size.v[dim]) {
+        *dyncount = (*dyncount)+1;
+    }
+    
     if (hasl) {
         UIitem *pl = uiItemPtr(pitem->relto[dim]);
-        uiLayoutChildItem(pparent, pl, dyncount, dim);
+        uiLayoutChildItem(pparent, pl, dyncount, consumed_space, dim);
         x = pl->rect.v[dim]+pl->rect.v[wdim]+pl->margins[wdim];
         s -= x;
     }
     if (hasr) {
         UIitem *pl = uiItemPtr(pitem->relto[wdim]);
-        uiLayoutChildItem(pparent, pl, dyncount, dim);
+        uiLayoutChildItem(pparent, pl, dyncount, consumed_space, dim);
         s = pl->rect.v[dim]-pl->margins[dim]-x;
     }
 
@@ -968,7 +974,8 @@ static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, int *dyncount, int
                 pitem->rect.v[dim] = x+s-pitem->rect.v[wdim]-pitem->margins[wdim];
         } else {
             if (1) { //!pitem->rect.v[wdim]) {
-                int width = (pparent->rect.v[wdim] - pparent->computed_size.v[dim]);
+                //int width = (pparent->rect.v[wdim] - pparent->computed_size.v[dim]);
+                int width = (pparent->rect.v[wdim] - (*consumed_space));
                 int space = width / (*dyncount);
                 //int rest = width - space*(*dyncount);
                 if (!hasl) {
@@ -988,11 +995,13 @@ static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, int *dyncount, int
 }
 
 UI_INLINE void uiLayoutItemDim(UIitem *pitem, int dim) {
+    int wdim = dim+2;
     int kid = pitem->firstkid;
+    int consumed_space = 0;
+    int dyncount = 0;
     while (kid >= 0) {
         UIitem *pkid = uiItemPtr(kid);
-        int dyncount = 0;
-        uiLayoutChildItem(pitem, pkid, &dyncount, dim);
+        uiLayoutChildItem(pitem, pkid, &dyncount, &consumed_space, dim);
         kid = uiNextSibling(kid);
     }
 }
