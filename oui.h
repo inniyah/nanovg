@@ -65,12 +65,15 @@ void app_main(...) {
         
         // - UI setup code goes here -
         app_setup_ui();
-        
-        // layout UI, update states and fire handlers
-        uiProcess();
-        
+
+        // layout UI
+        uiLayout();
+
         // draw UI
         app_draw_ui(render_context,0,0,0);
+        
+        // update states and fire handlers
+        uiProcess();
     }
 
     uiDestroyContext(context);
@@ -181,7 +184,7 @@ See example.cpp in the repository for a full usage example.
 
 // limits
 
-// maximum number of items that may be added
+// maximum number of items that may be added (must be power of 2)
 #define UI_MAX_ITEMS 4096
 // maximum size in bytes reserved for storage of application dependent data
 // as passed to uiAllocData().
@@ -451,6 +454,10 @@ UIitemState uiGetState(int item);
 // return the application-dependent handle of the item as passed to uiSetHandle().
 UIhandle uiGetHandle(int item);
 
+// return the item with the given application-dependent handle as assigned by
+// uiSetHandle() or -1 if unsuccessful.
+int uiGetItem(UIhandle handle);
+
 // return the application-dependent context data for an item as passed to
 // uiAllocData(). The memory of the pointer is managed by the UI context
 // and must not be altered.
@@ -590,6 +597,11 @@ typedef enum UIstate {
     UI_STATE_CAPTURE,
 } UIstate;
 
+typedef struct UIhandle_entry {
+    unsigned int key;
+    int item;
+} UIhandle_entry;
+
 struct UIcontext {
     // button state in this frame
     unsigned long long buttons;
@@ -605,8 +617,6 @@ struct UIcontext {
     
     UIhandle hot_handle;
     UIhandle active_handle;
-    int hot_item;
-    int active_item;
     UIrect hot_rect;
     UIrect active_rect;
     UIstate state;
@@ -615,6 +625,7 @@ struct UIcontext {
     UIitem items[UI_MAX_ITEMS];
     int datasize;
     unsigned char data[UI_MAX_BUFFERSIZE];
+    UIhandle_entry handles[UI_MAX_ITEMS];
 };
 
 UI_INLINE int ui_max(int a, int b) {
@@ -643,6 +654,80 @@ void uiDestroyContext(UIcontext *ctx) {
     if (ui_context == ctx)
         uiMakeCurrent(NULL);
     free(ctx);
+}
+
+UI_INLINE unsigned int uiHashHandle(UIhandle handle) {
+    handle = (handle+(handle>>32)) & 0xffffffff;
+    unsigned int x = (unsigned int)handle;
+    x += (x>>6)+(x>>19);
+    x += x<<16;
+    x ^= x<<3;
+    x += x>>5;
+    x ^= x<<2;
+    x += x>>15;
+    x ^= x<<10;
+    return x?x:1; // must not be zero
+}
+
+UI_INLINE unsigned int uiHashProbeDistance(unsigned int key, unsigned int slot_index) {
+    unsigned int pos = key & (UI_MAX_ITEMS-1);
+    return (slot_index + UI_MAX_ITEMS - pos) & (UI_MAX_ITEMS-1);
+}
+
+UI_INLINE UIhandle_entry *uiHashLookupHandle(unsigned int key) {
+    assert(ui_context);
+    int pos = key & (UI_MAX_ITEMS-1);
+    unsigned int dist = 0;
+    for (;;) {
+        UIhandle_entry *entry = ui_context->handles + pos;
+        unsigned int pos_key = entry->key;
+        if (!pos_key) return NULL;
+        else if (entry->key == key)
+            return entry;
+        else if (dist > uiHashProbeDistance(pos_key, pos))
+            return NULL;
+        pos = (pos+1) & (UI_MAX_ITEMS-1);
+        ++dist;
+    }
+}
+
+int uiGetItem(UIhandle handle) {
+    unsigned int key = uiHashHandle(handle);
+    UIhandle_entry *e = uiHashLookupHandle(key);
+    return e?(e->item):-1;
+}
+
+static void uiHashInsertHandle(UIhandle handle, int item) {
+    unsigned int key = uiHashHandle(handle);
+    UIhandle_entry *e = uiHashLookupHandle(key);
+    if (e) { // update
+        e->item = item;
+        return;
+    }
+
+    int pos = key & (UI_MAX_ITEMS-1);
+    unsigned int dist = 0;
+    for (unsigned int i = 0; i < UI_MAX_ITEMS; ++i) {
+        int index = (pos + i) & (UI_MAX_ITEMS-1);
+        unsigned int pos_key = ui_context->handles[index].key;
+        if (!pos_key) {
+            ui_context->handles[index].key = key;
+            ui_context->handles[index].item = item;
+            break;
+        } else {
+            unsigned int probe_distance = uiHashProbeDistance(pos_key, index);
+            if (dist > probe_distance) {
+                unsigned int oldkey = ui_context->handles[index].key;
+                unsigned int olditem = ui_context->handles[index].item;                
+                ui_context->handles[index].key = key;
+                ui_context->handles[index].item = item;
+                key = oldkey;
+                item = olditem;
+                dist = probe_distance;
+            }
+        }
+        ++dist;
+    }
 }
 
 void uiSetButton(int button, int enabled) {
@@ -717,8 +802,7 @@ void uiClear() {
     assert(ui_context);
     ui_context->count = 0;
     ui_context->datasize = 0;
-    ui_context->hot_item = -1;
-    ui_context->active_item = -1;
+    memset(ui_context->handles, 0, sizeof(ui_context->handles));
 }
 
 int uiItem() {
@@ -1066,10 +1150,7 @@ void *uiAllocData(int item, int size) {
 void uiSetHandle(int item, UIhandle handle) {
     uiItemPtr(item)->handle = handle;
     if (handle) {
-        if (handle == ui_context->hot_handle)
-            ui_context->hot_item = item;
-        if (handle == ui_context->active_handle)
-            ui_context->active_item = item;
+        uiHashInsertHandle(handle, item);
     }
 }
 
@@ -1144,6 +1225,9 @@ void uiLayout() {
 void uiProcess() {
     if (!ui_context->count) return;
     
+    int hot_item = uiGetItem(ui_context->hot_handle);
+    int active_item = uiGetItem(ui_context->active_handle);
+
     int hot = uiFindItem(0, 
         ui_context->cursor.x, ui_context->cursor.y, 0, 0);
 
@@ -1152,54 +1236,54 @@ void uiProcess() {
     case UI_STATE_IDLE: {
         ui_context->start_cursor = ui_context->cursor;
         if (uiGetButton(0)) {
-            ui_context->hot_item = -1;
+            hot_item = -1;
             ui_context->active_rect = ui_context->hot_rect;
-            ui_context->active_item = hot;
-            if (ui_context->active_item >= 0) {
-                uiNotifyItem(ui_context->active_item, UI_BUTTON0_DOWN);
+            active_item = hot;
+            if (active_item >= 0) {
+                uiNotifyItem(active_item, UI_BUTTON0_DOWN);
             }            
             ui_context->state = UI_STATE_CAPTURE;            
         } else {
-            ui_context->hot_item = hot;
+            hot_item = hot;
         }
     } break;
     case UI_STATE_CAPTURE: {
         if (!uiGetButton(0)) {
-            if (ui_context->active_item >= 0) {
-                uiNotifyItem(ui_context->active_item, UI_BUTTON0_UP);
-                if (ui_context->active_item == hot) {
-                    uiNotifyItem(ui_context->active_item, UI_BUTTON0_HOT_UP);
+            if (active_item >= 0) {
+                uiNotifyItem(active_item, UI_BUTTON0_UP);
+                if (active_item == hot) {
+                    uiNotifyItem(active_item, UI_BUTTON0_HOT_UP);
                 }
             }
-            ui_context->active_item = -1;
+            active_item = -1;
             ui_context->state = UI_STATE_IDLE;
         } else {
-            if (ui_context->active_item >= 0) {
-                uiNotifyItem(ui_context->active_item, UI_BUTTON0_CAPTURE);
+            if (active_item >= 0) {
+                uiNotifyItem(active_item, UI_BUTTON0_CAPTURE);
             }            
-            if (hot == ui_context->active_item)
-                ui_context->hot_item = hot;
+            if (hot == active_item)
+                hot_item = hot;
             else
-                ui_context->hot_item = -1;
+                hot_item = -1;
         }
     } break;
     }
     
     ui_context->last_cursor = ui_context->cursor;
-    ui_context->hot_handle = (ui_context->hot_item>=0)?
-        uiGetHandle(ui_context->hot_item):0;
-    ui_context->active_handle = (ui_context->active_item>=0)?
-        uiGetHandle(ui_context->active_item):0;
+    ui_context->hot_handle = (hot_item>=0)?
+        uiGetHandle(hot_item):0;
+    ui_context->active_handle = (active_item>=0)?
+        uiGetHandle(active_item):0;
 }
 
 static int uiIsActive(int item) {
     assert(ui_context);
-    return ui_context->active_item == item;
+    return (ui_context->active_handle)&&(uiGetHandle(item) == ui_context->active_handle);
 }
 
 static int uiIsHot(int item) {
     assert(ui_context);
-    return ui_context->hot_item == item;
+    return (ui_context->hot_handle)&&(uiGetHandle(item) == ui_context->hot_handle);
 }
 
 UIitemState uiGetState(int item) {
