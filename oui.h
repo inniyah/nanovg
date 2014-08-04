@@ -458,9 +458,12 @@ UIhandle uiGetHandle(int item);
 // uiSetHandle() or -1 if unsuccessful.
 int uiGetItem(UIhandle handle);
 
+// return the item that is currently under the cursor
+int uiGetHotItem();
+
 // return the application-dependent context data for an item as passed to
 // uiAllocData(). The memory of the pointer is managed by the UI context
-// and must not be altered.
+// and should not be altered.
 const void *uiGetData(int item);
 
 // return the handler callback for an item as passed to uiSetHandler()
@@ -620,6 +623,7 @@ struct UIcontext {
     UIrect hot_rect;
     UIrect active_rect;
     UIstate state;
+    int hot_item;
     
     int count;    
     UIitem items[UI_MAX_ITEMS];
@@ -798,10 +802,16 @@ UIitem *uiItemPtr(int item) {
     return ui_context->items + item;
 }
 
+int uiGetHotItem() {
+    assert(ui_context);
+    return ui_context->hot_item;
+}
+
 void uiClear() {
     assert(ui_context);
     ui_context->count = 0;
     ui_context->datasize = 0;
+    ui_context->hot_item = -1;
     memset(ui_context->handles, 0, sizeof(ui_context->handles));
 }
 
@@ -1207,6 +1217,7 @@ int uiFindItem(int item, int x, int y, int ox, int oy) {
 }
 
 void uiLayout() {
+    assert(ui_context);
     if (!ui_context->count) return;
 
     // compute widths
@@ -1220,16 +1231,21 @@ void uiLayout() {
     // position root element rect
     uiItemPtr(0)->rect.y = uiItemPtr(0)->margins[1];    
     uiLayoutItem(0,1);
+
+    // drawing routines may require this to be set already
+    int hot = uiFindItem(0, 
+        ui_context->cursor.x, ui_context->cursor.y, 0, 0);
+    ui_context->hot_item = hot;
 }
 
 void uiProcess() {
+    assert(ui_context);
     if (!ui_context->count) return;
     
     int hot_item = uiGetItem(ui_context->hot_handle);
     int active_item = uiGetItem(ui_context->active_handle);
 
-    int hot = uiFindItem(0, 
-        ui_context->cursor.x, ui_context->cursor.y, 0, 0);
+    int hot = ui_context->hot_item;
 
     switch(ui_context->state) {
     default:
