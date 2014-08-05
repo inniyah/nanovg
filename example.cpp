@@ -38,6 +38,8 @@ typedef enum {
     ST_CHECK = 6,
     // panel
     ST_PANEL = 7,
+    // text
+    ST_TEXT = 8,
 } SubType;
 
 typedef struct {
@@ -68,6 +70,12 @@ typedef struct {
     const char *label;
     float *progress;
 } UISliderData;
+
+typedef struct {
+    UIData head;
+    char *text;
+    int maxsize;
+} UITextData;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -166,6 +174,13 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
                 bndSlider(vg,rect.x,rect.y,rect.w,rect.h,
                     cornerFlags(item),state,
                     *data->progress,data->label,value);
+            } break;
+            case ST_TEXT: {
+                const UITextData *data = (UITextData*)head;
+                BNDwidgetState state = (BNDwidgetState)uiGetState(item);
+                int idx = strlen(data->text);
+                bndTextField(vg,rect.x,rect.y,rect.w,rect.h,
+                    cornerFlags(item),state, -1, data->text, idx, idx);
             } break;
         }
     } else {
@@ -291,6 +306,53 @@ int slider(int parent, UIhandle handle, const char *label, float *progress) {
     data->head.subtype = ST_SLIDER;
     data->label = label;
     data->progress = progress;
+    uiAppend(parent, item);
+    return item;
+}
+
+void textboxhandler(int item, UIevent event) {
+    UITextData *data = (UITextData *)uiGetData(item);
+    switch(event) {
+        default: break;
+        case UI_BUTTON0_DOWN: {
+            uiFocus(item);
+        } break;
+        case UI_KEY_DOWN: {
+            int key = uiGetActiveKey();
+            switch(key) {
+                default: break;
+                case GLFW_KEY_BACKSPACE: {
+                    int size = strlen(data->text);
+                    if (!size) return;
+                    data->text[size-1] = 0;
+                } break;
+                case GLFW_KEY_ENTER: {
+                    uiFocus(-1);
+                } break;
+            }
+        } break;
+        case UI_CHAR: {
+            unsigned int key = uiGetActiveKey();
+            if ((key > 255)||(key < 32)) return;
+            int size = strlen(data->text);
+            if (size >= (data->maxsize-1)) return;
+            data->text[size] = (char)key;
+        } break;
+    }
+}
+
+int textbox(int parent, UIhandle handle, char *text, int maxsize) {
+    int item = uiItem();
+    uiSetHandle(item, handle);
+    uiSetSize(item, 0, BND_WIDGET_HEIGHT);
+    uiSetHandler(item, textboxhandler, 
+        UI_BUTTON0_DOWN | UI_KEY_DOWN | UI_CHAR);
+    // store some custom data with the button that we use for styling
+    // and logic, e.g. the pointer to the data we want to alter.
+    UITextData *data = (UITextData *)uiAllocData(item, sizeof(UITextData));
+    data->head.subtype = ST_TEXT;
+    data->text = text;
+    data->maxsize = maxsize;
     uiAppend(parent, item);
     return item;
 }
@@ -636,6 +698,10 @@ void draw(NVGcontext *vg, float w, float h) {
     check(col, 13, "Item 7", &option2);
     check(col, 14, "Item 8", &option3);
     
+    static char textbuffer[32] = "click and edit";
+    
+    textbox(col, (UIhandle)textbuffer, textbuffer, 32);
+    
     uiLayout();
     drawUI(vg, 0, 0, 0);
     uiProcess();
@@ -659,12 +725,18 @@ static void cursorpos(GLFWwindow *window, double x, double y) {
     uiSetCursor((int)x,(int)y);
 }
 
+static void charevent(GLFWwindow *window, unsigned int value) {
+	NVG_NOTUSED(window);
+    uiSetChar(value);
+}
+
 static void key(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	NVG_NOTUSED(scancode);
 	NVG_NOTUSED(mods);
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
+    uiSetKey(key, action);
 }
 
 int main()
@@ -697,8 +769,9 @@ int main()
 	}
 
 	glfwSetKeyCallback(window, key);
+    glfwSetCharCallback(window, charevent);
     glfwSetCursorPosCallback(window, cursorpos);
-    glfwSetMouseButtonCallback(window, mousebutton);
+    glfwSetMouseButtonCallback(window, mousebutton);    
 
 	glfwMakeContextCurrent(window);
 #ifdef NANOVG_GLEW
