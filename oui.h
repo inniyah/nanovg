@@ -193,6 +193,8 @@ See example.cpp in the repository for a full usage example.
 #define UI_MAX_DATASIZE 4096
 // maximum depth of nested containers
 #define UI_MAX_DEPTH 64
+// maximum number of buffered input events
+#define UI_MAX_INPUT_EVENTS 64
 
 typedef unsigned int UIuint;
 
@@ -209,10 +211,10 @@ typedef enum UIitemState {
     UI_COLD = 0,
     // the item is inactive, but the cursor is hovering over this item
     UI_HOT = 1,
-    // the item is toggled or activated (depends on item kind)
+    // the item is toggled, activated, focused (depends on item kind)
     UI_ACTIVE = 2,
     // the item is unresponsive
-    UI_FROZEN = 3
+    UI_FROZEN = 3,
 } UIitemState;
 
 // layout flags
@@ -260,6 +262,15 @@ typedef enum UIevent {
     // this can be used to allow container items to configure child items
     // as they appear.
     UI_APPEND = 0x10,
+    // item is focused and has received a key-down event
+    // the respective key can be queried using uiGetActiveKey()
+    UI_KEY_DOWN = 0x20,
+    // item is focused and has received a key-up event
+    // the respective key can be queried using uiGetActiveKey()
+    UI_KEY_UP = 0x40,
+    // item is focused and has received a character event
+    // the respective character can be queried using uiGetActiveKey()
+    UI_CHAR = 0x80,
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -330,6 +341,17 @@ void uiSetButton(int button, int enabled);
 // as set by uiSetButton().
 // the function returns 1 if the button has been set to pressed, 0 for released.
 int uiGetButton(int button);
+
+// sets a key as down/up; the key can be any application defined keycode
+// enabled is 1 for key down, 0 for key up
+// all key events are being buffered until the next call to uiProcess()
+void uiSetKey(unsigned int key, int enabled);
+
+// sends a single character for text input; the character is usually in the
+// unicode range, but can be application defined.
+// all char events are being buffered until the next call to uiProcess()
+void uiSetChar(unsigned int value);
+
 
 // Stages
 // ------
@@ -418,6 +440,10 @@ void uiSetRelToRight(int item, int other);
 // sibling is below this item.
 void uiSetRelToDown(int item, int other);
 
+// set item as recipient of all keyboard events; the item must have a handle
+// assigned; if item is -1, no item will be focused.
+void uiFocus(int item);
+
 // Iteration
 // ---------
 
@@ -458,8 +484,11 @@ UIhandle uiGetHandle(int item);
 // uiSetHandle() or -1 if unsuccessful.
 int uiGetItem(UIhandle handle);
 
-// return the item that is currently under the cursor
+// return the item that is currently under the cursor or -1 for none
 int uiGetHotItem();
+
+// return the item that is currently focused or -1 for none
+int uiGetFocusedItem();
 
 // return the application-dependent context data for an item as passed to
 // uiAllocData(). The memory of the pointer is managed by the UI context
@@ -470,6 +499,8 @@ const void *uiGetData(int item);
 UIhandler uiGetHandler(int item);
 // return the handler flags for an item as passed to uiSetHandler()
 int uiGetHandlerFlags(int item);
+// when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
+unsigned int uiGetActiveKey();
 
 // returns the number of child items a container item contains. If the item 
 // is not a container or does not contain any items, 0 is returned.
@@ -600,10 +631,15 @@ typedef enum UIstate {
     UI_STATE_CAPTURE,
 } UIstate;
 
-typedef struct UIhandle_entry {
+typedef struct UIhandleEntry {
     unsigned int key;
     int item;
-} UIhandle_entry;
+} UIhandleEntry;
+
+typedef struct UIinputEvent {
+    unsigned int key;
+    UIevent event;
+} UIinputEvent;
 
 struct UIcontext {
     // button state in this frame
@@ -620,16 +656,21 @@ struct UIcontext {
     
     UIhandle hot_handle;
     UIhandle active_handle;
+    UIhandle focus_handle;
     UIrect hot_rect;
     UIrect active_rect;
     UIstate state;
     int hot_item;
+    int active_key;
     
     int count;    
-    UIitem items[UI_MAX_ITEMS];
     int datasize;
+    int eventcount;
+    
+    UIitem items[UI_MAX_ITEMS];    
     unsigned char data[UI_MAX_BUFFERSIZE];
-    UIhandle_entry handles[UI_MAX_ITEMS];
+    UIhandleEntry handles[UI_MAX_ITEMS];    
+    UIinputEvent events[UI_MAX_INPUT_EVENTS];
 };
 
 UI_INLINE int ui_max(int a, int b) {
@@ -678,12 +719,12 @@ UI_INLINE unsigned int uiHashProbeDistance(unsigned int key, unsigned int slot_i
     return (slot_index + UI_MAX_ITEMS - pos) & (UI_MAX_ITEMS-1);
 }
 
-UI_INLINE UIhandle_entry *uiHashLookupHandle(unsigned int key) {
+UI_INLINE UIhandleEntry *uiHashLookupHandle(unsigned int key) {
     assert(ui_context);
     int pos = key & (UI_MAX_ITEMS-1);
     unsigned int dist = 0;
     for (;;) {
-        UIhandle_entry *entry = ui_context->handles + pos;
+        UIhandleEntry *entry = ui_context->handles + pos;
         unsigned int pos_key = entry->key;
         if (!pos_key) return NULL;
         else if (entry->key == key)
@@ -697,13 +738,13 @@ UI_INLINE UIhandle_entry *uiHashLookupHandle(unsigned int key) {
 
 int uiGetItem(UIhandle handle) {
     unsigned int key = uiHashHandle(handle);
-    UIhandle_entry *e = uiHashLookupHandle(key);
+    UIhandleEntry *e = uiHashLookupHandle(key);
     return e?(e->item):-1;
 }
 
 static void uiHashInsertHandle(UIhandle handle, int item) {
     unsigned int key = uiHashHandle(handle);
-    UIhandle_entry *e = uiHashLookupHandle(key);
+    UIhandleEntry *e = uiHashLookupHandle(key);
     if (e) { // update
         e->item = item;
         return;
@@ -741,6 +782,29 @@ void uiSetButton(int button, int enabled) {
     ui_context->buttons = (enabled)?
         (ui_context->buttons | mask):
         (ui_context->buttons & ~mask);
+}
+
+static void uiAddInputEvent(UIinputEvent event) {
+    assert(ui_context);
+    if (ui_context->eventcount == UI_MAX_INPUT_EVENTS) return;
+    ui_context->events[ui_context->eventcount++] = event;
+}
+
+static void uiClearInputEvents() {
+    assert(ui_context);
+    ui_context->eventcount = 0;
+}
+
+void uiSetKey(unsigned int key, int enabled) {
+    assert(ui_context);
+    UIinputEvent event = { key, enabled?UI_KEY_DOWN:UI_KEY_UP };
+    uiAddInputEvent(event);
+}
+
+void uiSetChar(unsigned int value) {
+    assert(ui_context);
+    UIinputEvent event = { value, UI_CHAR };
+    uiAddInputEvent(event);
 }
 
 int uiGetLastButton(int button) {
@@ -797,6 +861,11 @@ UIvec2 uiGetCursorStartDelta() {
     return result;
 }
 
+unsigned int uiGetActiveKey() {
+    assert(ui_context);
+    return ui_context->active_key;
+}
+
 UIitem *uiItemPtr(int item) {
     assert(ui_context && (item >= 0) && (item < ui_context->count));
     return ui_context->items + item;
@@ -805,6 +874,16 @@ UIitem *uiItemPtr(int item) {
 int uiGetHotItem() {
     assert(ui_context);
     return ui_context->hot_item;
+}
+
+void uiFocus(int item) {
+    assert(ui_context && (item >= -1) && (item < ui_context->count));
+    ui_context->focus_handle = (item < 0)?0:uiGetHandle(item);
+}
+
+int uiGetFocusedItem() {
+    assert(ui_context);
+    return ui_context->focus_handle?uiGetItem(ui_context->focus_handle):-1;
 }
 
 void uiClear() {
@@ -1240,10 +1319,26 @@ void uiLayout() {
 
 void uiProcess() {
     assert(ui_context);
-    if (!ui_context->count) return;
+    if (!ui_context->count) {
+        uiClearInputEvents();
+        return;
+    }
     
     int hot_item = uiGetItem(ui_context->hot_handle);
     int active_item = uiGetItem(ui_context->active_handle);
+    int focus_item = uiGetItem(ui_context->focus_handle);
+
+    // send all keyboard events
+    if (focus_item >= 0) {
+        for (int i = 0; i < ui_context->eventcount; ++i) {
+            ui_context->active_key = ui_context->events[i].key;
+            uiNotifyItem(focus_item, 
+                ui_context->events[i].event);
+        }
+    } else {
+        ui_context->focus_handle = 0;
+    }
+    uiClearInputEvents();
 
     int hot = ui_context->hot_item;
 
@@ -1255,6 +1350,12 @@ void uiProcess() {
             hot_item = -1;
             ui_context->active_rect = ui_context->hot_rect;
             active_item = hot;
+            
+            if (active_item != focus_item) {
+                focus_item = -1;
+                ui_context->focus_handle = 0;
+            }
+            
             if (active_item >= 0) {
                 uiNotifyItem(active_item, UI_BUTTON0_DOWN);
             }            
@@ -1302,9 +1403,17 @@ static int uiIsHot(int item) {
     return (ui_context->hot_handle)&&(uiGetHandle(item) == ui_context->hot_handle);
 }
 
+static int uiIsFocused(int item) {
+    assert(ui_context);
+    return (ui_context->focus_handle)&&(uiGetHandle(item) == ui_context->focus_handle);
+}
+
 UIitemState uiGetState(int item) {
     UIitem *pitem = uiItemPtr(item);
     if (pitem->frozen) return UI_FROZEN;
+    if (uiIsFocused(item)) {
+        if (pitem->event_flags & (UI_KEY_DOWN|UI_CHAR|UI_KEY_UP)) return UI_ACTIVE;
+    }
     if (uiIsActive(item)) {
         if (pitem->event_flags & (UI_BUTTON0_CAPTURE|UI_BUTTON0_UP)) return UI_ACTIVE;
         if ((pitem->event_flags & UI_BUTTON0_HOT_UP)
