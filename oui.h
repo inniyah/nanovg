@@ -1291,11 +1291,11 @@ int uiFindItem(int item, int x, int y, int ox, int oy) {
      && (y>=0)
      && (x<rect.w)
      && (y<rect.h)) {
-        int kid = uiFirstChild(item);
+        int kid = uiLastChild(item);
         while (kid >= 0) {
             int best_hit = uiFindItem(kid,x,y,ox,oy);
             if (best_hit >= 0) return best_hit;
-            kid = uiNextSibling(kid);
+            kid = uiPrevSibling(kid);
         }
         rect.x += ox;
         rect.y += oy;
