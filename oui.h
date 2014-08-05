@@ -343,9 +343,10 @@ void uiSetButton(int button, int enabled);
 int uiGetButton(int button);
 
 // sets a key as down/up; the key can be any application defined keycode
+// mod is an application defined set of flags for modifier keys
 // enabled is 1 for key down, 0 for key up
 // all key events are being buffered until the next call to uiProcess()
-void uiSetKey(unsigned int key, int enabled);
+void uiSetKey(unsigned int key, unsigned int mod, int enabled);
 
 // sends a single character for text input; the character is usually in the
 // unicode range, but can be application defined.
@@ -500,7 +501,9 @@ UIhandler uiGetHandler(int item);
 // return the handler flags for an item as passed to uiSetHandler()
 int uiGetHandlerFlags(int item);
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
-unsigned int uiGetActiveKey();
+unsigned int uiGetKey();
+// when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
+unsigned int uiGetModifier();
 
 // returns the number of child items a container item contains. If the item 
 // is not a container or does not contain any items, 0 is returned.
@@ -638,6 +641,7 @@ typedef struct UIhandleEntry {
 
 typedef struct UIinputEvent {
     unsigned int key;
+    unsigned int mod;
     UIevent event;
 } UIinputEvent;
 
@@ -661,7 +665,8 @@ struct UIcontext {
     UIrect active_rect;
     UIstate state;
     int hot_item;
-    int active_key;
+    unsigned int active_key;
+    unsigned int active_modifier;
     
     int count;    
     int datasize;
@@ -795,15 +800,15 @@ static void uiClearInputEvents() {
     ui_context->eventcount = 0;
 }
 
-void uiSetKey(unsigned int key, int enabled) {
+void uiSetKey(unsigned int key, unsigned int mod, int enabled) {
     assert(ui_context);
-    UIinputEvent event = { key, enabled?UI_KEY_DOWN:UI_KEY_UP };
+    UIinputEvent event = { key, mod, enabled?UI_KEY_DOWN:UI_KEY_UP };
     uiAddInputEvent(event);
 }
 
 void uiSetChar(unsigned int value) {
     assert(ui_context);
-    UIinputEvent event = { value, UI_CHAR };
+    UIinputEvent event = { value, 0, UI_CHAR };
     uiAddInputEvent(event);
 }
 
@@ -861,9 +866,14 @@ UIvec2 uiGetCursorStartDelta() {
     return result;
 }
 
-unsigned int uiGetActiveKey() {
+unsigned int uiGetKey() {
     assert(ui_context);
     return ui_context->active_key;
+}
+
+unsigned int uiGetModifier() {
+    assert(ui_context);
+    return ui_context->active_modifier;
 }
 
 UIitem *uiItemPtr(int item) {
@@ -1332,6 +1342,7 @@ void uiProcess() {
     if (focus_item >= 0) {
         for (int i = 0; i < ui_context->eventcount; ++i) {
             ui_context->active_key = ui_context->events[i].key;
+            ui_context->active_modifier = ui_context->events[i].mod;
             uiNotifyItem(focus_item, 
                 ui_context->events[i].event);
         }

@@ -318,7 +318,7 @@ void textboxhandler(int item, UIevent event) {
             uiFocus(item);
         } break;
         case UI_KEY_DOWN: {
-            int key = uiGetActiveKey();
+            unsigned int key = uiGetKey();
             switch(key) {
                 default: break;
                 case GLFW_KEY_BACKSPACE: {
@@ -332,7 +332,7 @@ void textboxhandler(int item, UIevent event) {
             }
         } break;
         case UI_CHAR: {
-            unsigned int key = uiGetActiveKey();
+            unsigned int key = uiGetKey();
             if ((key > 255)||(key < 32)) return;
             int size = strlen(data->text);
             if (size >= (data->maxsize-1)) return;
@@ -736,7 +736,7 @@ static void key(GLFWwindow* window, int key, int scancode, int action, int mods)
 	NVG_NOTUSED(mods);
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
-    uiSetKey(key, action);
+    uiSetKey(key, mods, action);
 }
 
 int main()
