@@ -458,6 +458,24 @@ int row(int parent) {
     return item;
 }
 
+void draw_noodles(NVGcontext *vg, int x, int y) {
+    int w = 200;
+    int s = 70;
+    
+    for (int i = 0; i < 9; ++i) {
+        int a = i%3;
+        int b = i/3;
+        bndNodeWire(vg, x, y+s*a, x+w, y+s*b, (BNDwidgetState)a, (BNDwidgetState)b);
+    }
+    
+    bndNodePort(vg, x, y, BND_DEFAULT, nvgRGBf(0.5f, 0.5f, 0.5f));
+    bndNodePort(vg, x+w, y, BND_DEFAULT, nvgRGBf(0.5f, 0.5f, 0.5f));
+    bndNodePort(vg, x, y+s, BND_HOVER, nvgRGBf(0.5f, 0.5f, 0.5f));
+    bndNodePort(vg, x+w, y+s, BND_HOVER, nvgRGBf(0.5f, 0.5f, 0.5f));
+    bndNodePort(vg, x, y+2*s, BND_ACTIVE, nvgRGBf(0.5f, 0.5f, 0.5f));
+    bndNodePort(vg, x+w, y+2*s, BND_ACTIVE, nvgRGBf(0.5f, 0.5f, 0.5f));
+}
+
 void draw(NVGcontext *vg, float w, float h) {
     bndBackground(vg, 0, 0, w, h);
     
@@ -596,6 +614,8 @@ void draw(NVGcontext *vg, float w, float h) {
     ry += 25;
     bndTextField(vg,rx,ry,240,BND_WIDGET_HEIGHT,BND_CORNER_NONE,BND_ACTIVE,
         -1, edit_text, idx1, idx2);
+        
+    draw_noodles(vg, 20, ry+50);
     
     rx += rw + 20;
     ry = 10;

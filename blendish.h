@@ -105,6 +105,26 @@ typedef struct BNDwidgetTheme {
     int shadeDown;
 } BNDwidgetTheme;
 
+// describes the theme used to draw nodes
+typedef struct BNDnodeTheme {
+    // inner color of selected node (and downarrow)
+    NVGcolor nodeSelectedColor;
+    // outline of wires
+    NVGcolor wiresColor;
+    // color of text label when active
+    NVGcolor textSelectedColor;
+    
+    // inner color of active node (and dragged wire)
+    NVGcolor activeNodeColor;
+    // color of selected wire
+    NVGcolor wireSelectColor;
+    // color of background of node
+    NVGcolor nodeBackdropColor;
+    
+    // how much a noodle curves (0 to 10)
+    int noodleCurving;
+} BNDnodeTheme;
+
 // describes the theme used to draw widgets
 typedef struct BNDtheme {
     // the background color of panels and windows
@@ -134,6 +154,8 @@ typedef struct BNDtheme {
     BNDwidgetTheme menuTheme;
     // theme for menu items
     BNDwidgetTheme menuItemTheme;
+    // theme for nodes
+    BNDnodeTheme nodeTheme;
 } BNDtheme;
 
 // how text on a control is aligned
@@ -186,6 +208,8 @@ typedef enum BNDcornerFlags {
 #define BND_WIDGET_HEIGHT 21
 // default toolbutton width (if icon only)
 #define BND_TOOL_WIDTH 20
+// default radius of node ports
+#define BND_NODE_PORT_RADIUS 5
 
 // width of vertical scrollbar
 #define BND_SCROLLBAR_WIDTH 13
@@ -346,7 +370,19 @@ void bndMenuItem(NVGcontext *ctx,
 
 // Draw a tooltip background with its lower left origin at (x,y) and size of (w,h)
 void bndTooltipBackground(NVGcontext *ctx, float x, float y, float w, float h);
-        
+
+// Draw a node port at the given position filled with the given color
+void bndNodePort(NVGcontext *ctx, float x, float y, BNDwidgetState state,
+    NVGcolor color);
+
+// Draw a node wire originating at (x0,y0) and floating to (x1,y1), with 
+// a colored gradient based on the states state0 and state1:
+// BND_DEFAULT: default wire color
+// BND_HOVER: selected wire color
+// BND_ACTIVE: dragged wire color
+void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1, 
+    BNDwidgetState state0, BNDwidgetState state1);
+
 ////////////////////////////////////////////////////////////////////////////////
         
 // Estimator Functions
@@ -471,6 +507,11 @@ void bndArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 // Draw an up/down arrow for a choice box with its center at (x,y) and size s
 void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 
+// return the color of a node wire based on state
+// BND_HOVER indicates selected state, 
+// BND_ACTIVE indicates dragged state
+NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState state);
+
 #ifdef __cplusplus
 };
 #endif
@@ -573,6 +614,11 @@ void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 
 // text distance from bottom
 #define BND_TEXT_PAD_DOWN 7
+
+// stroke width of wire outline
+#define BND_NODE_WIRE_OUTLINE_WIDTH 4
+// stroke width of wire
+#define BND_NODE_WIRE_WIDTH 2
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -717,6 +763,16 @@ static BNDtheme bnd_theme = {
         BND_COLOR_TEXT, // color_text_selected        
         38, // shade_top
         0, // shade_down
+    },
+    // nodeTheme
+    {
+        {{{ 0.945,0.345,0,1 }}}, // nodeSelectedColor
+        {{{ 0,0,0,1 }}}, // wiresColor
+        {{{ 0.498,0.439,0.439,1 }}}, // textSelectedColor
+        {{{ 1,0.667,0.251,1 }}}, // activeNodeColor
+        {{{ 1,1,1,1 }}}, // wireSelectColor
+        {{{ 0.608,0.608,0.608,0.627 }}}, // nodeBackdropColor
+        5, // noodleCurving
     },
 };
 
@@ -997,6 +1053,39 @@ void bndMenuItem(NVGcontext *ctx,
     bndIconLabelValue(ctx,x,y,w,h,iconid,
         bndTextColor(&bnd_theme.menuItemTheme, state), BND_LEFT,
         BND_LABEL_FONT_SIZE, label, NULL);
+}
+
+void bndNodePort(NVGcontext *ctx, float x, float y, BNDwidgetState state,
+    NVGcolor color) {
+    nvgBeginPath(ctx);
+    nvgCircle(ctx, x, y, BND_NODE_PORT_RADIUS);
+    nvgFillColor(ctx,(state != BND_DEFAULT)?
+        bndOffsetColor(color, BND_HOVER_SHADE):color);
+    nvgFill(ctx);
+    nvgStrokeColor(ctx,bnd_theme.nodeTheme.wiresColor);
+    nvgStrokeWidth(ctx,1.0f);
+    nvgStroke(ctx);
+}
+
+void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1, 
+    BNDwidgetState state0, BNDwidgetState state1) {
+    float delta = fabsf(x1 - x0)*(float)bnd_theme.nodeTheme.noodleCurving/10.0f;
+    
+    nvgBeginPath(ctx);
+    nvgMoveTo(ctx, x0, y0);
+    nvgBezierTo(ctx, 
+        x0 + delta, y0,
+        x1 - delta, y1,
+        x1, y1);
+    nvgStrokeColor(ctx, bnd_theme.nodeTheme.wiresColor);
+    nvgStrokeWidth(ctx, BND_NODE_WIRE_OUTLINE_WIDTH);
+    nvgStroke(ctx);
+    nvgStrokePaint(ctx, nvgLinearGradient(ctx, 
+        x0, y0, x1, y1, 
+        bndNodeWireColor(&bnd_theme.nodeTheme, state0),
+        bndNodeWireColor(&bnd_theme.nodeTheme, state1)));
+    nvgStrokeWidth(ctx,BND_NODE_WIRE_WIDTH);
+    nvgStroke(ctx);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1360,6 +1449,15 @@ void bndScrollHandleRect(float *x, float *y, float *w, float *h,
         float ws = fmaxf(size*(*w), (*h)-1);
         *x = (*x) + ((*w)-ws)*offset;
         *w = ws;
+    }
+}
+
+NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState state) {
+    switch(state) {
+        default:
+        case BND_DEFAULT: return nvgRGBf(0.5f,0.5f,0.5f);
+        case BND_HOVER: return theme->wireSelectColor;
+        case BND_ACTIVE: return theme->activeNodeColor;
     }
 }
 
