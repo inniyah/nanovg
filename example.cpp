@@ -461,6 +461,8 @@ int row(int parent) {
 void draw_noodles(NVGcontext *vg, int x, int y) {
     int w = 200;
     int s = 70;
+
+    bndNodeBackground(vg, x+w, y-50, 150, 200);
     
     for (int i = 0; i < 9; ++i) {
         int a = i%3;

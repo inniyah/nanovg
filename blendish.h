@@ -383,6 +383,9 @@ void bndNodePort(NVGcontext *ctx, float x, float y, BNDwidgetState state,
 void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1, 
     BNDwidgetState state0, BNDwidgetState state1);
 
+// Draw a node background with its upper left origin at (x,y) and size of (w,h)
+void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h);
+
 ////////////////////////////////////////////////////////////////////////////////
         
 // Estimator Functions
@@ -619,6 +622,8 @@ NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState state);
 #define BND_NODE_WIRE_OUTLINE_WIDTH 4
 // stroke width of wire
 #define BND_NODE_WIRE_WIDTH 2
+// radius of node box
+#define BND_NODE_RADIUS 10
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1086,6 +1091,18 @@ void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
         bndNodeWireColor(&bnd_theme.nodeTheme, state1)));
     nvgStrokeWidth(ctx,BND_NODE_WIRE_WIDTH);
     nvgStroke(ctx);
+}
+
+void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h) {
+    bndInnerBox(ctx,x,y,w,h+1,
+        BND_NODE_RADIUS,BND_NODE_RADIUS,BND_NODE_RADIUS,BND_NODE_RADIUS,
+        bnd_theme.nodeTheme.nodeBackdropColor, 
+        bnd_theme.nodeTheme.nodeBackdropColor);
+    bndOutlineBox(ctx,x,y,w,h+1,
+        BND_NODE_RADIUS,BND_NODE_RADIUS,BND_NODE_RADIUS,BND_NODE_RADIUS,
+        bndTransparent(nvgRGBf(0,0,0)));
+    bndDropShadow(ctx,x,y,w,h,BND_NODE_RADIUS,
+        BND_SHADOW_FEATHER,BND_SHADOW_ALPHA);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
