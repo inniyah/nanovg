@@ -462,7 +462,12 @@ void draw_noodles(NVGcontext *vg, int x, int y) {
     int w = 200;
     int s = 70;
 
-    bndNodeBackground(vg, x+w, y-50, 150, 200);
+    bndNodeBackground(vg, x+w, y-50, 100, 200, BND_DEFAULT, BND_ICONID(6,3),
+        "Default", nvgRGBf(0.392f,0.392f,0.392f));
+    bndNodeBackground(vg, x+w+120, y-50, 100, 200, BND_HOVER, BND_ICONID(6,3),
+        "Hover", nvgRGBf(0.392f,0.392f,0.392f));
+    bndNodeBackground(vg, x+w+240, y-50, 100, 200, BND_ACTIVE, BND_ICONID(6,3),
+        "Active", nvgRGBf(0.392f,0.392f,0.392f));
     
     for (int i = 0; i < 9; ++i) {
         int a = i%3;

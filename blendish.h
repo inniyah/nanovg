@@ -208,8 +208,19 @@ typedef enum BNDcornerFlags {
 #define BND_WIDGET_HEIGHT 21
 // default toolbutton width (if icon only)
 #define BND_TOOL_WIDTH 20
+
 // default radius of node ports
 #define BND_NODE_PORT_RADIUS 5
+// top margin of node content
+#define BND_NODE_MARGIN_TOP 25
+// bottom margin of node content
+#define BND_NODE_MARGIN_DOWN 5
+// left and right margin of node content
+#define BND_NODE_MARGIN_SIDE 10
+// height of node title bar
+#define BND_NODE_TITLE_HEIGHT 20
+// width of node title arrow click area
+#define BND_NODE_ARROW_AREA_WIDTH 20
 
 // width of vertical scrollbar
 #define BND_SCROLLBAR_WIDTH 13
@@ -384,7 +395,9 @@ void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
     BNDwidgetState state0, BNDwidgetState state1);
 
 // Draw a node background with its upper left origin at (x,y) and size of (w,h)
-void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h);
+// where titleColor provides the base color for the title bar
+void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h,
+    BNDwidgetState state, int iconid, const char *label, NVGcolor titleColor);
 
 ////////////////////////////////////////////////////////////////////////////////
         
@@ -486,6 +499,15 @@ void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, NVGcolor color, int align, float fontsize, const char *label, 
     const char *value);
 
+// Draw an optional icon specified by <iconid> and an optional label with
+// given alignment (BNDtextAlignment), fontsize and color within a node title bar
+// if iconid is >= 0, an icon will be drawn
+// if label is not NULL, it will be drawn with the specified alignment, fontsize
+// and color.
+void bndNodeIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
+    int iconid, NVGcolor color, NVGcolor shadowColor, int align, 
+    float fontsize, const char *label);
+    
 // Draw an optional icon specified by <iconid>, an optional label and 
 // a caret with given fontsize and color within a widget box.
 // if iconid is >= 0, an icon will be drawn and the labels remaining space
@@ -509,6 +531,9 @@ void bndArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 
 // Draw an up/down arrow for a choice box with its center at (x,y) and size s
 void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
+
+// Draw a node down-arrow with its tip at (x,y) and size s
+void bndNodeArrowDown(NVGcontext *ctx, float x, float y, float s, NVGcolor color);
 
 // return the color of a node wire based on state
 // BND_HOVER indicates selected state, 
@@ -623,7 +648,11 @@ NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState state);
 // stroke width of wire
 #define BND_NODE_WIRE_WIDTH 2
 // radius of node box
-#define BND_NODE_RADIUS 10
+#define BND_NODE_RADIUS 8
+// feather of node title text
+#define BND_NODE_TITLE_FEATHER 1
+// size of node title arrow
+#define BND_NODE_ARROW_SIZE 9
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1064,12 +1093,12 @@ void bndNodePort(NVGcontext *ctx, float x, float y, BNDwidgetState state,
     NVGcolor color) {
     nvgBeginPath(ctx);
     nvgCircle(ctx, x, y, BND_NODE_PORT_RADIUS);
-    nvgFillColor(ctx,(state != BND_DEFAULT)?
-        bndOffsetColor(color, BND_HOVER_SHADE):color);
-    nvgFill(ctx);
     nvgStrokeColor(ctx,bnd_theme.nodeTheme.wiresColor);
     nvgStrokeWidth(ctx,1.0f);
     nvgStroke(ctx);
+    nvgFillColor(ctx,(state != BND_DEFAULT)?
+        bndOffsetColor(color, BND_HOVER_SHADE):color);
+    nvgFill(ctx);
 }
 
 void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1, 
@@ -1093,14 +1122,45 @@ void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
     nvgStroke(ctx);
 }
 
-void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h) {
-    bndInnerBox(ctx,x,y,w,h+1,
-        BND_NODE_RADIUS,BND_NODE_RADIUS,BND_NODE_RADIUS,BND_NODE_RADIUS,
-        bnd_theme.nodeTheme.nodeBackdropColor, 
-        bnd_theme.nodeTheme.nodeBackdropColor);
+void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h,
+    BNDwidgetState state, int iconid, const char *label, NVGcolor titleColor) {
+    bndInnerBox(ctx,x,y,w,BND_NODE_TITLE_HEIGHT+2,
+        BND_NODE_RADIUS,BND_NODE_RADIUS,0,0,
+        bndTransparent(bndOffsetColor(titleColor, BND_BEVEL_SHADE)), 
+        bndTransparent(titleColor));
+    bndInnerBox(ctx,x,y+BND_NODE_TITLE_HEIGHT-1,w,h+2-BND_NODE_TITLE_HEIGHT,
+        0,0,BND_NODE_RADIUS,BND_NODE_RADIUS,
+        bndTransparent(bnd_theme.nodeTheme.nodeBackdropColor), 
+        bndTransparent(bnd_theme.nodeTheme.nodeBackdropColor));
+    bndNodeIconLabel(ctx,
+        x+BND_NODE_ARROW_AREA_WIDTH,y,
+        w-BND_NODE_ARROW_AREA_WIDTH-BND_NODE_MARGIN_SIDE,BND_NODE_TITLE_HEIGHT,
+        iconid, bnd_theme.regularTheme.textColor, 
+        bndOffsetColor(titleColor, BND_BEVEL_SHADE*2), 
+        BND_LEFT, BND_LABEL_FONT_SIZE, label);
+    NVGcolor arrowColor;
+    NVGcolor borderColor;
+    switch(state) {
+    default:
+    case BND_DEFAULT: {
+        borderColor = nvgRGBf(0,0,0);
+        arrowColor = bndOffsetColor(titleColor, -BND_BEVEL_SHADE);
+    } break;
+    case BND_HOVER: {
+        borderColor = bnd_theme.nodeTheme.nodeSelectedColor;
+        arrowColor = bnd_theme.nodeTheme.nodeSelectedColor;
+    } break;
+    case BND_ACTIVE: {
+        borderColor = bnd_theme.nodeTheme.activeNodeColor;
+        arrowColor = bnd_theme.nodeTheme.nodeSelectedColor;
+    } break;
+    }
     bndOutlineBox(ctx,x,y,w,h+1,
         BND_NODE_RADIUS,BND_NODE_RADIUS,BND_NODE_RADIUS,BND_NODE_RADIUS,
-        bndTransparent(nvgRGBf(0,0,0)));
+        bndTransparent(borderColor));
+    bndNodeArrowDown(ctx, 
+        x + BND_NODE_MARGIN_SIDE, y + BND_NODE_TITLE_HEIGHT-4, 
+        BND_NODE_ARROW_SIZE, arrowColor);
     bndDropShadow(ctx,x,y,w,h,BND_NODE_RADIUS,
         BND_SHADOW_FEATHER,BND_SHADOW_ALPHA);
 }
@@ -1361,6 +1421,32 @@ void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, float h,
     }
 }
 
+void bndNodeIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
+    int iconid, NVGcolor color, NVGcolor shadowColor, 
+    int align, float fontsize, const char *label) {
+    float pleft = BND_PAD_LEFT;
+    if (label && (bnd_font >= 0)) {
+        nvgFontFaceId(ctx, bnd_font);
+        nvgFontSize(ctx, fontsize);
+        nvgBeginPath(ctx);
+        nvgTextAlign(ctx, 
+            (align==BND_LEFT)?(NVG_ALIGN_LEFT|NVG_ALIGN_BASELINE):
+            (NVG_ALIGN_CENTER|NVG_ALIGN_BASELINE));
+        
+        nvgFillColor(ctx, shadowColor);
+        nvgFontBlur(ctx, BND_NODE_TITLE_FEATHER);
+        nvgTextBox(ctx,x+pleft+1,y+h+3-BND_TEXT_PAD_DOWN,
+            w-BND_PAD_RIGHT-pleft,label, NULL);
+        nvgFillColor(ctx, color);
+        nvgFontBlur(ctx, 0);
+        nvgTextBox(ctx,x+pleft,y+h+2-BND_TEXT_PAD_DOWN,
+            w-BND_PAD_RIGHT-pleft,label, NULL);
+    }
+    if (iconid >= 0) {
+        bndIcon(ctx,x+w-BND_ICON_SHEET_RES,y+3,iconid);
+    }
+}
+
 void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, NVGcolor color, float fontsize, const char *label, 
     NVGcolor caretcolor, int cbegin, int cend) {
@@ -1449,6 +1535,18 @@ void bndUpDownArrow(NVGcontext *ctx, float x, float y, float s, NVGcolor color) 
     nvgMoveTo(ctx,x,y+1);
     nvgLineTo(ctx,x+0.5*w,y+s+1);
     nvgLineTo(ctx,x+w,y+1);
+    nvgClosePath(ctx);
+    nvgFillColor(ctx,color);
+    nvgFill(ctx);
+}
+
+void bndNodeArrowDown(NVGcontext *ctx, float x, float y, float s, NVGcolor color) {
+    float w;
+    nvgBeginPath(ctx);
+    w = 1.0f*s;
+    nvgMoveTo(ctx,x,y);
+    nvgLineTo(ctx,x+0.5*w,y-s);
+    nvgLineTo(ctx,x-0.5*w,y-s);
     nvgClosePath(ctx);
     nvgFillColor(ctx,color);
     nvgFill(ctx);
