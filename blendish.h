@@ -1136,7 +1136,7 @@ void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h,
         x+BND_NODE_ARROW_AREA_WIDTH,y,
         w-BND_NODE_ARROW_AREA_WIDTH-BND_NODE_MARGIN_SIDE,BND_NODE_TITLE_HEIGHT,
         iconid, bnd_theme.regularTheme.textColor, 
-        bndOffsetColor(titleColor, BND_BEVEL_SHADE*2), 
+        bndOffsetColor(titleColor, BND_BEVEL_SHADE), 
         BND_LEFT, BND_LABEL_FONT_SIZE, label);
     NVGcolor arrowColor;
     NVGcolor borderColor;
@@ -1424,23 +1424,19 @@ void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, float h,
 void bndNodeIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, NVGcolor color, NVGcolor shadowColor, 
     int align, float fontsize, const char *label) {
-    float pleft = BND_PAD_LEFT;
     if (label && (bnd_font >= 0)) {
         nvgFontFaceId(ctx, bnd_font);
         nvgFontSize(ctx, fontsize);
         nvgBeginPath(ctx);
-        nvgTextAlign(ctx, 
-            (align==BND_LEFT)?(NVG_ALIGN_LEFT|NVG_ALIGN_BASELINE):
-            (NVG_ALIGN_CENTER|NVG_ALIGN_BASELINE));
-        
+        nvgTextAlign(ctx, NVG_ALIGN_LEFT|NVG_ALIGN_BASELINE);
         nvgFillColor(ctx, shadowColor);
         nvgFontBlur(ctx, BND_NODE_TITLE_FEATHER);
-        nvgTextBox(ctx,x+pleft+1,y+h+3-BND_TEXT_PAD_DOWN,
-            w-BND_PAD_RIGHT-pleft,label, NULL);
+        nvgTextBox(ctx,x+1,y+h+3-BND_TEXT_PAD_DOWN,
+            w,label, NULL);
         nvgFillColor(ctx, color);
         nvgFontBlur(ctx, 0);
-        nvgTextBox(ctx,x+pleft,y+h+2-BND_TEXT_PAD_DOWN,
-            w-BND_PAD_RIGHT-pleft,label, NULL);
+        nvgTextBox(ctx,x,y+h+2-BND_TEXT_PAD_DOWN,
+            w,label, NULL);
     }
     if (iconid >= 0) {
         bndIcon(ctx,x+w-BND_ICON_SHEET_RES,y+3,iconid);
