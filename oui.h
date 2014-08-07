@@ -271,6 +271,7 @@ typedef enum UIevent {
     // item is focused and has received a character event
     // the respective character can be queried using uiGetActiveKey()
     UI_CHAR = 0x80,
+    
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -575,6 +576,14 @@ int uiGetRelToDown(int item);
 #endif
 
 #define UI_MAX_KIND 16
+
+#define UI_ANY_INPUT (UI_BUTTON0_DOWN \
+    |UI_BUTTON0_UP \
+    |UI_BUTTON0_HOT_UP \
+    |UI_BUTTON0_CAPTURE \
+    |UI_KEY_DOWN \
+    |UI_KEY_UP \
+    |UI_CHAR)
 
 typedef struct UIitem {
     // declaration independent unique handle (for persistence)
@@ -1297,10 +1306,13 @@ int uiFindItem(int item, int x, int y, int ox, int oy) {
             if (best_hit >= 0) return best_hit;
             kid = uiPrevSibling(kid);
         }
-        rect.x += ox;
-        rect.y += oy;
-        ui_context->hot_rect = rect;
-        return item;
+        // click-through if the item has no handler for input events
+        if (pitem->event_flags & UI_ANY_INPUT) {
+            rect.x += ox;
+            rect.y += oy;
+            ui_context->hot_rect = rect;
+            return item;
+        }
     }
     return -1;
 }
