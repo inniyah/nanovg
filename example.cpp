@@ -485,6 +485,7 @@ void draw_noodles(NVGcontext *vg, int x, int y) {
 
 void draw(NVGcontext *vg, float w, float h) {
     bndBackground(vg, 0, 0, w, h);
+    bndSplitterWidgets(vg, 0, 0, w, h);
     
     int x = 10;
     int y = 10;

@@ -399,6 +399,10 @@ void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
 void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h,
     BNDwidgetState state, int iconid, const char *label, NVGcolor titleColor);
 
+// Draw a window with the upper right and lower left splitter widgets into 
+// the rectangle at origin (x,y) and size (w, h)
+void bndSplitterWidgets(NVGcontext *ctx, float x, float y, float w, float h);
+
 ////////////////////////////////////////////////////////////////////////////////
         
 // Estimator Functions
@@ -587,6 +591,8 @@ NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState state);
 #define BND_INSET_BEVEL_SHADE 30
 // shade intensity of hovered inner boxes
 #define BND_HOVER_SHADE 15
+// shade intensity of splitter bevels
+#define BND_SPLITTER_SHADE 100
 
 // width of icon sheet
 #define BND_ICON_SHEET_WIDTH 602
@@ -1163,6 +1169,71 @@ void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h,
         BND_NODE_ARROW_SIZE, arrowColor);
     bndDropShadow(ctx,x,y,w,h,BND_NODE_RADIUS,
         BND_SHADOW_FEATHER,BND_SHADOW_ALPHA);
+}
+
+void bndSplitterWidgets(NVGcontext *ctx, float x, float y, float w, float h) {
+    NVGcolor insetLight = bndTransparent(
+        bndOffsetColor(bnd_theme.backgroundColor, BND_SPLITTER_SHADE));
+    NVGcolor insetDark = bndTransparent(
+        bndOffsetColor(bnd_theme.backgroundColor, -BND_SPLITTER_SHADE));
+    NVGcolor inset = bndTransparent(bnd_theme.backgroundColor);
+    
+    float x2 = x+w;
+    float y2 = y+h;
+
+    nvgBeginPath(ctx);
+    nvgMoveTo(ctx, x, y2-13);
+    nvgLineTo(ctx, x+13, y2);
+    nvgMoveTo(ctx, x, y2-9);
+    nvgLineTo(ctx, x+9, y2);
+    nvgMoveTo(ctx, x, y2-5);
+    nvgLineTo(ctx, x+5, y2);
+    
+    nvgMoveTo(ctx, x2-11, y);
+    nvgLineTo(ctx, x2, y+11);
+    nvgMoveTo(ctx, x2-7, y);
+    nvgLineTo(ctx, x2, y+7);
+    nvgMoveTo(ctx, x2-3, y);
+    nvgLineTo(ctx, x2, y+3);
+    
+    nvgStrokeColor(ctx, insetDark);
+    nvgStroke(ctx);
+
+    nvgBeginPath(ctx);
+    nvgMoveTo(ctx, x, y2-11);
+    nvgLineTo(ctx, x+11, y2);
+    nvgMoveTo(ctx, x, y2-7);
+    nvgLineTo(ctx, x+7, y2);
+    nvgMoveTo(ctx, x, y2-3);
+    nvgLineTo(ctx, x+3, y2);
+    
+    nvgMoveTo(ctx, x2-13, y);
+    nvgLineTo(ctx, x2, y+13);
+    nvgMoveTo(ctx, x2-9, y);
+    nvgLineTo(ctx, x2, y+9);
+    nvgMoveTo(ctx, x2-5, y);
+    nvgLineTo(ctx, x2, y+5);
+    
+    nvgStrokeColor(ctx, insetLight);
+    nvgStroke(ctx);
+    
+    nvgBeginPath(ctx);
+    nvgMoveTo(ctx, x, y2-12);
+    nvgLineTo(ctx, x+12, y2);
+    nvgMoveTo(ctx, x, y2-8);
+    nvgLineTo(ctx, x+8, y2);
+    nvgMoveTo(ctx, x, y2-4);
+    nvgLineTo(ctx, x+4, y2);
+    
+    nvgMoveTo(ctx, x2-12, y);
+    nvgLineTo(ctx, x2, y+12);
+    nvgMoveTo(ctx, x2-8, y);
+    nvgLineTo(ctx, x2, y+8);
+    nvgMoveTo(ctx, x2-4, y);
+    nvgLineTo(ctx, x2, y+4);
+    
+    nvgStrokeColor(ctx, inset);
+    nvgStroke(ctx);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
