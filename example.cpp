@@ -485,6 +485,7 @@ void draw_noodles(NVGcontext *vg, int x, int y) {
 
 void draw(NVGcontext *vg, float w, float h) {
     bndBackground(vg, 0, 0, w, h);
+    
     bndSplitterWidgets(vg, 0, 0, w, h);
     
     int x = 10;
@@ -732,6 +733,16 @@ void draw(NVGcontext *vg, float w, float h) {
     
     uiLayout();
     drawUI(vg, 0, 0, 0);
+    
+    UIvec2 cursor = uiGetCursor();
+    cursor.x -= w/2;
+    cursor.y -= h/2;
+    if (abs(cursor.x) > (w/4)) {
+        bndJoinAreaOverlay(vg, 0, 0, w, h, 0, (cursor.x > 0));
+    } else if (abs(cursor.y) > (h/4)) {
+        bndJoinAreaOverlay(vg, 0, 0, w, h, 1, (cursor.y > 0));
+    }
+    
     uiProcess();
 }
 
