@@ -400,6 +400,10 @@ void uiSetFrozen(int item, int enable);
 // will not be interactive.
 void uiSetHandle(int item, UIhandle handle);
 
+// assigns the items own address as handle; this may cause glitches
+// when the order of items changes while theitem is captured
+void uiSetSelfHandle(int item);
+
 // allocate space for application-dependent context data and return the pointer
 // if successful. If no data has been allocated, a new pointer is returned. 
 // Otherwise, an assertion is thrown.
@@ -1264,6 +1268,12 @@ void uiSetHandle(int item, UIhandle handle) {
     if (handle) {
         uiHashInsertHandle(handle, item);
     }
+}
+
+void uiSetSelfHandle(int item) {
+    UIitem *pitem = uiItemPtr(item);
+    pitem->handle = (UIhandle)pitem;
+    uiHashInsertHandle((UIhandle)pitem, item);
 }
 
 UIhandle uiGetHandle(int item) {
