@@ -406,6 +406,13 @@ void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h,
 // the rectangle at origin (x,y) and size (w, h)
 void bndSplitterWidgets(NVGcontext *ctx, float x, float y, float w, float h);
 
+// Draw the join area overlay stencil into the rectangle
+// at origin (x,y) and size (w,h)
+// vertical is 0 or 1 and designates the arrow orientation, 
+// mirror is 0 or 1 and flips the arrow side
+void bndJoinAreaOverlay(NVGcontext *ctx, float x, float y, float w, float h,
+    int vertical, int mirror);
+
 ////////////////////////////////////////////////////////////////////////////////
         
 // Estimator Functions
@@ -1237,6 +1244,62 @@ void bndSplitterWidgets(NVGcontext *ctx, float x, float y, float w, float h) {
     
     nvgStrokeColor(ctx, inset);
     nvgStroke(ctx);
+}
+
+void bndJoinAreaOverlay(NVGcontext *ctx, float x, float y, float w, float h,
+    int vertical, int mirror) {
+        
+    if (vertical) {
+        float u = w;
+        w = h; h = u;
+    }
+        
+    float s = (w<h)?w:h;
+        
+    float x0,y0,x1,y1;
+    if (mirror) {
+        x0 = x+w;
+        y0 = y+h;
+        x1 = x;
+        y1 = y;
+        s = -s;
+    } else {
+        x0 = x;
+        y0 = y;
+        x1 = x+w;
+        y1 = y+h;
+    }
+    
+    float yc = (y0+y1)*0.5f;
+    float s2 = s/2.0f;
+    float s4 = s/4.0f;
+    float s8 = s/8.0f;
+    float x4 = x0+s4;
+        
+    float points[][2] = {
+        { x0,y0 },
+        { x1,y0 },
+        { x1,y1 },
+        { x0,y1 },
+        { x0,yc+s8 },
+        { x4,yc+s8 },
+        { x4,yc+s4 },
+        { x0+s2,yc },      
+        { x4,yc-s4 },
+        { x4,yc-s8 },
+        { x0,yc-s8 }
+    };  
+        
+    nvgBeginPath(ctx);
+    int count = sizeof(points) / (sizeof(float)*2);
+    nvgMoveTo(ctx,points[0][vertical&1],points[0][(vertical&1)^1]);
+    for (int i = 1; i < count; ++i) {
+        nvgLineTo(ctx,points[i][vertical&1],points[i][(vertical&1)^1]);
+    }
+    //nvgClosePath(ctx);
+    
+    nvgFillColor(ctx, nvgRGBAf(0,0,0,0.3));
+    nvgFill(ctx);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
