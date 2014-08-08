@@ -522,6 +522,10 @@ int uiGetChildId(int item);
 // undefined.
 UIrect uiGetRect(int item);
 
+// returns 1 if an items absolute rectangle contains a given coordinate
+// otherwise 0
+int uiContains(int item, int x, int y);
+
 // when called from an input event handler, returns the active items absolute
 // layout rectangle. If uiGetActiveRect() is called outside of a handler,
 // the values of the returned rectangle are undefined.
@@ -1286,6 +1290,28 @@ int uiGetChildId(int item) {
 
 int uiGetChildCount(int item) {
     return uiItemPtr(item)->numkids;
+}
+
+UIrect uiGetAbsoluteRect(int item) {
+    UIrect rect = uiGetRect(item);
+    item = uiParent(item);
+    while (item >= 0) {
+        rect.x += uiItemPtr(item)->rect.x;
+        rect.y += uiItemPtr(item)->rect.y;
+        item = uiParent(item);
+    }    
+    return rect;
+}
+
+int uiContains(int item, int x, int y) {
+    UIrect rect = uiGetAbsoluteRect(item);
+    x -= rect.x;
+    y -= rect.y;
+    if ((x>=0)
+     && (y>=0)
+     && (x<rect.w)
+     && (y<rect.h)) return 1;
+    return 0;
 }
 
 int uiFindItem(int item, int x, int y, int ox, int oy) {
