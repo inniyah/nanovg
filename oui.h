@@ -1308,8 +1308,8 @@ int uiFindItem(int item, int x, int y, int ox, int oy) {
         }
         // click-through if the item has no handler for input events
         if (pitem->event_flags & UI_ANY_INPUT) {
-            rect.x += ox;
-            rect.y += oy;
+            rect.x = ox;
+            rect.y = oy;
             ui_context->hot_rect = rect;
             return item;
         }
