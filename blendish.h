@@ -222,6 +222,9 @@ typedef enum BNDcornerFlags {
 // width of node title arrow click area
 #define BND_NODE_ARROW_AREA_WIDTH 20
 
+// size of splitter corner click area
+#define BND_SPLITTER_AREA_SIZE 12
+
 // width of vertical scrollbar
 #define BND_SCROLLBAR_WIDTH 13
 // height of horizontal scrollbar
