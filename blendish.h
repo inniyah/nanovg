@@ -1248,26 +1248,26 @@ void bndSplitterWidgets(NVGcontext *ctx, float x, float y, float w, float h) {
 
 void bndJoinAreaOverlay(NVGcontext *ctx, float x, float y, float w, float h,
     int vertical, int mirror) {
-        
+    
     if (vertical) {
         float u = w;
         w = h; h = u;
     }
-        
+    
     float s = (w<h)?w:h;
-        
+    
     float x0,y0,x1,y1;
     if (mirror) {
-        x0 = x+w;
-        y0 = y+h;
-        x1 = x;
-        y1 = y;
+        x0 = w;
+        y0 = h;
+        x1 = 0;
+        y1 = 0;
         s = -s;
     } else {
-        x0 = x;
-        y0 = y;
-        x1 = x+w;
-        y1 = y+h;
+        x0 = 0;
+        y0 = 0;
+        x1 = w;
+        y1 = h;
     }
     
     float yc = (y0+y1)*0.5f;
@@ -1275,7 +1275,7 @@ void bndJoinAreaOverlay(NVGcontext *ctx, float x, float y, float w, float h,
     float s4 = s/4.0f;
     float s8 = s/8.0f;
     float x4 = x0+s4;
-        
+    
     float points[][2] = {
         { x0,y0 },
         { x1,y0 },
@@ -1289,14 +1289,13 @@ void bndJoinAreaOverlay(NVGcontext *ctx, float x, float y, float w, float h,
         { x4,yc-s8 },
         { x0,yc-s8 }
     };  
-        
+    
     nvgBeginPath(ctx);
     int count = sizeof(points) / (sizeof(float)*2);
-    nvgMoveTo(ctx,points[0][vertical&1],points[0][(vertical&1)^1]);
+    nvgMoveTo(ctx,x+points[0][vertical&1],y+points[0][(vertical&1)^1]);
     for (int i = 1; i < count; ++i) {
-        nvgLineTo(ctx,points[i][vertical&1],points[i][(vertical&1)^1]);
+        nvgLineTo(ctx,x+points[i][vertical&1],y+points[i][(vertical&1)^1]);
     }
-    //nvgClosePath(ctx);
     
     nvgFillColor(ctx, nvgRGBAf(0,0,0,0.3));
     nvgFill(ctx);
