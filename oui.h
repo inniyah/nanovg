@@ -244,33 +244,35 @@ typedef enum UIlayoutFlags {
 // event flags
 typedef enum UIevent {
     // on button 0 down
-    UI_BUTTON0_DOWN = 0x01,
+    UI_BUTTON0_DOWN = 0x0001,
     // on button 0 up
     // when this event has a handler, uiGetState() will return UI_ACTIVE as
     // long as button 0 is down.
-    UI_BUTTON0_UP = 0x02,
+    UI_BUTTON0_UP = 0x0002,
     // on button 0 up while item is hovered
     // when this event has a handler, uiGetState() will return UI_ACTIVE
     // when the cursor is hovering the items rectangle; this is the
     // behavior expected for buttons.
-    UI_BUTTON0_HOT_UP = 0x04,
+    UI_BUTTON0_HOT_UP = 0x0004,
     // item is being captured (button 0 constantly pressed); 
     // when this event has a handler, uiGetState() will return UI_ACTIVE as
     // long as button 0 is down.
-    UI_BUTTON0_CAPTURE = 0x08,
+    UI_BUTTON0_CAPTURE = 0x0008,
+    // on button 2 down (right mouse button, usually triggers context menu)
+    UI_BUTTON2_DOWN = 0x0010,
     // item has received a new child
     // this can be used to allow container items to configure child items
     // as they appear.
-    UI_APPEND = 0x10,
+    UI_APPEND = 0x0100,
     // item is focused and has received a key-down event
     // the respective key can be queried using uiGetActiveKey()
-    UI_KEY_DOWN = 0x20,
+    UI_KEY_DOWN = 0x0200,
     // item is focused and has received a key-up event
     // the respective key can be queried using uiGetActiveKey()
-    UI_KEY_UP = 0x40,
+    UI_KEY_UP = 0x0400,
     // item is focused and has received a character event
     // the respective character can be queried using uiGetActiveKey()
-    UI_CHAR = 0x80,
+    UI_CHAR = 0x0800,
     
 } UIevent;
 
@@ -595,6 +597,7 @@ int uiGetRelToDown(int item);
     |UI_BUTTON0_UP \
     |UI_BUTTON0_HOT_UP \
     |UI_BUTTON0_CAPTURE \
+    |UI_BUTTON2_DOWN \
     |UI_KEY_DOWN \
     |UI_KEY_UP \
     |UI_CHAR)
@@ -1413,8 +1416,8 @@ void uiProcess() {
         ui_context->start_cursor = ui_context->cursor;
         if (uiGetButton(0)) {
             hot_item = -1;
-            ui_context->active_rect = ui_context->hot_rect;
             active_item = hot;
+            ui_context->active_rect = ui_context->hot_rect;
             
             if (active_item != focus_item) {
                 focus_item = -1;
@@ -1425,6 +1428,10 @@ void uiProcess() {
                 uiNotifyItem(active_item, UI_BUTTON0_DOWN);
             }            
             ui_context->state = UI_STATE_CAPTURE;            
+        } else if (uiGetButton(2) && !uiGetLastButton(2) && (hot >= 0)) {
+            hot_item = -1;
+            ui_context->active_rect = ui_context->hot_rect;
+            uiNotifyItem(hot, UI_BUTTON2_DOWN);
         } else {
             hot_item = hot;
         }
