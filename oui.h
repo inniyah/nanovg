@@ -522,9 +522,15 @@ int uiGetChildCount(int item);
 int uiGetChildId(int item);
 
 // returns the items layout rectangle relative to the parent. If uiGetRect()
-// is called before uiProcess(), the values of the returned rectangle are
+// is called before uiLayout(), the values of the returned rectangle are
 // undefined.
 UIrect uiGetRect(int item);
+
+// returns the items layout rectangle in absolute coordinates. If 
+// uiGetAbsoluteRect() is called before uiLayout(), the values of the returned
+// rectangle are undefined.
+// This function has complexity O(N) for N parents
+UIrect uiGetAbsoluteRect(int item);
 
 // returns 1 if an items absolute rectangle contains a given coordinate
 // otherwise 0
