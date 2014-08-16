@@ -265,15 +265,18 @@ typedef enum UIevent {
     // as they appear.
     UI_APPEND = 0x0100,
     // item is focused and has received a key-down event
-    // the respective key can be queried using uiGetActiveKey()
+    // the respective key can be queried using uiGetKey() and uiGetModifier()
     UI_KEY_DOWN = 0x0200,
     // item is focused and has received a key-up event
-    // the respective key can be queried using uiGetActiveKey()
+    // the respective key can be queried using uiGetKey() and uiGetModifier()
     UI_KEY_UP = 0x0400,
     // item is focused and has received a character event
-    // the respective character can be queried using uiGetActiveKey()
+    // the respective character can be queried using uiGetKey()
     UI_CHAR = 0x0800,
-    
+    // item is requested to fill a container with additional items,
+    // usually menuitems for a context menu.
+    // the respective container can be queried using uiGetExtendItem()
+    UI_EXTEND = 0x1000,
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -511,6 +514,8 @@ int uiGetHandlerFlags(int item);
 unsigned int uiGetKey();
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
 unsigned int uiGetModifier();
+// when handling an EXTEND event; the container which to add items to
+int uiGetExtendItem();
 
 // returns the number of child items a container item contains. If the item 
 // is not a container or does not contain any items, 0 is returned.
@@ -693,6 +698,7 @@ struct UIcontext {
     int hot_item;
     unsigned int active_key;
     unsigned int active_modifier;
+    int extend_item;
     
     int count;    
     int datasize;
@@ -902,6 +908,11 @@ unsigned int uiGetModifier() {
     return ui_context->active_modifier;
 }
 
+int uiGetExtendItem() {
+    assert(ui_context);
+    return ui_context->extend_item;
+}
+
 UIitem *uiItemPtr(int item) {
     assert(ui_context && (item >= 0) && (item < ui_context->count));
     return ui_context->items + item;
@@ -952,6 +963,12 @@ void uiNotifyItem(int item, UIevent event) {
     if (pitem->handler && (pitem->event_flags & event)) {
         pitem->handler(item, event);
     }
+}
+
+void uiExtend(int parent, int from_item) {
+    assert(ui_context);
+    ui_context->extend_item = parent;
+    uiNotifyItem(from_item, UI_EXTEND);
 }
 
 int uiAppend(int item, int child) {
