@@ -577,6 +577,28 @@ NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState state);
 	#else
 	#define BND_INLINE
 	#endif
+
+static float fminf ( float a, float b )
+{
+    return _isnan(a) ? b : ( _isnan(b) ? a : ((a < b) ? a : b));
+}
+
+static float fmaxf ( float a, float b )
+{
+    return _isnan(a) ? b : ( _isnan(b) ? a : ((a > b) ? a : b));
+}
+
+static double fmin ( double a, double b )
+{
+    return _isnan(a) ? b : ( _isnan(b) ? a : ((a < b) ? a : b));
+}
+
+static double fmax ( double a, double b )
+{
+    return _isnan(a) ? b : ( _isnan(b) ? a : ((a > b) ? a : b));
+}
+
+
 #else
 	#define BND_INLINE inline
 #endif
