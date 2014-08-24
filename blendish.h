@@ -569,14 +569,18 @@ NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState state);
 #include <math.h>
 
 #ifdef _MSC_VER
-	#pragma warning (disable: 4996) // Switch off security warnings
-	#pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
-	#ifdef __cplusplus
-	#define BND_INLINE inline
-	#else
-	#define BND_INLINE
-	#endif
+    #pragma warning (disable: 4996) // Switch off security warnings
+    #pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
+    #ifdef __cplusplus
+    #define BND_INLINE inline
+    #else
+    #define BND_INLINE
+    #endif
 
+#include <float.h>
+
+#ifndef MSC_FMINF_DEFINED
+#define MSC_FMINF_DEFINED
 static float fminf ( float a, float b )
 {
     return _isnan(a) ? b : ( _isnan(b) ? a : ((a < b) ? a : b));
@@ -586,7 +590,10 @@ static float fmaxf ( float a, float b )
 {
     return _isnan(a) ? b : ( _isnan(b) ? a : ((a > b) ? a : b));
 }
+#endif // MSC_FMINF_DEFINED
 
+#ifndef MSC_FMIN_DEFINED
+#define MSC_FMIN_DEFINED
 static double fmin ( double a, double b )
 {
     return _isnan(a) ? b : ( _isnan(b) ? a : ((a < b) ? a : b));
@@ -596,10 +603,10 @@ static double fmax ( double a, double b )
 {
     return _isnan(a) ? b : ( _isnan(b) ? a : ((a > b) ? a : b));
 }
-
+#endif // MSC_FMIN_DEFINED
 
 #else
-	#define BND_INLINE inline
+    #define BND_INLINE inline
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
