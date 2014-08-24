@@ -28,7 +28,6 @@ THE SOFTWARE.
 #ifndef NANOVG_H
 #error "nanovg.h must be included first."
 #endif
-#include "compat.h"
 
 #ifdef __cplusplus
 extern "C" {
