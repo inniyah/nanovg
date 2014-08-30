@@ -569,37 +569,42 @@ NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState state);
 #include <math.h>
 
 #ifdef _MSC_VER
-	#pragma warning (disable: 4996) // Switch off security warnings
-	#pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
-	#ifdef __cplusplus
-	#define BND_INLINE inline
-	#else
-	#define BND_INLINE
-	#endif
+    #pragma warning (disable: 4996) // Switch off security warnings
+    #pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
+    #ifdef __cplusplus
+    #define BND_INLINE inline
+    #else
+    #define BND_INLINE
+    #endif
 
-static float fminf ( float a, float b )
+#include <float.h>
+
+static float bnd_fminf ( float a, float b )
 {
     return _isnan(a) ? b : ( _isnan(b) ? a : ((a < b) ? a : b));
 }
 
-static float fmaxf ( float a, float b )
+static float bnd_fmaxf ( float a, float b )
 {
     return _isnan(a) ? b : ( _isnan(b) ? a : ((a > b) ? a : b));
 }
 
-static double fmin ( double a, double b )
+static double bnd_fmin ( double a, double b )
 {
     return _isnan(a) ? b : ( _isnan(b) ? a : ((a < b) ? a : b));
 }
 
-static double fmax ( double a, double b )
+static double bnd_fmax ( double a, double b )
 {
     return _isnan(a) ? b : ( _isnan(b) ? a : ((a > b) ? a : b));
 }
-
 
 #else
-	#define BND_INLINE inline
+    #define BND_INLINE inline
+    #define bnd_fminf(a, b) fminf(a, b)
+    #define bnd_fmaxf(a, b) fmaxf(a, b)
+    #define bnd_fmin(a, b) fmin(a, b)
+    #define bnd_fmax(a, b) fmax(a, b)
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1344,15 +1349,15 @@ void bndRoundedBox(NVGcontext *ctx, float x, float y, float w, float h,
     float cr0, float cr1, float cr2, float cr3) {
     float d;
     
-    w = fmaxf(0, w);
-    h = fmaxf(0, h);
-    d = fminf(w, h);
+    w = bnd_fmaxf(0, w);
+    h = bnd_fmaxf(0, h);
+    d = bnd_fminf(w, h);
     
     nvgMoveTo(ctx, x,y+h*0.5f);
-    nvgArcTo(ctx, x,y, x+w,y, fminf(cr0, d/2));
-    nvgArcTo(ctx, x+w,y, x+w,y+h, fminf(cr1, d/2));
-    nvgArcTo(ctx, x+w,y+h, x,y+h, fminf(cr2, d/2));
-    nvgArcTo(ctx, x,y+h, x,y, fminf(cr3, d/2));
+    nvgArcTo(ctx, x,y, x+w,y, bnd_fminf(cr0, d/2));
+    nvgArcTo(ctx, x+w,y, x+w,y+h, bnd_fminf(cr1, d/2));
+    nvgArcTo(ctx, x+w,y+h, x,y+h, bnd_fminf(cr2, d/2));
+    nvgArcTo(ctx, x,y+h, x,y, bnd_fminf(cr3, d/2));
     nvgClosePath(ctx);
 }
 
@@ -1402,9 +1407,9 @@ void bndBevelInset(NVGcontext *ctx, float x, float y, float w, float h,
     float d;
     
     y -= 0.5f;
-    d = fminf(w, h);
-    cr2 = fminf(cr2, d/2);
-    cr3 = fminf(cr3, d/2);
+    d = bnd_fminf(w, h);
+    cr2 = bnd_fminf(cr2, d/2);
+    cr3 = bnd_fminf(cr3, d/2);
     
     nvgBeginPath(ctx);
     nvgMoveTo(ctx, x+w,y+h-cr2);
@@ -1417,7 +1422,7 @@ void bndBevelInset(NVGcontext *ctx, float x, float y, float w, float h,
     nvgStrokeWidth(ctx, 1);
     nvgStrokePaint(ctx,
         nvgLinearGradient(ctx,
-            x,y+h-fmaxf(cr2,cr3)-1,
+            x,y+h-bnd_fmaxf(cr2,cr3)-1,
             x,y+h-1,
         nvgRGBAf(bevelColor.r, bevelColor.g, bevelColor.b, 0),
         bevelColor));
@@ -1482,8 +1487,8 @@ void bndInnerBox(NVGcontext *ctx, float x, float y, float w, float h,
     float cr0, float cr1, float cr2, float cr3,
     NVGcolor shade_top, NVGcolor shade_down) {
     nvgBeginPath(ctx);
-    bndRoundedBox(ctx,x+1,y+1,w-2,h-3,
-        fmaxf(0,cr0-1),fmaxf(0,cr1-1),fmaxf(0,cr2-1),fmaxf(0,cr3-1));
+    bndRoundedBox(ctx,x+1,y+1,w-2,h-3,bnd_fmaxf(0,cr0-1),
+        bnd_fmaxf(0,cr1-1),bnd_fmaxf(0,cr2-1),bnd_fmaxf(0,cr3-1));
     nvgFillPaint(ctx,((h-2)>w)?
         nvgLinearGradient(ctx,x,y,x+w,y,shade_top,shade_down):
         nvgLinearGradient(ctx,x,y,x,y+h,shade_top,shade_down));
@@ -1711,11 +1716,11 @@ void bndScrollHandleRect(float *x, float *y, float *w, float *h,
     size = bnd_clamp(size,0,1);
     offset = bnd_clamp(offset,0,1);
     if ((*h) > (*w)) {
-        float hs = fmaxf(size*(*h), (*w)+1);
+        float hs = bnd_fmaxf(size*(*h), (*w)+1);
         *y = (*y) + ((*h)-hs)*offset;
         *h = hs;
     } else {
-        float ws = fmaxf(size*(*w), (*h)-1);
+        float ws = bnd_fmaxf(size*(*w), (*h)-1);
         *x = (*x) + ((*w)-ws)*offset;
         *w = ws;
     }
