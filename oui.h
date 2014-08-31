@@ -182,6 +182,12 @@ See example.cpp in the repository for a full usage example.
 
 */
 
+// you can override this from the outside to pick
+// the export level you need
+#ifndef OUI_EXPORT
+#define OUI_EXPORT
+#endif
+
 // limits
 
 // maximum number of items that may be added (must be power of 2)
@@ -306,58 +312,58 @@ typedef struct UIrect {
 // create a new UI context; call uiMakeCurrent() to make this context the
 // current context. The context is managed by the client and must be released
 // using uiDestroyContext()
-UIcontext *uiCreateContext();
+OUI_EXPORT UIcontext *uiCreateContext();
 
 // select an UI context as the current context; a context must always be 
 // selected before using any of the other UI functions
-void uiMakeCurrent(UIcontext *ctx);
+OUI_EXPORT void uiMakeCurrent(UIcontext *ctx);
 
 // release the memory of an UI context created with uiCreateContext(); if the
 // context is the current context, the current context will be set to NULL
-void uiDestroyContext(UIcontext *ctx);
+OUI_EXPORT void uiDestroyContext(UIcontext *ctx);
 
 // Input Control
 // -------------
 
 // sets the current cursor position (usually belonging to a mouse) to the
 // screen coordinates at (x,y)
-void uiSetCursor(int x, int y);
+OUI_EXPORT void uiSetCursor(int x, int y);
 
 // returns the current cursor position in screen coordinates as set by 
 // uiSetCursor()
-UIvec2 uiGetCursor();
+OUI_EXPORT UIvec2 uiGetCursor();
 
 // returns the offset of the cursor relative to the last call to uiProcess()
-UIvec2 uiGetCursorDelta();
+OUI_EXPORT UIvec2 uiGetCursorDelta();
 
 // returns the beginning point of a drag operation.
-UIvec2 uiGetCursorStart();
+OUI_EXPORT UIvec2 uiGetCursorStart();
 
 // returns the offset of the cursor relative to the beginning point of a drag
 // operation.
-UIvec2 uiGetCursorStartDelta();
+OUI_EXPORT UIvec2 uiGetCursorStartDelta();
 
 // sets a mouse or gamepad button as pressed/released
 // button is in the range 0..63 and maps to an application defined input
 // source.
 // enabled is 1 for pressed, 0 for released
-void uiSetButton(int button, int enabled);
+OUI_EXPORT void uiSetButton(int button, int enabled);
 
 // returns the current state of an application dependent input button
 // as set by uiSetButton().
 // the function returns 1 if the button has been set to pressed, 0 for released.
-int uiGetButton(int button);
+OUI_EXPORT int uiGetButton(int button);
 
 // sets a key as down/up; the key can be any application defined keycode
 // mod is an application defined set of flags for modifier keys
 // enabled is 1 for key down, 0 for key up
 // all key events are being buffered until the next call to uiProcess()
-void uiSetKey(unsigned int key, unsigned int mod, int enabled);
+OUI_EXPORT void uiSetKey(unsigned int key, unsigned int mod, int enabled);
 
 // sends a single character for text input; the character is usually in the
 // unicode range, but can be application defined.
 // all char events are being buffered until the next call to uiProcess()
-void uiSetChar(unsigned int value);
+OUI_EXPORT void uiSetChar(unsigned int value);
 
 
 // Stages
@@ -368,14 +374,14 @@ void uiSetChar(unsigned int value);
 // times.
 // After the call, all previously declared item IDs are invalid, and all
 // application dependent context data has been freed.
-void uiClear();
+OUI_EXPORT void uiClear();
 
 // layout all added items starting from the root item 0.
 // after calling uiLayout(), no further modifications to the item tree should
 // be done until the next call to uiClear().
 // It is safe to immediately draw the items after a call to uiLayout().
 // this is an O(N) operation for N = number of declared items.
-void uiLayout();
+OUI_EXPORT void uiLayout();
 
 // update the internal state according to the current cursor position and 
 // button states, and call all registered handlers.
@@ -383,13 +389,13 @@ void uiLayout();
 // be done until the next call to uiClear().
 // Items should be drawn before a call to uiProcess()
 // this is an O(N) operation for N = number of declared items.
-void uiProcess();
+OUI_EXPORT void uiProcess();
 
 // UI Declaration
 // --------------
 
 // create a new UI item and return the new items ID.
-int uiItem();
+OUI_EXPORT int uiItem();
 
 // set an items state to frozen; the UI will not recurse into frozen items
 // when searching for hot or active items; subsequently, frozen items and
@@ -398,62 +404,62 @@ int uiItem();
 // UI_COLD for child items. Upon encountering a frozen item, the drawing
 // routine needs to handle rendering of child items appropriately.
 // see example.cpp for a demonstration.
-void uiSetFrozen(int item, int enable);
+OUI_EXPORT void uiSetFrozen(int item, int enable);
 
 // set the application-dependent handle of an item.
 // handle is an application defined 64-bit handle. If handle is 0, the item
 // will not be interactive.
-void uiSetHandle(int item, UIhandle handle);
+OUI_EXPORT void uiSetHandle(int item, UIhandle handle);
 
 // assigns the items own address as handle; this may cause glitches
 // when the order of items changes while theitem is captured
-void uiSetSelfHandle(int item);
+OUI_EXPORT void uiSetSelfHandle(int item);
 
 // allocate space for application-dependent context data and return the pointer
 // if successful. If no data has been allocated, a new pointer is returned. 
 // Otherwise, an assertion is thrown.
 // The memory of the pointer is managed by the UI context.
-void *uiAllocData(int item, int size);
+OUI_EXPORT void *uiAllocData(int item, int size);
 
 // set the handler callback for an interactive item. 
 // flags is a combination of UI_EVENT_* and designates for which events the 
 // handler should be called. 
-void uiSetHandler(int item, UIhandler handler, int flags);
+OUI_EXPORT void uiSetHandler(int item, UIhandler handler, int flags);
 
 // assign an item to a container.
 // an item ID of 0 refers to the root item.
 // if child is already assigned to a parent, an assertion will be thrown.
 // the function returns the child item ID
-int uiAppend(int item, int child);
+OUI_EXPORT int uiAppend(int item, int child);
 
 // set the size of the item; a size of 0 indicates the dimension to be 
 // dynamic; if the size is set, the item can not expand beyond that size.
-void uiSetSize(int item, int w, int h);
+OUI_EXPORT void uiSetSize(int item, int w, int h);
 
 // set the anchoring behavior of the item to one or multiple UIlayoutFlags
-void uiSetLayout(int item, int flags);
+OUI_EXPORT void uiSetLayout(int item, int flags);
 
 // set the left, top, right and bottom margins of an item; when the item is
 // anchored to the parent or another item, the margin controls the distance
 // from the neighboring element.
-void uiSetMargins(int item, int l, int t, int r, int b);
+OUI_EXPORT void uiSetMargins(int item, int l, int t, int r, int b);
 
 // anchor the item to another sibling within the same container, so that the
 // sibling is left to this item.
-void uiSetRelToLeft(int item, int other);
+OUI_EXPORT void uiSetRelToLeft(int item, int other);
 // anchor the item to another sibling within the same container, so that the
 // sibling is above this item.
-void uiSetRelToTop(int item, int other);
+OUI_EXPORT void uiSetRelToTop(int item, int other);
 // anchor the item to another sibling within the same container, so that the
 // sibling is right to this item.
-void uiSetRelToRight(int item, int other);
+OUI_EXPORT void uiSetRelToRight(int item, int other);
 // anchor the item to another sibling within the same container, so that the
 // sibling is below this item.
-void uiSetRelToDown(int item, int other);
+OUI_EXPORT void uiSetRelToDown(int item, int other);
 
 // set item as recipient of all keyboard events; the item must have a handle
 // assigned; if item is -1, no item will be focused.
-void uiFocus(int item);
+OUI_EXPORT void uiFocus(int item);
 
 // Iteration
 // ---------
@@ -461,24 +467,24 @@ void uiFocus(int item);
 // returns the first child item of a container item. If the item is not
 // a container or does not contain any items, -1 is returned.
 // if item is 0, the first child item of the root item will be returned.
-int uiFirstChild(int item);
+OUI_EXPORT int uiFirstChild(int item);
 
 // returns the last child item of a container item. If the item is not
 // a container or does not contain any items, -1 is returned.
 // if item is 0, the last child item of the root item will be returned.
-int uiLastChild(int item);
+OUI_EXPORT int uiLastChild(int item);
 
 // returns an items parent container item.
 // if item is 0, -1 will be returned.
-int uiParent(int item);
+OUI_EXPORT int uiParent(int item);
 
 // returns an items next sibling in the list of the parent containers children.
 // if item is 0 or the item is the last child item, -1 will be returned.
-int uiNextSibling(int item);
+OUI_EXPORT int uiNextSibling(int item);
 // returns an items previous sibling in the list of the parent containers
 // children.
 // if item is 0 or the item is the first child item, -1 will be returned.
-int uiPrevSibling(int item);
+OUI_EXPORT int uiPrevSibling(int item);
 
 // Querying
 // --------
@@ -486,97 +492,97 @@ int uiPrevSibling(int item);
 // return the current state of the item. This state is only valid after
 // a call to uiProcess().
 // The returned value is one of UI_COLD, UI_HOT, UI_ACTIVE, UI_FROZEN.
-UIitemState uiGetState(int item);
+OUI_EXPORT UIitemState uiGetState(int item);
 
 // return the application-dependent handle of the item as passed to uiSetHandle().
-UIhandle uiGetHandle(int item);
+OUI_EXPORT UIhandle uiGetHandle(int item);
 
 // return the item with the given application-dependent handle as assigned by
 // uiSetHandle() or -1 if unsuccessful.
-int uiGetItem(UIhandle handle);
+OUI_EXPORT int uiGetItem(UIhandle handle);
 
 // return the item that is currently under the cursor or -1 for none
-int uiGetHotItem();
+OUI_EXPORT int uiGetHotItem();
 
 // return the item that is currently focused or -1 for none
-int uiGetFocusedItem();
+OUI_EXPORT int uiGetFocusedItem();
 
 // return the application-dependent context data for an item as passed to
 // uiAllocData(). The memory of the pointer is managed by the UI context
 // and should not be altered.
-const void *uiGetData(int item);
+OUI_EXPORT const void *uiGetData(int item);
 
 // return the handler callback for an item as passed to uiSetHandler()
-UIhandler uiGetHandler(int item);
+OUI_EXPORT UIhandler uiGetHandler(int item);
 // return the handler flags for an item as passed to uiSetHandler()
-int uiGetHandlerFlags(int item);
+OUI_EXPORT int uiGetHandlerFlags(int item);
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
-unsigned int uiGetKey();
+OUI_EXPORT unsigned int uiGetKey();
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
-unsigned int uiGetModifier();
+OUI_EXPORT unsigned int uiGetModifier();
 // when handling an EXTEND event; the container which to add items to
-int uiGetExtendItem();
+OUI_EXPORT int uiGetExtendItem();
 
 // returns the number of child items a container item contains. If the item 
 // is not a container or does not contain any items, 0 is returned.
 // if item is 0, the child item count of the root item will be returned.
-int uiGetChildCount(int item);
+OUI_EXPORT int uiGetChildCount(int item);
 
 // returns an items child index relative to its parent. If the item is the
 // first item, the return value is 0; If the item is the last item, the return
 // value is equivalent to uiGetChildCount(uiParent(item))-1.
 // if item is 0, 0 will be returned.
-int uiGetChildId(int item);
+OUI_EXPORT int uiGetChildId(int item);
 
 // returns the items layout rectangle relative to the parent. If uiGetRect()
 // is called before uiLayout(), the values of the returned rectangle are
 // undefined.
-UIrect uiGetRect(int item);
+OUI_EXPORT UIrect uiGetRect(int item);
 
 // returns the items layout rectangle in absolute coordinates. If 
 // uiGetAbsoluteRect() is called before uiLayout(), the values of the returned
 // rectangle are undefined.
 // This function has complexity O(N) for N parents
-UIrect uiGetAbsoluteRect(int item);
+OUI_EXPORT UIrect uiGetAbsoluteRect(int item);
 
 // returns 1 if an items absolute rectangle contains a given coordinate
 // otherwise 0
-int uiContains(int item, int x, int y);
+OUI_EXPORT int uiContains(int item, int x, int y);
 
 // when called from an input event handler, returns the active items absolute
 // layout rectangle. If uiGetActiveRect() is called outside of a handler,
 // the values of the returned rectangle are undefined.
-UIrect uiGetActiveRect();
+OUI_EXPORT UIrect uiGetActiveRect();
 
 // return the width of the item as set by uiSetSize()
-int uiGetWidth(int item);
+OUI_EXPORT int uiGetWidth(int item);
 // return the height of the item as set by uiSetSize()
-int uiGetHeight(int item);
+OUI_EXPORT int uiGetHeight(int item);
 
 // return the anchoring behavior as set by uiSetLayout()
-int uiGetLayout(int item);
+OUI_EXPORT int uiGetLayout(int item);
 
 // return the left margin of the item as set with uiSetMargins()
-int uiGetMarginLeft(int item);
+OUI_EXPORT int uiGetMarginLeft(int item);
 // return the top margin of the item as set with uiSetMargins()
-int uiGetMarginTop(int item);
+OUI_EXPORT int uiGetMarginTop(int item);
 // return the right margin of the item as set with uiSetMargins()
-int uiGetMarginRight(int item);
+OUI_EXPORT int uiGetMarginRight(int item);
 // return the bottom margin of the item as set with uiSetMargins()
-int uiGetMarginDown(int item);
+OUI_EXPORT int uiGetMarginDown(int item);
 
 // return the items anchored sibling as assigned with uiSetRelToLeft() 
 // or -1 if not set.
-int uiGetRelToLeft(int item);
+OUI_EXPORT int uiGetRelToLeft(int item);
 // return the items anchored sibling as assigned with uiSetRelToTop() 
 // or -1 if not set.
-int uiGetRelToTop(int item);
+OUI_EXPORT int uiGetRelToTop(int item);
 // return the items anchored sibling as assigned with uiSetRelToRight() 
 // or -1 if not set.
-int uiGetRelToRight(int item);
+OUI_EXPORT int uiGetRelToRight(int item);
 // return the items anchored sibling as assigned with uiSetRelToBottom() 
 // or -1 if not set.
-int uiGetRelToDown(int item);
+OUI_EXPORT int uiGetRelToDown(int item);
 
 #endif // _OUI_H_
 
