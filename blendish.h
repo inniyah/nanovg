@@ -209,43 +209,44 @@ typedef enum BNDcornerFlags {
 // (0,0) designates the upper-leftmost icon, (1,0) the one right next to it,
 // and so on.
 #define BND_ICONID(x,y) ((x)|((y)<<8))
-
-// default widget height
-#define BND_WIDGET_HEIGHT 21
-// default toolbutton width (if icon only)
-#define BND_TOOL_WIDTH 20
-
-// default radius of node ports
-#define BND_NODE_PORT_RADIUS 5
-// top margin of node content
-#define BND_NODE_MARGIN_TOP 25
-// bottom margin of node content
-#define BND_NODE_MARGIN_DOWN 5
-// left and right margin of node content
-#define BND_NODE_MARGIN_SIDE 10
-// height of node title bar
-#define BND_NODE_TITLE_HEIGHT 20
-// width of node title arrow click area
-#define BND_NODE_ARROW_AREA_WIDTH 20
-
-// size of splitter corner click area
-#define BND_SPLITTER_AREA_SIZE 12
-
-// width of vertical scrollbar
-#define BND_SCROLLBAR_WIDTH 13
-// height of horizontal scrollbar
-#define BND_SCROLLBAR_HEIGHT 14
-
-// default vertical spacing
-#define BND_VSPACING 1
-// default vertical spacing between groups
-#define BND_VSPACING_GROUP 8
-// default horizontal spacing
-#define BND_HSPACING 8
-
 // alpha of disabled widget groups
 // can be used in conjunction with nvgGlobalAlpha()
 #define BND_DISABLED_ALPHA 0.5
+
+enum {
+	// default widget height
+	BND_WIDGET_HEIGHT = 21,
+	// default toolbutton width (if icon only)
+	BND_TOOL_WIDTH = 20,
+
+	// default radius of node ports
+	BND_NODE_PORT_RADIUS = 5,
+	// top margin of node content
+	BND_NODE_MARGIN_TOP = 25,
+	// bottom margin of node content
+	BND_NODE_MARGIN_DOWN = 5,
+	// left and right margin of node content
+	BND_NODE_MARGIN_SIDE = 10,
+	// height of node title bar
+	BND_NODE_TITLE_HEIGHT = 20,
+	// width of node title arrow click area
+	BND_NODE_ARROW_AREA_WIDTH = 20,
+
+	// size of splitter corner click area
+	BND_SPLITTER_AREA_SIZE = 12,
+
+	// width of vertical scrollbar
+	BND_SCROLLBAR_WIDTH = 13,
+	// height of horizontal scrollbar
+	BND_SCROLLBAR_HEIGHT = 14,
+
+	// default vertical spacing
+	BND_VSPACING = 1,
+	// default vertical spacing between groups
+	BND_VSPACING_GROUP = 8,
+	// default horizontal spacing
+	BND_HSPACING = 8,
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 
