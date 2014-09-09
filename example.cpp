@@ -381,7 +381,7 @@ void columnhandler(int parent, UIevent event) {
     int item = uiLastChild(parent);
     int last = uiPrevSibling(item);
     // mark the new item as positioned under the previous item
-    uiSetRelToTop(item, last);
+    uiSetBelow(item, last);
     // fill parent horizontally, anchor to previous item vertically
     uiSetLayout(item, UI_HFILL|UI_TOP);
     // if not the first item, add a margin of 1
@@ -406,7 +406,7 @@ void vgrouphandler(int parent, UIevent event) {
     int item = uiLastChild(parent);
     int last = uiPrevSibling(item);
     // mark the new item as positioned under the previous item
-    uiSetRelToTop(item, last);
+    uiSetBelow(item, last);
     // fill parent horizontally, anchor to previous item vertically
     uiSetLayout(item, UI_HFILL|UI_TOP);
     // if not the first item, add a margin
@@ -425,9 +425,9 @@ int vgroup(int parent) {
 void hgrouphandler(int parent, UIevent event) {
     int item = uiLastChild(parent);
     int last = uiPrevSibling(item);
-    uiSetRelToLeft(item, last);
+    uiSetRightTo(item, last);
     if (last > 0)
-        uiSetRelToRight(last, item);
+        uiSetLeftTo(last, item);
     uiSetLayout(item, UI_LEFT|UI_RIGHT);
     uiSetMargins(item, (last < 0)?0:-1, 0, 0, 0);
 }
@@ -444,9 +444,9 @@ int hgroup(int parent) {
 void rowhandler(int parent, UIevent event) {
     int item = uiLastChild(parent);
     int last = uiPrevSibling(item);
-    uiSetRelToLeft(item, last);
+    uiSetRightTo(item, last);
     if (last > 0)
-        uiSetRelToRight(last, item);
+        uiSetLeftTo(last, item);
     uiSetLayout(item, UI_LEFT|UI_RIGHT);
     uiSetMargins(item, (last < 0)?0:8, 0, 0, 0);
 }

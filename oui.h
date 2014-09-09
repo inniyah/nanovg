@@ -450,16 +450,16 @@ OUI_EXPORT void uiSetMargins(int item, int l, int t, int r, int b);
 
 // anchor the item to another sibling within the same container, so that the
 // sibling is left to this item.
-OUI_EXPORT void uiSetRelToLeft(int item, int other);
+OUI_EXPORT void uiSetRightTo(int item, int other);
 // anchor the item to another sibling within the same container, so that the
 // sibling is above this item.
-OUI_EXPORT void uiSetRelToTop(int item, int other);
+OUI_EXPORT void uiSetBelow(int item, int other);
 // anchor the item to another sibling within the same container, so that the
 // sibling is right to this item.
-OUI_EXPORT void uiSetRelToRight(int item, int other);
+OUI_EXPORT void uiSetLeftTo(int item, int other);
 // anchor the item to another sibling within the same container, so that the
 // sibling is below this item.
-OUI_EXPORT void uiSetRelToDown(int item, int other);
+OUI_EXPORT void uiSetAbove(int item, int other);
 
 // set item as recipient of all keyboard events; the item must have a handle
 // assigned; if item is -1, no item will be focused.
@@ -575,18 +575,18 @@ OUI_EXPORT int uiGetMarginRight(int item);
 // return the bottom margin of the item as set with uiSetMargins()
 OUI_EXPORT int uiGetMarginDown(int item);
 
-// return the items anchored sibling as assigned with uiSetRelToLeft() 
+// return the items anchored sibling as assigned with uiSetRightTo()
 // or -1 if not set.
-OUI_EXPORT int uiGetRelToLeft(int item);
-// return the items anchored sibling as assigned with uiSetRelToTop() 
+OUI_EXPORT int uiGetRightTo(int item);
+// return the items anchored sibling as assigned with uiSetBelow()
 // or -1 if not set.
-OUI_EXPORT int uiGetRelToTop(int item);
-// return the items anchored sibling as assigned with uiSetRelToRight() 
+OUI_EXPORT int uiGetBelow(int item);
+// return the items anchored sibling as assigned with uiSetLeftTo()
 // or -1 if not set.
-OUI_EXPORT int uiGetRelToRight(int item);
-// return the items anchored sibling as assigned with uiSetRelToBottom() 
+OUI_EXPORT int uiGetLeftTo(int item);
+// return the items anchored sibling as assigned with uiSetAbove()
 // or -1 if not set.
-OUI_EXPORT int uiGetRelToDown(int item);
+OUI_EXPORT int uiGetAbove(int item);
 
 // request from_item to expand its content into parent
 OUI_EXPORT void uiExtend(int parent, int from_item);
@@ -1056,36 +1056,36 @@ int uiGetMarginDown(int item) {
 }
 
 
-void uiSetRelToLeft(int item, int other) {
+void uiSetRightTo(int item, int other) {
     assert((other < 0) || (uiParent(other) == uiParent(item)));
     uiItemPtr(item)->relto[0] = other;
 }
 
-int uiGetRelToLeft(int item) {
+int uiGetRightTo(int item) {
     return uiItemPtr(item)->relto[0];
 }
 
-void uiSetRelToTop(int item, int other) {
+void uiSetBelow(int item, int other) {
     assert((other < 0) || (uiParent(other) == uiParent(item)));
     uiItemPtr(item)->relto[1] = other;
 }
-int uiGetRelToTop(int item) {
+int uiGetBelow(int item) {
     return uiItemPtr(item)->relto[1];
 }
 
-void uiSetRelToRight(int item, int other) {
+void uiSetLeftTo(int item, int other) {
     assert((other < 0) || (uiParent(other) == uiParent(item)));
     uiItemPtr(item)->relto[2] = other;
 }
-int uiGetRelToRight(int item) {
+int uiGetLeftTo(int item) {
     return uiItemPtr(item)->relto[2];
 }
 
-void uiSetRelToDown(int item, int other) {
+void uiSetAbove(int item, int other) {
     assert((other < 0) || (uiParent(other) == uiParent(item)));
     uiItemPtr(item)->relto[3] = other;
 }
-int uiGetRelToDown(int item) {
+int uiGetAbove(int item) {
     return uiItemPtr(item)->relto[3];
 }
 
