@@ -497,6 +497,9 @@ OUI_EXPORT int uiPrevSibling(int item);
 // Querying
 // --------
 
+// return the total number of allocated items
+OUI_EXPORT int uiGetItemCount();
+
 // return the current state of the item. This state is only valid after
 // a call to uiProcess().
 // The returned value is one of UI_COLD, UI_HOT, UI_ACTIVE, UI_FROZEN.
@@ -932,6 +935,12 @@ unsigned int uiGetModifier() {
 int uiGetExtendItem() {
     assert(ui_context);
     return ui_context->extend_item;
+}
+
+// return the total number of allocated items
+OUI_EXPORT int uiGetItemCount() {
+    assert(ui_context);
+    return ui_context->count;
 }
 
 UIitem *uiItemPtr(int item) {
