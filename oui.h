@@ -387,6 +387,10 @@ OUI_EXPORT void uiClear();
 // this is an O(N) operation for N = number of declared items.
 OUI_EXPORT void uiLayout();
 
+// update the current hot item; this only needs to be called if items are kept
+// for more than one frame and uiLayout() is not called
+OUI_EXPORT void uiUpdateHotItem();
+
 // update the internal state according to the current cursor position and 
 // button states, and call all registered handlers.
 // after calling uiProcess(), no further modifications to the item tree should
@@ -1413,6 +1417,12 @@ void uiLayout() {
     uiLayoutItem(0,1);
 
     // drawing routines may require this to be set already
+    uiUpdateHotItem();
+}
+
+void uiUpdateHotItem() {
+    assert(ui_context);
+    if (!ui_context->count) return;
     int hot = uiFindItem(0, 
         ui_context->cursor.x, ui_context->cursor.y, 0, 0);
     ui_context->hot_item = hot;
