@@ -747,13 +747,15 @@ static UIcontext *ui_context = NULL;
 UIcontext *uiCreateContext() {
     UIcontext *ctx = (UIcontext *)malloc(sizeof(UIcontext));
     memset(ctx, 0, sizeof(UIcontext));
+    UIcontext *oldctx = ui_context;
+    uiMakeCurrent(ctx);
+    uiClear();
+    uiMakeCurrent(oldctx);
     return ctx;
 }
 
 void uiMakeCurrent(UIcontext *ctx) {
     ui_context = ctx;
-    if (ui_context)
-        uiClear();
 }
 
 void uiDestroyContext(UIcontext *ctx) {
