@@ -588,6 +588,9 @@ OUI_EXPORT int uiGetRelToRight(int item);
 // or -1 if not set.
 OUI_EXPORT int uiGetRelToDown(int item);
 
+// request from_item to expand its content into parent
+OUI_EXPORT void uiExtend(int parent, int from_item);
+
 #ifdef __cplusplus
 };
 #endif
