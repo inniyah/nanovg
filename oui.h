@@ -750,7 +750,7 @@ struct UIcontext {
     int extend_item;
     int last_timestamp;
     int last_click_timestamp;
-    int last_click_handle;
+    UIhandle last_click_handle;
     int clicks;
     
     int count;    
