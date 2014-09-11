@@ -483,6 +483,11 @@ void draw_noodles(NVGcontext *vg, int x, int y) {
     bndNodePort(vg, x+w, y+2*s, BND_ACTIVE, nvgRGBf(0.5f, 0.5f, 0.5f));
 }
 
+static void scrollhandler(int parent, UIevent event) {
+	UIvec2 pos = uiGetScroll();
+	printf("scroll! %d %d\n", pos.x, pos.y);
+}
+
 void draw(NVGcontext *vg, float w, float h) {
     bndBackground(vg, 0, 0, w, h);
     
@@ -690,6 +695,7 @@ void draw(NVGcontext *vg, float w, float h) {
     uiSetLayout(0,UI_LEFT|UI_TOP);
     uiSetMargins(0,600,10,0,0);
     uiSetSize(0,250,400);
+    uiSetHandler(root, scrollhandler, UI_SCROLL);
     
     int col = column(root);
     uiSetMargins(col, 10, 10, 10, 10);
@@ -764,6 +770,11 @@ static void cursorpos(GLFWwindow *window, double x, double y) {
     uiSetCursor((int)x,(int)y);
 }
 
+static void scrollevent(GLFWwindow *window, double x, double y) {
+	NVG_NOTUSED(window);
+    uiSetScroll((int)x, (int)y);
+}
+
 static void charevent(GLFWwindow *window, unsigned int value) {
 	NVG_NOTUSED(window);
     uiSetChar(value);
@@ -811,6 +822,7 @@ int main()
     glfwSetCharCallback(window, charevent);
     glfwSetCursorPosCallback(window, cursorpos);
     glfwSetMouseButtonCallback(window, mousebutton);    
+    glfwSetScrollCallback(window, scrollevent);
 
 	glfwMakeContextCurrent(window);
 #ifdef NANOVG_GLEW
