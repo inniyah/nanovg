@@ -194,17 +194,21 @@ See example.cpp in the repository for a full usage example.
 
 // limits
 
-// maximum number of items that may be added (must be power of 2)
-#define UI_MAX_ITEMS 4096
-// maximum size in bytes reserved for storage of application dependent data
-// as passed to uiAllocData().
-#define UI_MAX_BUFFERSIZE 1048576
-// maximum size in bytes of a single data buffer passed to uiAllocData().
-#define UI_MAX_DATASIZE 4096
-// maximum depth of nested containers
-#define UI_MAX_DEPTH 64
-// maximum number of buffered input events
-#define UI_MAX_INPUT_EVENTS 64
+enum {
+	// maximum number of items that may be added (must be power of 2)
+	UI_MAX_ITEMS = 4096,
+	// maximum size in bytes reserved for storage of application dependent data
+	// as passed to uiAllocData().
+	UI_MAX_BUFFERSIZE = 1048576,
+	// maximum size in bytes of a single data buffer passed to uiAllocData().
+	UI_MAX_DATASIZE = 4096,
+	// maximum depth of nested containers
+	UI_MAX_DEPTH = 64,
+	// maximum number of buffered input events
+	UI_MAX_INPUT_EVENTS = 64,
+	// consecutive click threshold in ms
+	UI_CLICK_THRESHOLD = 250,
+};
 
 typedef unsigned int UIuint;
 
@@ -361,6 +365,10 @@ OUI_EXPORT void uiSetButton(int button, int enabled);
 // the function returns 1 if the button has been set to pressed, 0 for released.
 OUI_EXPORT int uiGetButton(int button);
 
+// returns the number of chained clicks; 1 is a single click,
+// 2 is a double click, etc.
+OUI_EXPORT int uiGetClicks();
+
 // sets a key as down/up; the key can be any application defined keycode
 // mod is an application defined set of flags for modifier keys
 // enabled is 1 for key down, 0 for key up
@@ -378,6 +386,9 @@ OUI_EXPORT void uiSetScroll(int x, int y);
 
 // returns the currently accumulated scroll wheel offsets for this frame
 OUI_EXPORT UIvec2 uiGetScroll();
+
+
+
 
 
 // Stages
@@ -403,11 +414,13 @@ OUI_EXPORT void uiUpdateHotItem();
 
 // update the internal state according to the current cursor position and 
 // button states, and call all registered handlers.
+// timestamp is the time in milliseconds relative to the last call to uiProcess()
+// and is used to estimate the threshold for double-clicks
 // after calling uiProcess(), no further modifications to the item tree should
 // be done until the next call to uiClear().
 // Items should be drawn before a call to uiProcess()
 // this is an O(N) operation for N = number of declared items.
-OUI_EXPORT void uiProcess();
+OUI_EXPORT void uiProcess(int timestamp);
 
 // UI Declaration
 // --------------
@@ -735,6 +748,10 @@ struct UIcontext {
     unsigned int active_key;
     unsigned int active_modifier;
     int extend_item;
+    int last_timestamp;
+    int last_click_timestamp;
+    int last_click_handle;
+    int clicks;
     
     int count;    
     int datasize;
@@ -1472,7 +1489,11 @@ void uiUpdateHotItem() {
         ui_context->cursor.x, ui_context->cursor.y, 0, 0);
 }
 
-void uiProcess() {
+int uiGetClicks() {
+	return ui_context->clicks;
+}
+
+void uiProcess(int timestamp) {
     assert(ui_context);
     if (!ui_context->count) {
         uiClearInputEvents();
@@ -1521,6 +1542,16 @@ void uiProcess() {
             }
             
             if (active_item >= 0) {
+            	UIhandle active_handle = uiGetHandle(active_item);
+            	if (
+            		((timestamp - ui_context->last_click_timestamp) > UI_CLICK_THRESHOLD)
+            	 || (ui_context->last_click_handle != active_handle)) {
+            		ui_context->clicks = 0;
+            	}
+            	ui_context->clicks++;
+
+                ui_context->last_click_timestamp = timestamp;
+                ui_context->last_click_handle = active_handle;
                 uiNotifyItem(active_item, UI_BUTTON0_DOWN);
             }            
             ui_context->state = UI_STATE_CAPTURE;            
@@ -1559,6 +1590,8 @@ void uiProcess() {
         uiGetHandle(hot_item):0;
     ui_context->active_handle = (active_item>=0)?
         uiGetHandle(active_item):0;
+
+    ui_context->last_timestamp = timestamp;
 }
 
 static int uiIsActive(int item) {
