@@ -287,6 +287,9 @@ typedef enum UIevent {
     // usually menuitems for a context menu.
     // the respective container can be queried using uiGetExtendItem()
     UI_EXTEND = 0x1000,
+    // item has received a scrollwheel event
+    // the accumulated wheel offset can be queried with uiGetScroll()
+    UI_SCROLL = 0x2000,
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -368,6 +371,13 @@ OUI_EXPORT void uiSetKey(unsigned int key, unsigned int mod, int enabled);
 // unicode range, but can be application defined.
 // all char events are being buffered until the next call to uiProcess()
 OUI_EXPORT void uiSetChar(unsigned int value);
+
+// accumulates scroll wheel offsets for the current frame
+// all offsets are being accumulated until the next call to uiProcess()
+OUI_EXPORT void uiSetScroll(int x, int y);
+
+// returns the currently accumulated scroll wheel offsets for this frame
+OUI_EXPORT UIvec2 uiGetScroll();
 
 
 // Stages
@@ -712,6 +722,8 @@ struct UIcontext {
     UIvec2 last_cursor;
     // where the cursor is currently
     UIvec2 cursor;
+    // accumulated scroll wheel offsets
+    UIvec2 scroll;
     
     UIhandle hot_handle;
     UIhandle active_handle;
@@ -856,6 +868,8 @@ static void uiAddInputEvent(UIinputEvent event) {
 static void uiClearInputEvents() {
     assert(ui_context);
     ui_context->eventcount = 0;
+    ui_context->scroll.x = 0;
+    ui_context->scroll.y = 0;
 }
 
 void uiSetKey(unsigned int key, unsigned int mod, int enabled) {
@@ -868,6 +882,17 @@ void uiSetChar(unsigned int value) {
     assert(ui_context);
     UIinputEvent event = { value, 0, UI_CHAR };
     uiAddInputEvent(event);
+}
+
+void uiSetScroll(int x, int y) {
+    assert(ui_context);
+    ui_context->scroll.x += x;
+    ui_context->scroll.y += y;
+}
+
+UIvec2 uiGetScroll() {
+    assert(ui_context);
+    return ui_context->scroll;
 }
 
 int uiGetLastButton(int button) {
@@ -1382,7 +1407,9 @@ int uiContains(int item, int x, int y) {
     return 0;
 }
 
-int uiFindItem(int item, int x, int y, int ox, int oy) {
+int uiFindItemForEvent(int item, UIevent event,
+		UIrect *hot_rect,
+		int x, int y, int ox, int oy) {
     UIitem *pitem = uiItemPtr(item);
     if (pitem->frozen) return -1;
     UIrect rect = pitem->rect;
@@ -1396,19 +1423,26 @@ int uiFindItem(int item, int x, int y, int ox, int oy) {
      && (y<rect.h)) {
         int kid = uiLastChild(item);
         while (kid >= 0) {
-            int best_hit = uiFindItem(kid,x,y,ox,oy);
+            int best_hit = uiFindItemForEvent(kid,
+            		event,hot_rect,x,y,ox,oy);
             if (best_hit >= 0) return best_hit;
             kid = uiPrevSibling(kid);
         }
-        // click-through if the item has no handler for input events
-        if (pitem->event_flags & UI_ANY_INPUT) {
+        // click-through if the item has no handler for this event
+        if (pitem->event_flags & event) {
             rect.x = ox;
             rect.y = oy;
-            ui_context->hot_rect = rect;
+            if (hot_rect)
+            	*hot_rect = rect;
             return item;
         }
     }
     return -1;
+}
+
+int uiFindItem(int item, int x, int y, int ox, int oy) {
+	return uiFindItemForEvent(item, (UIevent)UI_ANY_INPUT,
+			&ui_context->hot_rect, x, y, ox, oy);
 }
 
 void uiLayout() {
@@ -1434,9 +1468,8 @@ void uiLayout() {
 void uiUpdateHotItem() {
     assert(ui_context);
     if (!ui_context->count) return;
-    int hot = uiFindItem(0, 
+    ui_context->hot_item = uiFindItem(0,
         ui_context->cursor.x, ui_context->cursor.y, 0, 0);
-    ui_context->hot_item = hot;
 }
 
 void uiProcess() {
@@ -1461,6 +1494,14 @@ void uiProcess() {
     } else {
         ui_context->focus_handle = 0;
     }
+    if (ui_context->scroll.x || ui_context->scroll.y) {
+    	int scroll_item = uiFindItemForEvent(0, UI_SCROLL, NULL,
+    			ui_context->cursor.x, ui_context->cursor.y, 0, 0);
+    	if (scroll_item >= 0) {
+            uiNotifyItem(scroll_item, UI_SCROLL);
+    	}
+    }
+
     uiClearInputEvents();
 
     int hot = ui_context->hot_item;
