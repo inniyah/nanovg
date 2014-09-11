@@ -703,6 +703,7 @@ void draw(NVGcontext *vg, float w, float h) {
     uiSetLayout(0,UI_LEFT|UI_TOP);
     uiSetMargins(0,600,10,0,0);
     uiSetSize(0,250,400);
+    uiSetSelfHandle(root);
     uiSetHandler(root, roothandler, UI_SCROLL|UI_BUTTON0_DOWN);
     
     int col = column(root);
