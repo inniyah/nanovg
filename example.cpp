@@ -483,9 +483,17 @@ void draw_noodles(NVGcontext *vg, int x, int y) {
     bndNodePort(vg, x+w, y+2*s, BND_ACTIVE, nvgRGBf(0.5f, 0.5f, 0.5f));
 }
 
-static void scrollhandler(int parent, UIevent event) {
-	UIvec2 pos = uiGetScroll();
-	printf("scroll! %d %d\n", pos.x, pos.y);
+static void roothandler(int parent, UIevent event) {
+	switch(event) {
+	default: break;
+	case UI_SCROLL: {
+		UIvec2 pos = uiGetScroll();
+		printf("scroll! %d %d\n", pos.x, pos.y);
+	} break;
+	case UI_BUTTON0_DOWN: {
+		printf("%d clicks\n", uiGetClicks());
+	} break;
+	}
 }
 
 void draw(NVGcontext *vg, float w, float h) {
@@ -695,7 +703,7 @@ void draw(NVGcontext *vg, float w, float h) {
     uiSetLayout(0,UI_LEFT|UI_TOP);
     uiSetMargins(0,600,10,0,0);
     uiSetSize(0,250,400);
-    uiSetHandler(root, scrollhandler, UI_SCROLL);
+    uiSetHandler(root, roothandler, UI_SCROLL|UI_BUTTON0_DOWN);
     
     int col = column(root);
     uiSetMargins(col, 10, 10, 10, 10);
@@ -749,7 +757,7 @@ void draw(NVGcontext *vg, float w, float h) {
         bndJoinAreaOverlay(vg, 0, 0, w, h, 1, (cursor.y > 0));
     }
     
-    uiProcess();
+    uiProcess((int)(glfwGetTime()*1000.0));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
