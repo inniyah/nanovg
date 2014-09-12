@@ -834,6 +834,13 @@ BND_EXPORT void bndChoiceButton(NVGcontext *ctx,
     float x, float y, float w, float h, int flags, BNDwidgetState state, 
     int iconid, const char *label);
     
+// Draw a color button  with its lower left origin at (x,y) and size of (w,h),
+// where flags is one or multiple flags from BNDcornerFlags and state denotes
+// the widgets current UI state.
+// widget looks best when height is BND_WIDGET_HEIGHT
+BND_EXPORT void bndColorButton(NVGcontext *ctx,
+    float x, float y, float w, float h, int flags, NVGcolor color);
+
 // Draw a number field with its lower left origin at (x,y) and size of (w,h),
 // where flags is one or multiple flags from BNDcornerFlags and state denotes
 // the widgets current UI state.
@@ -1492,6 +1499,16 @@ void bndChoiceButton(NVGcontext *ctx,
         BND_LABEL_FONT_SIZE, label, NULL);
     bndUpDownArrow(ctx,x+w-10,y+10,5,
         bndTransparent(bnd_theme.choiceTheme.itemColor));
+}
+
+void bndColorButton(NVGcontext *ctx,
+    float x, float y, float w, float h, int flags, NVGcolor color) {
+    float cr[4];
+    bndSelectCorners(cr, BND_TOOL_RADIUS, flags);
+    bndBevelInset(ctx,x,y,w,h,cr[2],cr[3]);
+    bndInnerBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3], color, color);
+    bndOutlineBox(ctx,x,y,w,h,cr[0],cr[1],cr[2],cr[3],
+        bndTransparent(bnd_theme.toolTheme.outlineColor));
 }
 
 void bndNumberField(NVGcontext *ctx, 
