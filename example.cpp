@@ -197,14 +197,13 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
     }
 }
 
-int label(int parent, int iconid, const char *label) {    
+int label(int iconid, const char *label) {
     int item = uiItem();
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     UIButtonData *data = (UIButtonData *)uiAllocData(item, sizeof(UIButtonData));
     data->head.subtype = ST_LABEL;
     data->iconid = iconid;
     data->label = label;
-    uiAppend(parent, item);
     return item;
 }
 
@@ -213,7 +212,7 @@ void demohandler(int item, UIevent event) {
     printf("clicked: %lld %s\n", uiGetHandle(item), data->label);
 }
 
-int button(int parent, UIhandle handle, int iconid, const char *label, 
+int button(UIhandle handle, int iconid, const char *label,
     UIhandler handler) {
     // create new ui item
     int item = uiItem(); 
@@ -229,7 +228,6 @@ int button(int parent, UIhandle handle, int iconid, const char *label,
     data->head.subtype = ST_BUTTON;
     data->iconid = iconid;
     data->label = label;
-    uiAppend(parent, item);
     return item;
 }
 
@@ -238,7 +236,7 @@ void checkhandler(int item, UIevent event) {
     *data->option = !(*data->option);
 }
 
-int check(int parent, UIhandle handle, const char *label, int *option) {
+int check(UIhandle handle, const char *label, int *option) {
     // create new ui item
     int item = uiItem(); 
     // set persistent handle for item that is used
@@ -253,7 +251,6 @@ int check(int parent, UIhandle handle, const char *label, int *option) {
     data->head.subtype = ST_CHECK;
     data->label = label;
     data->option = option;
-    uiAppend(parent, item);
     return item;
 }
 
@@ -289,7 +286,7 @@ void sliderhandler(int item, UIevent event) {
     }
 }
 
-int slider(int parent, UIhandle handle, const char *label, float *progress) {
+int slider(UIhandle handle, const char *label, float *progress) {
     // create new ui item
     int item = uiItem();
     // set persistent handle for item that is used
@@ -306,7 +303,6 @@ int slider(int parent, UIhandle handle, const char *label, float *progress) {
     data->head.subtype = ST_SLIDER;
     data->label = label;
     data->progress = progress;
-    uiAppend(parent, item);
     return item;
 }
 
@@ -341,7 +337,7 @@ void textboxhandler(int item, UIevent event) {
     }
 }
 
-int textbox(int parent, UIhandle handle, char *text, int maxsize) {
+int textbox(UIhandle handle, char *text, int maxsize) {
     int item = uiItem();
     uiSetHandle(item, handle);
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
@@ -353,7 +349,6 @@ int textbox(int parent, UIhandle handle, char *text, int maxsize) {
     data->head.subtype = ST_TEXT;
     data->text = text;
     data->maxsize = maxsize;
-    uiAppend(parent, item);
     return item;
 }
 
@@ -363,7 +358,7 @@ void radiohandler(int item, UIevent event) {
     *data->value = uiGetChildId(item);
 }
 
-int radio(int parent, UIhandle handle, int iconid, const char *label, int *value) {
+int radio(UIhandle handle, int iconid, const char *label, int *value) {
     int item = uiItem();
     uiSetHandle(item, handle);
     uiSetSize(item, label?0:BND_TOOL_WIDTH, BND_WIDGET_HEIGHT);
@@ -373,19 +368,7 @@ int radio(int parent, UIhandle handle, int iconid, const char *label, int *value
     data->label = label;
     data->value = value;
     uiSetHandler(item, radiohandler, UI_BUTTON0_DOWN);
-    uiAppend(parent, item);
     return item;
-}
-
-void columnhandler(int parent, UIevent event) {
-    int item = uiLastChild(parent);
-    int last = uiPrevSibling(item);
-    // mark the new item as positioned under the previous item
-    uiSetBelow(item, last);
-    // fill parent horizontally, anchor to previous item vertically
-    uiSetLayout(item, UI_HFILL|UI_TOP);
-    // if not the first item, add a margin of 1
-    uiSetMargins(item, 0, (last < 0)?0:1, 0, 0);
 }
 
 int panel() {
@@ -395,66 +378,73 @@ int panel() {
     return item;
 }
 
-int column(int parent) {
-    int item = uiItem();
-    uiSetHandler(item, columnhandler, UI_APPEND);
+int column_append(int parent, int item) {
+    int last = uiLastChild(parent);
     uiAppend(parent, item);
+    // mark the new item as positioned under the previous item
+    uiSetBelow(item, last);
+    // fill parent horizontally, anchor to previous item vertically
+    uiSetLayout(item, UI_HFILL|UI_TOP);
+    // if not the first item, add a margin of 1
+    uiSetMargins(item, 0, (last < 0)?0:1, 0, 0);
     return item;
 }
 
-void vgrouphandler(int parent, UIevent event) {
-    int item = uiLastChild(parent);
-    int last = uiPrevSibling(item);
+int column() {
+    int item = uiItem();
+    return item;
+}
+
+int vgroup_append(int parent, int item) {
+    int last = uiLastChild(parent);
+    uiAppend(parent, item);
     // mark the new item as positioned under the previous item
     uiSetBelow(item, last);
     // fill parent horizontally, anchor to previous item vertically
     uiSetLayout(item, UI_HFILL|UI_TOP);
     // if not the first item, add a margin
     uiSetMargins(item, 0, (last < 0)?0:-2, 0, 0);
-}
-
-int vgroup(int parent) {
-    int item = uiItem();
-    UIData *data = (UIData *)uiAllocData(item, sizeof(UIData));
-    data->subtype = ST_COLUMN;
-    uiSetHandler(item, vgrouphandler, UI_APPEND);
-    uiAppend(parent, item);
     return item;
 }
 
-void hgrouphandler(int parent, UIevent event) {
-    int item = uiLastChild(parent);
-    int last = uiPrevSibling(item);
+int vgroup() {
+    int item = uiItem();
+    UIData *data = (UIData *)uiAllocData(item, sizeof(UIData));
+    data->subtype = ST_COLUMN;
+    return item;
+}
+
+int hgroup_append(int parent, int item) {
+    int last = uiLastChild(parent);
+    uiAppend(parent, item);
     uiSetRightTo(item, last);
     if (last > 0)
         uiSetLeftTo(last, item);
     uiSetLayout(item, UI_LEFT|UI_RIGHT);
     uiSetMargins(item, (last < 0)?0:-1, 0, 0, 0);
-}
-
-int hgroup(int parent) {
-    int item = uiItem();
-    UIData *data = (UIData *)uiAllocData(item, sizeof(UIData));
-    data->subtype = ST_ROW;
-    uiSetHandler(item, hgrouphandler, UI_APPEND);
-    uiAppend(parent, item);
     return item;
 }
 
-void rowhandler(int parent, UIevent event) {
-    int item = uiLastChild(parent);
-    int last = uiPrevSibling(item);
+int hgroup() {
+    int item = uiItem();
+    UIData *data = (UIData *)uiAllocData(item, sizeof(UIData));
+    data->subtype = ST_ROW;
+    return item;
+}
+
+int row_append(int parent, int item) {
+    int last = uiLastChild(parent);
+    uiAppend(parent, item);
     uiSetRightTo(item, last);
     if (last > 0)
         uiSetLeftTo(last, item);
     uiSetLayout(item, UI_LEFT|UI_RIGHT);
     uiSetMargins(item, (last < 0)?0:8, 0, 0, 0);
+    return item;
 }
 
-int row(int parent) {
+int row() {
     int item = uiItem();
-    uiSetHandler(item, rowhandler, UI_APPEND);
-    uiAppend(parent, item);
     return item;
 }
 
@@ -706,45 +696,47 @@ void draw(NVGcontext *vg, float w, float h) {
     uiSetSelfHandle(root);
     uiSetHandler(root, roothandler, UI_SCROLL|UI_BUTTON0_DOWN);
     
-    int col = column(root);
+    int col = column();
+    uiAppend(root, col);
     uiSetMargins(col, 10, 10, 10, 10);
     uiSetLayout(col, UI_TOP|UI_HFILL);
     
-    button(col, 1, BND_ICONID(6,3), "Item 1", demohandler);
-    button(col, 2, BND_ICONID(6,3), "Item 2", demohandler);
     
+    column_append(col, button(1, BND_ICONID(6,3), "Item 1", demohandler));
+    column_append(col, button(2, BND_ICONID(6,3), "Item 2", demohandler));
+
     {
-        int h = hgroup(col);
-        radio(h, 3, BND_ICONID(6,3), "Item 3.0", &enum1);
-        radio(h, 4, BND_ICONID(0,10), NULL, &enum1);
-        radio(h, 5, BND_ICONID(1,10), NULL, &enum1);
-        radio(h, 6, BND_ICONID(6,3), "Item 3.3", &enum1);
+        int h = column_append(col, hgroup());
+        hgroup_append(h, radio(3, BND_ICONID(6,3), "Item 3.0", &enum1));
+        hgroup_append(h, radio(4, BND_ICONID(0,10), NULL, &enum1));
+        hgroup_append(h, radio(5, BND_ICONID(1,10), NULL, &enum1));
+        hgroup_append(h, radio(6, BND_ICONID(6,3), "Item 3.3", &enum1));
     }
     
     {
-        int rows = row(col);
-        int coll = vgroup(rows);
-        label(coll, -1, "Items 4.0:");
-        coll = vgroup(coll);
-        button(coll, 7, BND_ICONID(6,3), "Item 4.0.0", demohandler);
-        button(coll, 8, BND_ICONID(6,3), "Item 4.0.1", demohandler);
-        int colr = vgroup(rows);
+        int rows = column_append(col, row());
+        int coll = row_append(rows, vgroup());
+        vgroup_append(coll, label(-1, "Items 4.0:"));
+        coll = vgroup_append(coll, vgroup());
+        vgroup_append(coll, button(7, BND_ICONID(6,3), "Item 4.0.0", demohandler));
+        vgroup_append(coll, button(8, BND_ICONID(6,3), "Item 4.0.1", demohandler));
+        int colr = row_append(rows, vgroup());
         uiSetFrozen(colr, option1);
-        label(colr, -1, "Items 4.1:");
-        colr = vgroup(colr);
-        slider(colr, 9, "Item 4.1.0", &progress1);
-        slider(colr,10, "Item 4.1.1", &progress2);
+        vgroup_append(colr, label(-1, "Items 4.1:"));
+        colr = vgroup_append(colr, vgroup());
+        vgroup_append(colr, slider(9, "Item 4.1.0", &progress1));
+        vgroup_append(colr, slider(10, "Item 4.1.1", &progress2));
     }
     
-    button(col, 11, BND_ICONID(6,3), "Item 5", NULL);
+    column_append(col, button(11, BND_ICONID(6,3), "Item 5", NULL));
     
-    check(col, 12, "Frozen", &option1);
-    check(col, 13, "Item 7", &option2);
-    check(col, 14, "Item 8", &option3);
+    column_append(col, check(12, "Frozen", &option1));
+    column_append(col, check(13, "Item 7", &option2));
+    column_append(col, check(14, "Item 8", &option3));
     
     static char textbuffer[32] = "click and edit";
     
-    textbox(col, (UIhandle)textbuffer, textbuffer, 32);
+    column_append(col, textbox((UIhandle)textbuffer, textbuffer, 32));
     
     uiLayout();
     drawUI(vg, 0, 0, 0);
