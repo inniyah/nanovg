@@ -287,13 +287,13 @@ typedef enum UIevent {
     // item is focused and has received a character event
     // the respective character can be queried using uiGetKey()
     UI_CHAR = 0x0800,
-    // item is requested to fill a container with additional items,
-    // usually menuitems for a context menu.
-    // the respective container can be queried using uiGetExtendItem()
-    UI_EXTEND = 0x1000,
     // item has received a scrollwheel event
     // the accumulated wheel offset can be queried with uiGetScroll()
-    UI_SCROLL = 0x2000,
+    UI_SCROLL = 0x1000,
+    // if this flag is true, all events will propagate to the parent;
+    // the original item firing this event can be retrieved using
+    // uiGetEventItem()
+    UI_PROPAGATE = 0x2000,
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -554,8 +554,8 @@ OUI_EXPORT int uiGetHandlerFlags(int item);
 OUI_EXPORT unsigned int uiGetKey();
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
 OUI_EXPORT unsigned int uiGetModifier();
-// when handling an EXTEND event; the container which to add items to
-OUI_EXPORT int uiGetExtendItem();
+// when handling a PROPAGATE event; the original item firing this event
+OUI_EXPORT int uiGetEventItem();
 
 // returns the number of child items a container item contains. If the item 
 // is not a container or does not contain any items, 0 is returned.
@@ -618,9 +618,6 @@ OUI_EXPORT int uiGetLeftTo(int item);
 // or -1 if not set.
 OUI_EXPORT int uiGetAbove(int item);
 
-// request from_item to expand its content into parent
-OUI_EXPORT void uiExtend(int parent, int from_item);
-
 #ifdef __cplusplus
 };
 #endif
@@ -645,14 +642,18 @@ OUI_EXPORT void uiExtend(int parent, int from_item);
 
 #define UI_MAX_KIND 16
 
-#define UI_ANY_INPUT (UI_BUTTON0_DOWN \
+#define UI_ANY_MOUSE_INPUT (UI_BUTTON0_DOWN \
     |UI_BUTTON0_UP \
     |UI_BUTTON0_HOT_UP \
     |UI_BUTTON0_CAPTURE \
-    |UI_BUTTON2_DOWN \
-    |UI_KEY_DOWN \
+    |UI_BUTTON2_DOWN)
+
+#define UI_ANY_KEY_INPUT (UI_KEY_DOWN \
     |UI_KEY_UP \
     |UI_CHAR)
+
+#define UI_ANY_INPUT (UI_ANY_MOUSE_INPUT \
+    |UI_ANY_KEY_INPUT)
 
 typedef struct UIitem {
     // declaration independent unique handle (for persistence)
@@ -747,7 +748,7 @@ struct UIcontext {
     int hot_item;
     unsigned int active_key;
     unsigned int active_modifier;
-    int extend_item;
+    int event_item;
     int last_timestamp;
     int last_click_timestamp;
     UIhandle last_click_handle;
@@ -976,9 +977,8 @@ unsigned int uiGetModifier() {
     return ui_context->active_modifier;
 }
 
-int uiGetExtendItem() {
-    assert(ui_context);
-    return ui_context->extend_item;
+int uiGetEventItem() {
+	return ui_context->event_item;
 }
 
 // return the total number of allocated items
@@ -1033,16 +1033,17 @@ int uiItem() {
 }
 
 void uiNotifyItem(int item, UIevent event) {
-    UIitem *pitem = uiItemPtr(item);
-    if (pitem->handler && (pitem->event_flags & event)) {
-        pitem->handler(item, event);
-    }
-}
-
-void uiExtend(int parent, int from_item) {
     assert(ui_context);
-    ui_context->extend_item = parent;
-    uiNotifyItem(from_item, UI_EXTEND);
+    ui_context->event_item = item;
+    while (item >= 0) {
+		UIitem *pitem = uiItemPtr(item);
+		if (pitem->handler && (pitem->event_flags & event)) {
+			pitem->handler(item, event);
+		}
+		if (!(pitem->event_flags & UI_PROPAGATE))
+			break;
+		item = uiParent(item);
+    }
 }
 
 int uiAppend(int item, int child) {
@@ -1458,7 +1459,7 @@ int uiFindItemForEvent(int item, UIevent event,
 }
 
 int uiFindItem(int item, int x, int y, int ox, int oy) {
-	return uiFindItemForEvent(item, (UIevent)UI_ANY_INPUT,
+	return uiFindItemForEvent(item, (UIevent)UI_ANY_MOUSE_INPUT,
 			&ui_context->hot_rect, x, y, ox, oy);
 }
 
