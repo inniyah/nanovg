@@ -274,26 +274,22 @@ typedef enum UIevent {
     UI_BUTTON0_CAPTURE = 0x0008,
     // on button 2 down (right mouse button, usually triggers context menu)
     UI_BUTTON2_DOWN = 0x0010,
-    // item has received a new child
-    // this can be used to allow container items to configure child items
-    // as they appear.
-    UI_APPEND = 0x0100,
-    // item is focused and has received a key-down event
-    // the respective key can be queried using uiGetKey() and uiGetModifier()
-    UI_KEY_DOWN = 0x0200,
-    // item is focused and has received a key-up event
-    // the respective key can be queried using uiGetKey() and uiGetModifier()
-    UI_KEY_UP = 0x0400,
-    // item is focused and has received a character event
-    // the respective character can be queried using uiGetKey()
-    UI_CHAR = 0x0800,
     // item has received a scrollwheel event
     // the accumulated wheel offset can be queried with uiGetScroll()
-    UI_SCROLL = 0x1000,
+    UI_SCROLL = 0x0020,
+    // item is focused and has received a key-down event
+    // the respective key can be queried using uiGetKey() and uiGetModifier()
+    UI_KEY_DOWN = 0x0040,
+    // item is focused and has received a key-up event
+    // the respective key can be queried using uiGetKey() and uiGetModifier()
+    UI_KEY_UP = 0x0080,
+    // item is focused and has received a character event
+    // the respective character can be queried using uiGetKey()
+    UI_CHAR = 0x0100,
     // if this flag is true, all events will propagate to the parent;
     // the original item firing this event can be retrieved using
     // uiGetEventItem()
-    UI_PROPAGATE = 0x2000,
+    UI_PROPAGATE = 0x0200,
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -1061,7 +1057,6 @@ int uiAppend(int item, int child) {
         uiItemPtr(pparent->lastkid)->nextitem = child;
         pparent->lastkid = child;
     }
-    uiNotifyItem(item, UI_APPEND);
     return child;
 }
 
