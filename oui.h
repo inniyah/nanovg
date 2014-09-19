@@ -1596,6 +1596,7 @@ void uiProcess(int timestamp) {
         uiGetHandle(active_item):0;
 
     ui_context->last_timestamp = timestamp;
+    ui_context->last_buttons = ui_context->buttons;
 }
 
 static int uiIsActive(int item) {
