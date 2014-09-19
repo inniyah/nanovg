@@ -638,11 +638,15 @@ OUI_EXPORT int uiGetAbove(int item);
 
 #define UI_MAX_KIND 16
 
-#define UI_ANY_MOUSE_INPUT (UI_BUTTON0_DOWN \
+#define UI_ANY_BUTTON0_INPUT (UI_BUTTON0_DOWN \
     |UI_BUTTON0_UP \
     |UI_BUTTON0_HOT_UP \
-    |UI_BUTTON0_CAPTURE \
-    |UI_BUTTON2_DOWN)
+    |UI_BUTTON0_CAPTURE)
+
+#define UI_ANY_BUTTON2_INPUT (UI_BUTTON2_DOWN)
+
+#define UI_ANY_MOUSE_INPUT (UI_ANY_BUTTON0_INPUT \
+    |UI_ANY_BUTTON2_INPUT)
 
 #define UI_ANY_KEY_INPUT (UI_KEY_DOWN \
     |UI_KEY_UP \
@@ -1551,10 +1555,14 @@ void uiProcess(int timestamp) {
                 uiNotifyItem(active_item, UI_BUTTON0_DOWN);
             }            
             ui_context->state = UI_STATE_CAPTURE;            
-        } else if (uiGetButton(2) && !uiGetLastButton(2) && (hot >= 0)) {
+        } else if (uiGetButton(2) && !uiGetLastButton(2)) {
             hot_item = -1;
-            ui_context->active_rect = ui_context->hot_rect;
-            uiNotifyItem(hot, UI_BUTTON2_DOWN);
+        	hot = uiFindItemForEvent(0, UI_BUTTON2_DOWN,
+        			&ui_context->active_rect,
+        			ui_context->cursor.x, ui_context->cursor.y, 0, 0);
+        	if (hot >= 0) {
+        		uiNotifyItem(hot, UI_BUTTON2_DOWN);
+        	}
         } else {
             hot_item = hot;
         }
