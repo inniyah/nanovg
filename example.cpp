@@ -763,6 +763,10 @@ void errorcb(int error, const char* desc)
 static void mousebutton(GLFWwindow *window, int button, int action, int mods) {
 	NVG_NOTUSED(window);
 	NVG_NOTUSED(mods);
+	switch(button) {
+	case 1: button = 2; break;
+	case 2: button = 1; break;
+	}
     uiSetButton(button, (action==GLFW_PRESS)?1:0);
 }
 
