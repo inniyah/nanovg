@@ -35,7 +35,7 @@ extern "C" {
 
 /*
 
-Revision 5 (2014-09-09)
+Revision 6 (2014-09-21)
 
 Summary
 -------
@@ -61,7 +61,7 @@ bndSetFont() has been called. See bndSetFont() for more information.
 Drawbacks
 ---------
 
-There is no support varying dpi resolutions yet. The library is hardcoded
+There is no support for varying dpi resolutions yet. The library is hardcoded
 to the equivalent of 72 dpi in the Blender system settings.
 
 Support for label truncation is missing. Text rendering breaks when widgets are
@@ -1974,7 +1974,7 @@ void bndIcon(NVGcontext *ctx, float x, float y, int iconid) {
         nvgImagePattern(ctx,x-u,y-v,
         BND_ICON_SHEET_WIDTH,
         BND_ICON_SHEET_HEIGHT,
-        0,bnd_icon_image,0,1));
+        0,bnd_icon_image,1));
     nvgFill(ctx);
 }
 
