@@ -766,10 +766,11 @@ struct UIcontext {
     // accumulated scroll wheel offsets
     UIvec2 scroll;
     
-    int hot_item;
     int active_item;
     int focus_item;
+    int last_hot_item;
     int last_click_item;
+    int hot_item;
 
     UIrect hot_rect;
     UIrect active_rect;
@@ -957,8 +958,8 @@ void uiFocus(int item) {
 
 static void uiValidateStateItems() {
     assert(ui_context);
-	if (ui_context->hot_item >= ui_context->count)
-		ui_context->hot_item = -1;
+	if (ui_context->last_hot_item >= ui_context->count)
+		ui_context->last_hot_item = -1;
 	if (ui_context->active_item >= ui_context->count)
 		ui_context->active_item = -1;
 	if (ui_context->focus_item >= ui_context->count)
@@ -982,7 +983,7 @@ void uiClear() {
 
 void uiClearState() {
     assert(ui_context);
-	ui_context->hot_item = -1;
+	ui_context->last_hot_item = -1;
 	ui_context->active_item = -1;
 	ui_context->focus_item = -1;
 	ui_context->last_click_item = -1;
@@ -1480,7 +1481,7 @@ void uiProcess(int timestamp) {
         return;
     }
     
-    int hot_item = ui_context->hot_item;
+    int hot_item = ui_context->last_hot_item;
     int active_item = ui_context->active_item;
     int focus_item = ui_context->focus_item;
 
@@ -1569,7 +1570,7 @@ void uiProcess(int timestamp) {
     }
     
     ui_context->last_cursor = ui_context->cursor;
-    ui_context->hot_item = hot_item;
+    ui_context->last_hot_item = hot_item;
     ui_context->active_item = active_item;
 
     ui_context->last_timestamp = timestamp;
@@ -1583,7 +1584,7 @@ static int uiIsActive(int item) {
 
 static int uiIsHot(int item) {
     assert(ui_context);
-    return ui_context->hot_item == item;
+    return ui_context->last_hot_item == item;
 }
 
 static int uiIsFocused(int item) {
