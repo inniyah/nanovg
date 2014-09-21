@@ -79,6 +79,8 @@ typedef struct {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static struct NVGcontext* _vg = NULL;
+
 void init(NVGcontext *vg) {
     bndSetFont(nvgCreateFont(vg, "system", "../DejaVuSans.ttf"));
     bndSetIconImage(nvgCreateImage(vg, "../blender_icons16.png", 0));
@@ -334,6 +336,11 @@ void textboxhandler(int item, UIevent event) {
             if (size >= (data->maxsize-1)) return;
             data->text[size] = (char)key;
         } break;
+        case UI_ADJUST_HEIGHT: {
+        	UIrect rc = uiGetRect(item);
+        	rc.h = bndLabelHeight(_vg, -1, data->text, (float)rc.w);
+        	uiSetSize(item, uiGetWidth(item), rc.h);
+        } break;
     }
 }
 
@@ -342,7 +349,7 @@ int textbox(UIhandle handle, char *text, int maxsize) {
     uiSetHandle(item, handle);
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     uiSetHandler(item, textboxhandler, 
-        UI_BUTTON0_DOWN | UI_KEY_DOWN | UI_CHAR);
+        UI_BUTTON0_DOWN | UI_KEY_DOWN | UI_CHAR | UI_ADJUST_HEIGHT);
     // store some custom data with the button that we use for styling
     // and logic, e.g. the pointer to the data we want to alter.
     UITextData *data = (UITextData *)uiAllocData(item, sizeof(UITextData));
@@ -729,14 +736,13 @@ void draw(NVGcontext *vg, float w, float h) {
     }
     
     column_append(col, button(11, BND_ICONID(6,3), "Item 5", NULL));
-    
+
+    static char textbuffer[1024] = "This textbox adjusts its height to its content when the text is overflowing the widgets width.";
+    column_append(col, textbox((UIhandle)textbuffer, textbuffer, 1024));
+
     column_append(col, check(12, "Frozen", &option1));
     column_append(col, check(13, "Item 7", &option2));
     column_append(col, check(14, "Item 8", &option3));
-    
-    static char textbuffer[32] = "click and edit";
-    
-    column_append(col, textbox((UIhandle)textbuffer, textbuffer, 32));
     
     uiLayout();
     drawUI(vg, 0, 0, 0);
@@ -797,7 +803,6 @@ static void key(GLFWwindow* window, int key, int scancode, int action, int mods)
 int main()
 {
 	GLFWwindow* window;
-	struct NVGcontext* vg = NULL;
     UIcontext *uictx;
     
     uictx = uiCreateContext();
@@ -840,13 +845,15 @@ int main()
 	glGetError();
 #endif
 
-	vg = nvgCreateGL3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
-	if (vg == NULL) {
+	_vg = nvgCreateGL3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
+	if (_vg == NULL) {
 		printf("Could not init nanovg.\n");
 		return -1;
 	}
 	
-	init(vg);
+	init(_vg);
+
+    printf("%lu %lu\n", sizeof(UIitem), sizeof(UIitem2));
 
 	glfwSwapInterval(0);
 
@@ -870,11 +877,11 @@ int main()
 		glClearColor(0,0,0,1);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 
-		nvgBeginFrame(vg, winWidth, winHeight, pxRatio);
+		nvgBeginFrame(_vg, winWidth, winHeight, pxRatio);
 
-        draw(vg, winWidth, winHeight);
+        draw(_vg, winWidth, winHeight);
 
-		nvgEndFrame(vg);
+		nvgEndFrame(_vg);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -882,7 +889,7 @@ int main()
 
     uiDestroyContext(uictx);
 
-	nvgDeleteGL3(vg);
+	nvgDeleteGL3(_vg);
 
 	glfwTerminate();
 	return 0;

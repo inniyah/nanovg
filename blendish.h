@@ -934,7 +934,12 @@ BND_EXPORT void bndJoinAreaOverlay(NVGcontext *ctx, float x, float y, float w, f
 
 // returns the ideal width for a label with given icon and text
 BND_EXPORT float bndLabelWidth(NVGcontext *ctx, int iconid, const char *label);
-        
+
+// returns the height for a label with given icon, text and width; this
+// function is primarily useful in conjunction with multiline labels and textboxes
+BND_EXPORT float bndLabelHeight(NVGcontext *ctx, int iconid, const char *label,
+    float width);
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // Low Level Functions
@@ -1866,6 +1871,24 @@ float bndLabelWidth(NVGcontext *ctx, int iconid, const char *label) {
     return w;
 }
 
+float bndLabelHeight(NVGcontext *ctx, int iconid, const char *label, float width) {
+	int h = BND_WIDGET_HEIGHT;
+    width -= BND_TEXT_RADIUS*2;
+    if (iconid >= 0) {
+        width -= BND_ICON_SHEET_RES;
+    }
+    if (label && (bnd_font >= 0)) {
+        nvgFontFaceId(ctx, bnd_font);
+        nvgFontSize(ctx, BND_LABEL_FONT_SIZE);
+        float bounds[4];
+        nvgTextBoxBounds(ctx, 1, 1, width, label, NULL, bounds);
+        int bh = int(bounds[3] - bounds[1]) + BND_TEXT_PAD_DOWN;
+        if (bh > h)
+        	h = bh;
+    }
+    return h;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 void bndRoundedBox(NVGcontext *ctx, float x, float y, float w, float h, 
@@ -2143,13 +2166,16 @@ void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
     if (bnd_font < 0) return;
     
     x+=pleft;
-    y+=h-BND_TEXT_PAD_DOWN;
+    y+=BND_WIDGET_HEIGHT-BND_TEXT_PAD_DOWN;
 
     nvgFontFaceId(ctx, bnd_font);
     nvgFontSize(ctx, fontsize);
     nvgTextAlign(ctx, NVG_ALIGN_LEFT|NVG_ALIGN_BASELINE);
 
+    w -= BND_TEXT_RADIUS+pleft;
+
     if (cend >= cbegin) {
+#if 1
         float c0,c1;
         const char *cb;const char *ce;
         static NVGglyphPosition glyphs[BND_MAX_GLYPHS];
@@ -2176,11 +2202,48 @@ void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
             nvgRect(ctx, c0-1, bounds[1], c1-c0+1, bounds[3]-bounds[1]);
         }
         nvgFill(ctx);
+#else
+        float c0,c1;
+        const char *cb;
+        const char *ce;
+        const char *line;
+        int numlines;
+        cb = label+cbegin; ce = label+cend;
+        line = label;
+
+        NVGtextRow rows[2];
+        numlines = nvgTextBreakLines(ctx, line, NULL, w, rows, 2);
+
+        /*
+        int nglyphs = nvgTextGlyphPositions(
+            ctx, x, y, label, label+cend+1, glyphs, BND_MAX_GLYPHS);
+        c0=glyphs[0].x;
+        c1=glyphs[nglyphs-1].x;
+        // TODO: this is slow
+        for (int i=0; i < nglyphs; ++i) {
+            if (glyphs[i].str == cb)
+                c0 = glyphs[i].x;
+            if (glyphs[i].str == ce)
+                c1 = glyphs[i].x;
+        }
+
+        nvgTextBounds(ctx,x,y,label,NULL, bounds);
+        nvgBeginPath(ctx);
+        if (cbegin == cend) {
+            nvgFillColor(ctx, nvgRGBf(0.337,0.502,0.761));
+            nvgRect(ctx, c0-1, bounds[1], 2, bounds[3]-bounds[1]);
+        } else {
+            nvgFillColor(ctx, caretcolor);
+            nvgRect(ctx, c0-1, bounds[1], c1-c0+1, bounds[3]-bounds[1]);
+        }
+        nvgFill(ctx);
+        */
+#endif
     }
     
     nvgBeginPath(ctx);
     nvgFillColor(ctx, color);
-    nvgTextBox(ctx,x,y,w-BND_TEXT_RADIUS-pleft,label, NULL);
+    nvgTextBox(ctx,x,y,w,label, NULL);
 }
 
 void bndCheck(NVGcontext *ctx, float ox, float oy, NVGcolor color) {
