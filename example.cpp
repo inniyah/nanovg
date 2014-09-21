@@ -328,11 +328,6 @@ void textboxhandler(int item, UIevent event) {
             if (size >= (data->maxsize-1)) return;
             data->text[size] = (char)key;
         } break;
-        case UI_ADJUST_HEIGHT: {
-        	UIrect rc = uiGetRect(item);
-        	rc.h = bndLabelHeight(_vg, -1, data->text, (float)rc.w);
-        	uiSetSize(item, uiGetWidth(item), rc.h);
-        } break;
     }
 }
 
@@ -340,7 +335,7 @@ int textbox(char *text, int maxsize) {
     int item = uiItem();
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     uiSetHandler(item, textboxhandler, 
-        UI_BUTTON0_DOWN | UI_KEY_DOWN | UI_CHAR | UI_ADJUST_HEIGHT);
+        UI_BUTTON0_DOWN | UI_KEY_DOWN | UI_CHAR);
     // store some custom data with the button that we use for styling
     // and logic, e.g. the pointer to the data we want to alter.
     UITextData *data = (UITextData *)uiAllocHandle(item, sizeof(UITextData));
@@ -719,7 +714,7 @@ void draw(NVGcontext *vg, float w, float h) {
     
     column_append(col, button(BND_ICONID(6,3), "Item 5", NULL));
 
-    static char textbuffer[1024] = "This textbox adjusts its height to its content when the text is overflowing the widgets width.";
+    static char textbuffer[1024] = "The quick brown fox.";
     column_append(col, textbox(textbuffer, 1024));
 
     column_append(col, check("Frozen", &option1));
