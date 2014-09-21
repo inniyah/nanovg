@@ -234,25 +234,25 @@ typedef enum UIitemState {
 // layout flags
 typedef enum UIlayoutFlags {
     // anchor to left item or left side of parent
-    UI_LEFT = 1,
+    UI_LEFT = 0x01,
     // anchor to top item or top side of parent
-    UI_TOP = 2,
+    UI_TOP = 0x02,
     // anchor to right item or right side of parent
-    UI_RIGHT = 4,
+    UI_RIGHT = 0x04,
     // anchor to bottom item or bottom side of parent
-    UI_DOWN = 8,
+    UI_DOWN = 0x08,
     // anchor to both left and right item or parent borders
-    UI_HFILL = 5,
+    UI_HFILL = 0x05,
     // anchor to both top and bottom item or parent borders
-    UI_VFILL = 10,
+    UI_VFILL = 0x0A,
     // center horizontally, with left margin as offset
-    UI_HCENTER = 0,
+    UI_HCENTER = 0x00,
     // center vertically, with top margin as offset
-    UI_VCENTER = 0,
+    UI_VCENTER = 0x00,
     // center in both directions, with left/top margin as offset
-    UI_CENTER = 0,
+    UI_CENTER = 0x00,
     // anchor to all four directions
-    UI_FILL = 15,
+    UI_FILL = 0x0F,
 } UIlayoutFlags;
 
 // event flags
@@ -286,10 +286,15 @@ typedef enum UIevent {
     // item is focused and has received a character event
     // the respective character can be queried using uiGetKey()
     UI_CHAR = 0x0100,
-    // if this flag is true, all events will propagate to the parent;
+    // if this flag is set, all events will propagate to the parent;
     // the original item firing this event can be retrieved using
     // uiGetEventItem()
     UI_PROPAGATE = 0x0200,
+    // after computing the horizontal size of the element, the vertical
+    // size needs adjustment.
+    // the handler is called after the horizontal layout step, and can make
+    // modifications to the items height using uiSetSize()
+    UI_ADJUST_HEIGHT = 0x0400,
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -1032,6 +1037,16 @@ int uiItem() {
     return idx;
 }
 
+void uiNotifyAllItems(UIevent event) {
+    assert(ui_context);
+    for (int i = 0; i < ui_context->count; ++i) {
+        UIitem *pitem = ui_context->items + i;
+		if (pitem->handler && (pitem->event_flags & event)) {
+			pitem->handler(i, event);
+		}
+    }
+}
+
 void uiNotifyItem(int item, UIevent event) {
     assert(ui_context);
     ui_context->event_item = item;
@@ -1472,6 +1487,9 @@ void uiLayout() {
     uiItemPtr(0)->rect.x = uiItemPtr(0)->margins[0];
     uiLayoutItem(0,0);
     
+    // give items a chance to adjust their height
+    uiNotifyAllItems(UI_ADJUST_HEIGHT);
+
     // compute heights
     uiComputeBestSize(0,1);
     // position root element rect
