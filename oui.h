@@ -970,7 +970,6 @@ static void uiValidateStateItems() {
 
 int uiGetFocusedItem() {
     assert(ui_context);
-    uiValidateStateItems();
     return ui_context->focus_item;
 }
 
