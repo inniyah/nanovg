@@ -46,6 +46,7 @@ typedef enum {
 
 typedef struct {
     int subtype;
+    UIhandler handler;
 } UIData;
 
 typedef struct {
@@ -83,36 +84,16 @@ typedef struct {
 
 static struct NVGcontext* _vg = NULL;
 
+void ui_handler(int item, UIevent event) {
+	UIData *data = (UIData *)uiGetHandle(item);
+	if (data && data->handler) {
+		data->handler(item, event);
+	}
+}
+
 void init(NVGcontext *vg) {
     bndSetFont(nvgCreateFont(vg, "system", "../DejaVuSans.ttf"));
     bndSetIconImage(nvgCreateImage(vg, "../blender_icons16.png", 0));
-}
-
-// calculate which corners are sharp for an item, depending on whether
-// the container the item is in has negative spacing, and the item
-// is first or last element in a sequence of 2 or more elements.
-int cornerFlags(int item) {
-    int parent = uiParent(item);
-    int numkids = uiGetChildCount(parent);
-    if (numkids < 2) return BND_CORNER_NONE;
-    const UIData *head = (const UIData *)uiGetHandle(parent);
-    if (head) {
-        int numid = uiGetChildId(item);
-        switch(head->subtype) {
-        case ST_COLUMN: {
-                if (!numid) return BND_CORNER_DOWN;
-                else if (numid == numkids-1) return BND_CORNER_TOP;
-                else return BND_CORNER_ALL;
-        } break;
-        case ST_ROW: {
-                if (!numid) return BND_CORNER_RIGHT;
-                else if (numid == numkids-1) return BND_CORNER_LEFT;
-                else return BND_CORNER_ALL;
-        } break;
-        default: break;
-        }
-    }
-    return BND_CORNER_NONE;
 }
 
 void testrect(NVGcontext *vg, UIrect rect) {
@@ -150,7 +131,7 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
             case ST_BUTTON: {
                 const UIButtonData *data = (UIButtonData*)head;
                 bndToolButton(vg,rect.x,rect.y,rect.w,rect.h,
-                    cornerFlags(item),(BNDwidgetState)uiGetState(item),
+                    BND_CORNER_NONE,(BNDwidgetState)uiGetState(item),
                     data->iconid,data->label);
             } break;
             case ST_CHECK: {
@@ -164,10 +145,10 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
             case ST_RADIO:{
                 const UIRadioData *data = (UIRadioData*)head;
                 BNDwidgetState state = (BNDwidgetState)uiGetState(item);
-                if (*data->value == uiGetChildId(item))
+                if (*data->value == item)
                     state = BND_ACTIVE;
                 bndRadioButton(vg,rect.x,rect.y,rect.w,rect.h,
-                    cornerFlags(item),state,
+                	BND_CORNER_NONE,state,
                     data->iconid,data->label);
             } break;
             case ST_SLIDER:{
@@ -176,7 +157,7 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
                 static char value[32];
                 sprintf(value,"%.0f%%",(*data->progress)*100.0f);
                 bndSlider(vg,rect.x,rect.y,rect.w,rect.h,
-                    cornerFlags(item),state,
+                	BND_CORNER_NONE,state,
                     *data->progress,data->label,value);
             } break;
             case ST_TEXT: {
@@ -184,7 +165,7 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
                 BNDwidgetState state = (BNDwidgetState)uiGetState(item);
                 int idx = strlen(data->text);
                 bndTextField(vg,rect.x,rect.y,rect.w,rect.h,
-                    cornerFlags(item),state, -1, data->text, idx, idx);
+                	BND_CORNER_NONE,state, -1, data->text, idx, idx);
             } break;
         }
     } else {
@@ -221,11 +202,11 @@ int button(int iconid, const char *label, UIhandler handler) {
     int item = uiItem(); 
     // set size of wiget; horizontal size is dynamic, vertical is fixed
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
-    // attach event handler e.g. demohandler above
-    uiSetHandler(item, handler, UI_BUTTON0_HOT_UP);
+    uiSetEvents(item, UI_BUTTON0_HOT_UP);
     // store some custom data with the button that we use for styling
     UIButtonData *data = (UIButtonData *)uiAllocHandle(item, sizeof(UIButtonData));
     data->head.subtype = ST_BUTTON;
+    data->head.handler = handler;
     data->iconid = iconid;
     data->label = label;
     return item;
@@ -242,10 +223,11 @@ int check(const char *label, int *option) {
     // set size of wiget; horizontal size is dynamic, vertical is fixed
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     // attach event handler e.g. demohandler above
-    uiSetHandler(item, checkhandler, UI_BUTTON0_DOWN);
+    uiSetEvents(item, UI_BUTTON0_DOWN);
     // store some custom data with the button that we use for styling
     UICheckData *data = (UICheckData *)uiAllocHandle(item, sizeof(UICheckData));
     data->head.subtype = ST_CHECK;
+    data->head.handler = checkhandler;
     data->label = label;
     data->option = option;
     return item;
@@ -289,12 +271,12 @@ int slider(const char *label, float *progress) {
     // set size of wiget; horizontal size is dynamic, vertical is fixed
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     // attach our slider event handler and capture two classes of events
-    uiSetHandler(item, sliderhandler, 
-        UI_BUTTON0_DOWN | UI_BUTTON0_CAPTURE);
+    uiSetEvents(item, UI_BUTTON0_DOWN | UI_BUTTON0_CAPTURE);
     // store some custom data with the button that we use for styling
     // and logic, e.g. the pointer to the data we want to alter.
     UISliderData *data = (UISliderData *)uiAllocHandle(item, sizeof(UISliderData));
     data->head.subtype = ST_SLIDER;
+    data->head.handler = sliderhandler;
     data->label = label;
     data->progress = progress;
     return item;
@@ -334,12 +316,12 @@ void textboxhandler(int item, UIevent event) {
 int textbox(char *text, int maxsize) {
     int item = uiItem();
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
-    uiSetHandler(item, textboxhandler, 
-        UI_BUTTON0_DOWN | UI_KEY_DOWN | UI_CHAR);
+    uiSetEvents(item, UI_BUTTON0_DOWN | UI_KEY_DOWN | UI_CHAR);
     // store some custom data with the button that we use for styling
     // and logic, e.g. the pointer to the data we want to alter.
     UITextData *data = (UITextData *)uiAllocHandle(item, sizeof(UITextData));
     data->head.subtype = ST_TEXT;
+    data->head.handler = textboxhandler;
     data->text = text;
     data->maxsize = maxsize;
     return item;
@@ -348,7 +330,7 @@ int textbox(char *text, int maxsize) {
 // simple logic for a radio button
 void radiohandler(int item, UIevent event) {
     UIRadioData *data = (UIRadioData *)uiGetHandle(item);
-    *data->value = uiGetChildId(item);
+    *data->value = item;
 }
 
 int radio(int iconid, const char *label, int *value) {
@@ -356,10 +338,11 @@ int radio(int iconid, const char *label, int *value) {
     uiSetSize(item, label?0:BND_TOOL_WIDTH, BND_WIDGET_HEIGHT);
     UIRadioData *data = (UIRadioData *)uiAllocHandle(item, sizeof(UIRadioData));
     data->head.subtype = ST_RADIO;
+    data->head.handler = radiohandler;
     data->iconid = iconid;
     data->label = label;
     data->value = value;
-    uiSetHandler(item, radiohandler, UI_BUTTON0_DOWN);
+    uiSetEvents(item, UI_BUTTON0_DOWN);
     return item;
 }
 
@@ -371,12 +354,9 @@ int panel() {
 }
 
 int column_append(int parent, int item) {
-    int last = uiLastChild(parent);
     uiAppend(parent, item);
-    // mark the new item as positioned under the previous item
-    uiSetBelow(item, last);
     // fill parent horizontally, anchor to previous item vertically
-    uiSetLayout(item, UI_HFILL|UI_TOP);
+    uiSetLayout(item, UI_HFILL);
     // if not the first item, add a margin of 1
     uiSetMargins(item, 0, 1, 0, 0);
     return item;
@@ -384,52 +364,49 @@ int column_append(int parent, int item) {
 
 int column() {
     int item = uiItem();
+    uiSetLayout(item, UI_COLUMN);
     return item;
 }
 
 int vgroup_append(int parent, int item) {
-    int last = uiLastChild(parent);
     uiAppend(parent, item);
-    // mark the new item as positioned under the previous item
-    uiSetBelow(item, last);
     // fill parent horizontally, anchor to previous item vertically
-    uiSetLayout(item, UI_HFILL|UI_TOP);
+    uiSetLayout(item, UI_HFILL);
     return item;
 }
 
 int vgroup() {
     int item = uiItem();
+    uiSetLayout(item, UI_COLUMN);
     return item;
 }
 
 int hgroup_append(int parent, int item) {
-    int last = uiLastChild(parent);
     uiAppend(parent, item);
-    uiSetRightTo(item, last);
-    if (last > 0)
-        uiSetLeftTo(last, item);
-    uiSetLayout(item, UI_LEFT|UI_RIGHT);
+    uiSetLayout(item, UI_HFILL);
+    return item;
+}
+
+int hgroup_append_fixed(int parent, int item) {
+    uiAppend(parent, item);
     return item;
 }
 
 int hgroup() {
     int item = uiItem();
+    uiSetLayout(item, UI_ROW);
     return item;
 }
 
 int row_append(int parent, int item) {
-    int last = uiLastChild(parent);
     uiAppend(parent, item);
-    uiSetRightTo(item, last);
-    if (last > 0)
-        uiSetLeftTo(last, item);
-    uiSetLayout(item, UI_LEFT|UI_RIGHT);
-    uiSetMargins(item, (last < 0)?0:8, 0, 0, 0);
+    uiSetLayout(item, UI_HFILL);
     return item;
 }
 
 int row() {
     int item = uiItem();
+    uiSetLayout(item, UI_ROW);
     return item;
 }
 
@@ -675,10 +652,10 @@ void draw(NVGcontext *vg, float w, float h) {
     
     int root = panel();
     // position root element
-    uiSetLayout(0,UI_LEFT|UI_TOP);
     uiSetMargins(0,600,10,0,0);
     uiSetSize(0,250,400);
-    uiSetHandler(root, roothandler, UI_SCROLL|UI_BUTTON0_DOWN);
+    ((UIData*)uiGetHandle(root))->handler = roothandler;
+    uiSetEvents(root, UI_SCROLL|UI_BUTTON0_DOWN);
     
     int col = column();
     uiAppend(root, col);
@@ -692,9 +669,9 @@ void draw(NVGcontext *vg, float w, float h) {
     {
         int h = column_append(col, hgroup());
         hgroup_append(h, radio(BND_ICONID(6,3), "Item 3.0", &enum1));
-        hgroup_append(h, radio(BND_ICONID(0,10), NULL, &enum1));
-        hgroup_append(h, radio(BND_ICONID(1,10), NULL, &enum1));
-        hgroup_append(h, radio(BND_ICONID(6,3), "Item 3.3", &enum1));
+        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICONID(0,10), NULL, &enum1)), 1,0,0,0);
+        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICONID(1,10), NULL, &enum1)), 1,0,0,0);
+        uiSetMargins(hgroup_append(h, radio(BND_ICONID(6,3), "Item 3.3", &enum1)), 1,0,0,0);
     }
     
     {
@@ -705,6 +682,7 @@ void draw(NVGcontext *vg, float w, float h) {
         vgroup_append(coll, button(BND_ICONID(6,3), "Item 4.0.0", demohandler));
         vgroup_append(coll, button(BND_ICONID(6,3), "Item 4.0.1", demohandler));
         int colr = row_append(rows, vgroup());
+        uiSetMargins(colr, 8, 0, 0, 0);
         uiSetFrozen(colr, option1);
         vgroup_append(colr, label(-1, "Items 4.1:"));
         colr = vgroup_append(colr, vgroup());
@@ -720,7 +698,7 @@ void draw(NVGcontext *vg, float w, float h) {
     column_append(col, check("Frozen", &option1));
     column_append(col, check("Item 7", &option2));
     column_append(col, check("Item 8", &option3));
-    
+
     uiLayout();
     drawUI(vg, 0, 0, 0);
     
@@ -784,6 +762,7 @@ int main()
     
     uictx = uiCreateContext();
     uiMakeCurrent(uictx);
+    uiSetHandler(ui_handler);
 
 	if (!glfwInit()) {
 		printf("Failed to init GLFW.");
@@ -830,7 +809,7 @@ int main()
 	
 	init(_vg);
 
-    printf("%lu %lu\n", sizeof(UIitem), sizeof(UIitem2));
+    printf("sizeof(UIitem)=%lu\n", sizeof(UIitem));
 
 	glfwSwapInterval(0);
 
