@@ -81,7 +81,7 @@ typedef struct {
 
 void init(NVGcontext *vg) {
     bndSetFont(nvgCreateFont(vg, "system", "../DejaVuSans.ttf"));
-    bndSetIconImage(nvgCreateImage(vg, "../blender_icons16.png"));
+    bndSetIconImage(nvgCreateImage(vg, "../blender_icons16.png", 0));
 }
 
 // calculate which corners are sharp for an item, depending on whether
