@@ -40,6 +40,8 @@ typedef enum {
     ST_PANEL = 7,
     // text
     ST_TEXT = 8,
+    //
+    ST_IGNORE = 9,
 } SubType;
 
 typedef struct {
@@ -93,7 +95,7 @@ int cornerFlags(int item) {
     int parent = uiParent(item);
     int numkids = uiGetChildCount(parent);
     if (numkids < 2) return BND_CORNER_NONE;
-    const UIData *head = (const UIData *)uiGetData(parent);
+    const UIData *head = (const UIData *)uiGetHandle(parent);
     if (head) {
         int numid = uiGetChildId(item);
         switch(head->subtype) {
@@ -124,7 +126,7 @@ void testrect(NVGcontext *vg, UIrect rect) {
 }
 
 void drawUI(NVGcontext *vg, int item, int x, int y) {
-    const UIData *head = (const UIData *)uiGetData(item);
+    const UIData *head = (const UIData *)uiGetHandle(item);
     UIrect rect = uiGetRect(item);
     rect.x += x;
     rect.y += y; 
@@ -202,7 +204,7 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
 int label(int iconid, const char *label) {
     int item = uiItem();
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
-    UIButtonData *data = (UIButtonData *)uiAllocData(item, sizeof(UIButtonData));
+    UIButtonData *data = (UIButtonData *)uiAllocHandle(item, sizeof(UIButtonData));
     data->head.subtype = ST_LABEL;
     data->iconid = iconid;
     data->label = label;
@@ -210,23 +212,19 @@ int label(int iconid, const char *label) {
 }
 
 void demohandler(int item, UIevent event) {
-    const UIButtonData *data = (const UIButtonData *)uiGetData(item);
-    printf("clicked: %lld %s\n", uiGetHandle(item), data->label);
+    const UIButtonData *data = (const UIButtonData *)uiGetHandle(item);
+    printf("clicked: %p %s\n", uiGetHandle(item), data->label);
 }
 
-int button(UIhandle handle, int iconid, const char *label,
-    UIhandler handler) {
+int button(int iconid, const char *label, UIhandler handler) {
     // create new ui item
     int item = uiItem(); 
-    // set persistent handle for item that is used
-    // to track activity over time
-    uiSetHandle(item, handle);
     // set size of wiget; horizontal size is dynamic, vertical is fixed
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     // attach event handler e.g. demohandler above
     uiSetHandler(item, handler, UI_BUTTON0_HOT_UP);
     // store some custom data with the button that we use for styling
-    UIButtonData *data = (UIButtonData *)uiAllocData(item, sizeof(UIButtonData));
+    UIButtonData *data = (UIButtonData *)uiAllocHandle(item, sizeof(UIButtonData));
     data->head.subtype = ST_BUTTON;
     data->iconid = iconid;
     data->label = label;
@@ -234,22 +232,19 @@ int button(UIhandle handle, int iconid, const char *label,
 }
 
 void checkhandler(int item, UIevent event) {
-    const UICheckData *data = (const UICheckData *)uiGetData(item);
+    const UICheckData *data = (const UICheckData *)uiGetHandle(item);
     *data->option = !(*data->option);
 }
 
-int check(UIhandle handle, const char *label, int *option) {
+int check(const char *label, int *option) {
     // create new ui item
     int item = uiItem(); 
-    // set persistent handle for item that is used
-    // to track activity over time
-    uiSetHandle(item, handle);
     // set size of wiget; horizontal size is dynamic, vertical is fixed
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     // attach event handler e.g. demohandler above
     uiSetHandler(item, checkhandler, UI_BUTTON0_DOWN);
     // store some custom data with the button that we use for styling
-    UICheckData *data = (UICheckData *)uiAllocData(item, sizeof(UICheckData));
+    UICheckData *data = (UICheckData *)uiAllocHandle(item, sizeof(UICheckData));
     data->head.subtype = ST_CHECK;
     data->label = label;
     data->option = option;
@@ -264,7 +259,7 @@ static float sliderstart = 0.0;
 // event handler for slider (same handler for all sliders)
 void sliderhandler(int item, UIevent event) {
     // retrieve the custom data we saved with the slider
-    UISliderData *data = (UISliderData *)uiGetData(item);
+    UISliderData *data = (UISliderData *)uiGetHandle(item);
     switch(event) {
         default: break;
         case UI_BUTTON0_DOWN: {
@@ -288,12 +283,9 @@ void sliderhandler(int item, UIevent event) {
     }
 }
 
-int slider(UIhandle handle, const char *label, float *progress) {
+int slider(const char *label, float *progress) {
     // create new ui item
     int item = uiItem();
-    // set persistent handle for item that is used
-    // to track activity over time
-    uiSetHandle(item, handle);
     // set size of wiget; horizontal size is dynamic, vertical is fixed
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     // attach our slider event handler and capture two classes of events
@@ -301,7 +293,7 @@ int slider(UIhandle handle, const char *label, float *progress) {
         UI_BUTTON0_DOWN | UI_BUTTON0_CAPTURE);
     // store some custom data with the button that we use for styling
     // and logic, e.g. the pointer to the data we want to alter.
-    UISliderData *data = (UISliderData *)uiAllocData(item, sizeof(UISliderData));
+    UISliderData *data = (UISliderData *)uiAllocHandle(item, sizeof(UISliderData));
     data->head.subtype = ST_SLIDER;
     data->label = label;
     data->progress = progress;
@@ -309,7 +301,7 @@ int slider(UIhandle handle, const char *label, float *progress) {
 }
 
 void textboxhandler(int item, UIevent event) {
-    UITextData *data = (UITextData *)uiGetData(item);
+    UITextData *data = (UITextData *)uiGetHandle(item);
     switch(event) {
         default: break;
         case UI_BUTTON0_DOWN: {
@@ -344,15 +336,14 @@ void textboxhandler(int item, UIevent event) {
     }
 }
 
-int textbox(UIhandle handle, char *text, int maxsize) {
+int textbox(char *text, int maxsize) {
     int item = uiItem();
-    uiSetHandle(item, handle);
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     uiSetHandler(item, textboxhandler, 
         UI_BUTTON0_DOWN | UI_KEY_DOWN | UI_CHAR | UI_ADJUST_HEIGHT);
     // store some custom data with the button that we use for styling
     // and logic, e.g. the pointer to the data we want to alter.
-    UITextData *data = (UITextData *)uiAllocData(item, sizeof(UITextData));
+    UITextData *data = (UITextData *)uiAllocHandle(item, sizeof(UITextData));
     data->head.subtype = ST_TEXT;
     data->text = text;
     data->maxsize = maxsize;
@@ -361,15 +352,14 @@ int textbox(UIhandle handle, char *text, int maxsize) {
 
 // simple logic for a radio button
 void radiohandler(int item, UIevent event) {
-    UIRadioData *data = (UIRadioData *)uiGetData(item);
+    UIRadioData *data = (UIRadioData *)uiGetHandle(item);
     *data->value = uiGetChildId(item);
 }
 
-int radio(UIhandle handle, int iconid, const char *label, int *value) {
+int radio(int iconid, const char *label, int *value) {
     int item = uiItem();
-    uiSetHandle(item, handle);
     uiSetSize(item, label?0:BND_TOOL_WIDTH, BND_WIDGET_HEIGHT);
-    UIRadioData *data = (UIRadioData *)uiAllocData(item, sizeof(UIRadioData));
+    UIRadioData *data = (UIRadioData *)uiAllocHandle(item, sizeof(UIRadioData));
     data->head.subtype = ST_RADIO;
     data->iconid = iconid;
     data->label = label;
@@ -380,7 +370,7 @@ int radio(UIhandle handle, int iconid, const char *label, int *value) {
 
 int panel() {
     int item = uiItem();
-    UIData *data = (UIData *)uiAllocData(item, sizeof(UIData));
+    UIData *data = (UIData *)uiAllocHandle(item, sizeof(UIData));
     data->subtype = ST_PANEL;
     return item;
 }
@@ -416,8 +406,6 @@ int vgroup_append(int parent, int item) {
 
 int vgroup() {
     int item = uiItem();
-    UIData *data = (UIData *)uiAllocData(item, sizeof(UIData));
-    data->subtype = ST_COLUMN;
     return item;
 }
 
@@ -434,8 +422,6 @@ int hgroup_append(int parent, int item) {
 
 int hgroup() {
     int item = uiItem();
-    UIData *data = (UIData *)uiAllocData(item, sizeof(UIData));
-    data->subtype = ST_ROW;
     return item;
 }
 
@@ -700,7 +686,6 @@ void draw(NVGcontext *vg, float w, float h) {
     uiSetLayout(0,UI_LEFT|UI_TOP);
     uiSetMargins(0,600,10,0,0);
     uiSetSize(0,250,400);
-    uiSetSelfHandle(root);
     uiSetHandler(root, roothandler, UI_SCROLL|UI_BUTTON0_DOWN);
     
     int col = column();
@@ -709,15 +694,15 @@ void draw(NVGcontext *vg, float w, float h) {
     uiSetLayout(col, UI_TOP|UI_HFILL);
     
     
-    column_append(col, button(1, BND_ICONID(6,3), "Item 1", demohandler));
-    column_append(col, button(2, BND_ICONID(6,3), "Item 2", demohandler));
+    column_append(col, button(BND_ICONID(6,3), "Item 1", demohandler));
+    column_append(col, button(BND_ICONID(6,3), "Item 2", demohandler));
 
     {
         int h = column_append(col, hgroup());
-        hgroup_append(h, radio(3, BND_ICONID(6,3), "Item 3.0", &enum1));
-        hgroup_append(h, radio(4, BND_ICONID(0,10), NULL, &enum1));
-        hgroup_append(h, radio(5, BND_ICONID(1,10), NULL, &enum1));
-        hgroup_append(h, radio(6, BND_ICONID(6,3), "Item 3.3", &enum1));
+        hgroup_append(h, radio(BND_ICONID(6,3), "Item 3.0", &enum1));
+        hgroup_append(h, radio(BND_ICONID(0,10), NULL, &enum1));
+        hgroup_append(h, radio(BND_ICONID(1,10), NULL, &enum1));
+        hgroup_append(h, radio(BND_ICONID(6,3), "Item 3.3", &enum1));
     }
     
     {
@@ -725,24 +710,24 @@ void draw(NVGcontext *vg, float w, float h) {
         int coll = row_append(rows, vgroup());
         vgroup_append(coll, label(-1, "Items 4.0:"));
         coll = vgroup_append(coll, vgroup());
-        vgroup_append(coll, button(7, BND_ICONID(6,3), "Item 4.0.0", demohandler));
-        vgroup_append(coll, button(8, BND_ICONID(6,3), "Item 4.0.1", demohandler));
+        vgroup_append(coll, button(BND_ICONID(6,3), "Item 4.0.0", demohandler));
+        vgroup_append(coll, button(BND_ICONID(6,3), "Item 4.0.1", demohandler));
         int colr = row_append(rows, vgroup());
         uiSetFrozen(colr, option1);
         vgroup_append(colr, label(-1, "Items 4.1:"));
         colr = vgroup_append(colr, vgroup());
-        vgroup_append(colr, slider(9, "Item 4.1.0", &progress1));
-        vgroup_append(colr, slider(10, "Item 4.1.1", &progress2));
+        vgroup_append(colr, slider("Item 4.1.0", &progress1));
+        vgroup_append(colr, slider("Item 4.1.1", &progress2));
     }
     
-    column_append(col, button(11, BND_ICONID(6,3), "Item 5", NULL));
+    column_append(col, button(BND_ICONID(6,3), "Item 5", NULL));
 
     static char textbuffer[1024] = "This textbox adjusts its height to its content when the text is overflowing the widgets width.";
-    column_append(col, textbox((UIhandle)textbuffer, textbuffer, 1024));
+    column_append(col, textbox(textbuffer, 1024));
 
-    column_append(col, check(12, "Frozen", &option1));
-    column_append(col, check(13, "Item 7", &option2));
-    column_append(col, check(14, "Item 8", &option3));
+    column_append(col, check("Frozen", &option1));
+    column_append(col, check("Item 7", &option2));
+    column_append(col, check("Item 8", &option3));
     
     uiLayout();
     drawUI(vg, 0, 0, 0);

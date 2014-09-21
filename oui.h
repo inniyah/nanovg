@@ -215,9 +215,6 @@ typedef unsigned int UIuint;
 // opaque UI context
 typedef struct UIcontext UIcontext;
 
-// application defined context handle
-typedef unsigned long long UIhandle;
-
 // item states as returned by uiGetState()
 
 typedef enum UIitemState {
@@ -423,6 +420,12 @@ OUI_EXPORT void uiUpdateHotItem();
 // this is an O(N) operation for N = number of declared items.
 OUI_EXPORT void uiProcess(int timestamp);
 
+// reset the currently stored hot/active etc. handles; this should be called when
+// a redeclaration of the UI changes the handle addresses, to avoid state
+// related glitches because item identities have changed. If you're using
+// uiAllocHandle() you should definitely make use of this.
+OUI_EXPORT void uiClearHandleState();
+
 // UI Declaration
 // --------------
 
@@ -439,19 +442,15 @@ OUI_EXPORT int uiItem();
 OUI_EXPORT void uiSetFrozen(int item, int enable);
 
 // set the application-dependent handle of an item.
-// handle is an application defined 64-bit handle. If handle is 0, the item
+// handle is an application defined 64-bit handle. If handle is NULL, the item
 // will not be interactive.
-OUI_EXPORT void uiSetHandle(int item, UIhandle handle);
+OUI_EXPORT void uiSetHandle(int item, void *handle);
 
-// assigns the items own address as handle; this may cause glitches
-// when the order of items changes while theitem is captured
-OUI_EXPORT void uiSetSelfHandle(int item);
-
-// allocate space for application-dependent context data and return the pointer
-// if successful. If no data has been allocated, a new pointer is returned. 
-// Otherwise, an assertion is thrown.
-// The memory of the pointer is managed by the UI context.
-OUI_EXPORT void *uiAllocData(int item, int size);
+// allocate space for application-dependent context data and assign it
+// as the handle to the item.
+// The memory of the pointer is managed by the UI context and released
+// upon the next call to uiClear()
+OUI_EXPORT void *uiAllocHandle(int item, int size);
 
 // set the handler callback for an interactive item. 
 // flags is a combination of UI_EVENT_* and designates for which events the 
@@ -529,23 +528,19 @@ OUI_EXPORT int uiGetItemCount();
 // The returned value is one of UI_COLD, UI_HOT, UI_ACTIVE, UI_FROZEN.
 OUI_EXPORT UIitemState uiGetState(int item);
 
-// return the application-dependent handle of the item as passed to uiSetHandle().
-OUI_EXPORT UIhandle uiGetHandle(int item);
+// return the application-dependent handle of the item as passed to uiSetHandle()
+// or uiAllocHandle().
+OUI_EXPORT void *uiGetHandle(int item);
 
 // return the item with the given application-dependent handle as assigned by
 // uiSetHandle() or -1 if unsuccessful.
-OUI_EXPORT int uiGetItem(UIhandle handle);
+OUI_EXPORT int uiGetItem(void *handle);
 
 // return the item that is currently under the cursor or -1 for none
 OUI_EXPORT int uiGetHotItem();
 
 // return the item that is currently focused or -1 for none
 OUI_EXPORT int uiGetFocusedItem();
-
-// return the application-dependent context data for an item as passed to
-// uiAllocData(). The memory of the pointer is managed by the UI context
-// and should not be altered.
-OUI_EXPORT const void *uiGetData(int item);
 
 // return the handler callback for an item as passed to uiSetHandler()
 OUI_EXPORT UIhandler uiGetHandler(int item);
@@ -667,8 +662,11 @@ OUI_EXPORT int uiGetAbove(int item);
 enum {
     UI_ITEM_LAYOUT_MASK = 0x000F,
     UI_ITEM_EVENT_MASK  = 0xFFF0,
+    // item is frozen
 	UI_ITEM_FROZEN     = 0x10000,
-	UI_ITEM_VISITED_BITOFS = 17, // 0x20000, 0x40000, 0x80000, 0x100000
+	// item handle is pointer to data
+	UI_ITEM_DATA	   = 0x20000,
+	UI_ITEM_VISITED_BITOFS = 18, // 0x4 0000, 0x8 0000, 0x10 0000, 0x20 0000
 	UI_ITEM_VISITED_MASK = (UI_ITEM_VISITED_XY_FLAG(0)
 						 | UI_ITEM_VISITED_XY_FLAG(1)
 						 | UI_ITEM_VISITED_WH_FLAG(0)
@@ -677,12 +675,13 @@ enum {
 
 typedef struct UIitem {
     // declaration independent unique handle (for persistence)
-    UIhandle handle;
+    void *handle;
     // handler
     UIhandler handler;
-    
-    // container structure
+
     unsigned int flags;
+
+    // container structure
     
     // number of kids
     int numkids;
@@ -713,17 +712,12 @@ typedef struct UIitem {
     UIvec2 computed_size;
     // relative rect
     UIrect rect;
-    
-    // attributes
-    
-    // index of data or -1 for none
-    int data;
 } UIitem;
 
 // 40 bytes
 typedef struct UIitem2 {
     // declaration independent unique handle (for persistence)
-    UIhandle handle;
+    void *handle;
     // handler
     UIhandler handler;
 
@@ -777,9 +771,10 @@ struct UIcontext {
     // accumulated scroll wheel offsets
     UIvec2 scroll;
     
-    UIhandle hot_handle;
-    UIhandle active_handle;
-    UIhandle focus_handle;
+    void *hot_handle;
+    void *active_handle;
+    void *focus_handle;
+    void *last_click_handle;
     UIrect hot_rect;
     UIrect active_rect;
     UIstate state;
@@ -789,7 +784,6 @@ struct UIcontext {
     int event_item;
     int last_timestamp;
     int last_click_timestamp;
-    UIhandle last_click_handle;
     int clicks;
     
     int count;    
@@ -832,9 +826,10 @@ void uiDestroyContext(UIcontext *ctx) {
     free(ctx);
 }
 
-UI_INLINE unsigned int uiHashHandle(UIhandle handle) {
-    handle = (handle+(handle>>32)) & 0xffffffff;
-    unsigned int x = (unsigned int)handle;
+UI_INLINE unsigned int uiHashHandle(void *handle) {
+	unsigned long long uval = (unsigned long long)handle;
+	uval = (uval+(uval>>32)) & 0xffffffff;
+    unsigned int x = (unsigned int)uval;
     x += (x>>6)+(x>>19);
     x += x<<16;
     x ^= x<<3;
@@ -867,13 +862,13 @@ UI_INLINE UIhandleEntry *uiHashLookupHandle(unsigned int key) {
     }
 }
 
-int uiGetItem(UIhandle handle) {
+int uiGetItem(void *handle) {
     unsigned int key = uiHashHandle(handle);
     UIhandleEntry *e = uiHashLookupHandle(key);
     return e?(e->item):-1;
 }
 
-static void uiHashInsertHandle(UIhandle handle, int item) {
+static void uiHashInsertHandle(void *handle, int item) {
     unsigned int key = uiHashHandle(handle);
     UIhandleEntry *e = uiHashLookupHandle(key);
     if (e) { // update
@@ -1053,6 +1048,14 @@ void uiClear() {
     memset(ui_context->handles, 0, sizeof(ui_context->handles));
 }
 
+void uiClearHandleState() {
+    assert(ui_context);
+	ui_context->hot_handle = NULL;
+	ui_context->active_handle = NULL;
+	ui_context->focus_handle = NULL;
+	ui_context->last_click_handle = NULL;
+}
+
 int uiItem() {
     assert(ui_context);
     assert(ui_context->count < UI_MAX_ITEMS);
@@ -1064,7 +1067,6 @@ int uiItem() {
     item->lastkid = -1;
     item->nextitem = -1;
     item->previtem = -1;
-    item->data = -1;
     for (int i = 0; i < 4; ++i)
         item->relto[i] = -1;
     return idx;
@@ -1400,36 +1402,28 @@ int uiParent(int item) {
     return uiItemPtr(item)->parent;
 }
 
-const void *uiGetData(int item) {
-    UIitem *pitem = uiItemPtr(item);
-    if (pitem->data < 0) return NULL;
-    return ui_context->data + pitem->data;
-}
-
-void *uiAllocData(int item, int size) {
+void *uiAllocHandle(int item, int size) {
     assert((size > 0) && (size < UI_MAX_DATASIZE));
     UIitem *pitem = uiItemPtr(item);
-    assert(pitem->data < 0);
+    assert(pitem->handle == NULL);
     assert((ui_context->datasize+size) <= UI_MAX_BUFFERSIZE);
-    pitem->data = ui_context->datasize;
+    pitem->handle = ui_context->data + ui_context->datasize;
+    pitem->flags |= UI_ITEM_DATA;
     ui_context->datasize += size;
-    return ui_context->data + pitem->data;
+    uiHashInsertHandle(pitem->handle, item);
+    return pitem->handle;
 }
 
-void uiSetHandle(int item, UIhandle handle) {
-    uiItemPtr(item)->handle = handle;
+void uiSetHandle(int item, void *handle) {
+    UIitem *pitem = uiItemPtr(item);
+    assert(pitem->handle == NULL);
+    pitem->handle = handle;
     if (handle) {
         uiHashInsertHandle(handle, item);
     }
 }
 
-void uiSetSelfHandle(int item) {
-    UIitem *pitem = uiItemPtr(item);
-    pitem->handle = (UIhandle)pitem;
-    uiHashInsertHandle((UIhandle)pitem, item);
-}
-
-UIhandle uiGetHandle(int item) {
+void *uiGetHandle(int item) {
     return uiItemPtr(item)->handle;
 }
 
@@ -1599,7 +1593,7 @@ void uiProcess(int timestamp) {
             }
             
             if (active_item >= 0) {
-            	UIhandle active_handle = uiGetHandle(active_item);
+            	void *active_handle = uiGetHandle(active_item);
             	if (
             		((timestamp - ui_context->last_click_timestamp) > UI_CLICK_THRESHOLD)
             	 || (ui_context->last_click_handle != active_handle)) {
