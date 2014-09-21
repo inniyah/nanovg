@@ -106,11 +106,9 @@ void testrect(NVGcontext *vg, UIrect rect) {
 #endif    
 }
 
-void drawUI(NVGcontext *vg, int item, int x, int y) {
+void drawUI(NVGcontext *vg, int item) {
     const UIData *head = (const UIData *)uiGetHandle(item);
     UIrect rect = uiGetRect(item);
-    rect.x += x;
-    rect.y += y; 
     if (uiGetState(item) == UI_FROZEN) {
         nvgGlobalAlpha(vg, BND_DISABLED_ALPHA);
     }
@@ -174,7 +172,7 @@ void drawUI(NVGcontext *vg, int item, int x, int y) {
     
     int kid = uiFirstChild(item);
     while (kid > 0) {
-        drawUI(vg, kid, rect.x, rect.y);
+        drawUI(vg, kid);
         kid = uiNextSibling(kid);
     }
     if (uiGetState(item) == UI_FROZEN) {
@@ -700,7 +698,7 @@ void draw(NVGcontext *vg, float w, float h) {
     column_append(col, check("Item 8", &option3));
 
     uiLayout();
-    drawUI(vg, 0, 0, 0);
+    drawUI(vg, 0);
     
     UIvec2 cursor = uiGetCursor();
     cursor.x -= w/2;
