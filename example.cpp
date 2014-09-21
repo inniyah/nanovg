@@ -383,7 +383,7 @@ int column_append(int parent, int item) {
     // fill parent horizontally, anchor to previous item vertically
     uiSetLayout(item, UI_HFILL|UI_TOP);
     // if not the first item, add a margin of 1
-    uiSetMargins(item, 0, (last < 0)?0:1, 0, 0);
+    uiSetMargins(item, 0, 1, 0, 0);
     return item;
 }
 
@@ -399,8 +399,6 @@ int vgroup_append(int parent, int item) {
     uiSetBelow(item, last);
     // fill parent horizontally, anchor to previous item vertically
     uiSetLayout(item, UI_HFILL|UI_TOP);
-    // if not the first item, add a margin
-    uiSetMargins(item, 0, (last < 0)?0:-2, 0, 0);
     return item;
 }
 
@@ -416,7 +414,6 @@ int hgroup_append(int parent, int item) {
     if (last > 0)
         uiSetLeftTo(last, item);
     uiSetLayout(item, UI_LEFT|UI_RIGHT);
-    uiSetMargins(item, (last < 0)?0:-1, 0, 0, 0);
     return item;
 }
 

@@ -421,10 +421,9 @@ OUI_EXPORT void uiUpdateHotItem();
 OUI_EXPORT void uiProcess(int timestamp);
 
 // reset the currently stored hot/active etc. handles; this should be called when
-// a redeclaration of the UI changes the handle addresses, to avoid state
-// related glitches because item identities have changed. If you're using
-// uiAllocHandle() you should definitely make use of this.
-OUI_EXPORT void uiClearHandleState();
+// a re-declaration of the UI changes the item indices, to avoid state
+// related glitches because item identities have changed.
+OUI_EXPORT void uiClearState();
 
 // UI Declaration
 // --------------
@@ -531,10 +530,6 @@ OUI_EXPORT UIitemState uiGetState(int item);
 // return the application-dependent handle of the item as passed to uiSetHandle()
 // or uiAllocHandle().
 OUI_EXPORT void *uiGetHandle(int item);
-
-// return the item with the given application-dependent handle as assigned by
-// uiSetHandle() or -1 if unsuccessful.
-OUI_EXPORT int uiGetItem(void *handle);
 
 // return the item that is currently under the cursor or -1 for none
 OUI_EXPORT int uiGetHotItem();
@@ -771,14 +766,14 @@ struct UIcontext {
     // accumulated scroll wheel offsets
     UIvec2 scroll;
     
-    void *hot_handle;
-    void *active_handle;
-    void *focus_handle;
-    void *last_click_handle;
+    int hot_item;
+    int active_item;
+    int focus_item;
+    int last_click_item;
+
     UIrect hot_rect;
     UIrect active_rect;
     UIstate state;
-    int hot_item;
     unsigned int active_key;
     unsigned int active_modifier;
     int event_item;
@@ -792,7 +787,6 @@ struct UIcontext {
     
     UIitem items[UI_MAX_ITEMS];    
     unsigned char data[UI_MAX_BUFFERSIZE];
-    UIhandleEntry handles[UI_MAX_ITEMS];    
     UIinputEvent events[UI_MAX_INPUT_EVENTS];
 };
 
@@ -812,6 +806,7 @@ UIcontext *uiCreateContext() {
     UIcontext *oldctx = ui_context;
     uiMakeCurrent(ctx);
     uiClear();
+    uiClearState();
     uiMakeCurrent(oldctx);
     return ctx;
 }
@@ -824,81 +819,6 @@ void uiDestroyContext(UIcontext *ctx) {
     if (ui_context == ctx)
         uiMakeCurrent(NULL);
     free(ctx);
-}
-
-UI_INLINE unsigned int uiHashHandle(void *handle) {
-	unsigned long long uval = (unsigned long long)handle;
-	uval = (uval+(uval>>32)) & 0xffffffff;
-    unsigned int x = (unsigned int)uval;
-    x += (x>>6)+(x>>19);
-    x += x<<16;
-    x ^= x<<3;
-    x += x>>5;
-    x ^= x<<2;
-    x += x>>15;
-    x ^= x<<10;
-    return x?x:1; // must not be zero
-}
-
-UI_INLINE unsigned int uiHashProbeDistance(unsigned int key, unsigned int slot_index) {
-    unsigned int pos = key & (UI_MAX_ITEMS-1);
-    return (slot_index + UI_MAX_ITEMS - pos) & (UI_MAX_ITEMS-1);
-}
-
-UI_INLINE UIhandleEntry *uiHashLookupHandle(unsigned int key) {
-    assert(ui_context);
-    int pos = key & (UI_MAX_ITEMS-1);
-    unsigned int dist = 0;
-    for (;;) {
-        UIhandleEntry *entry = ui_context->handles + pos;
-        unsigned int pos_key = entry->key;
-        if (!pos_key) return NULL;
-        else if (entry->key == key)
-            return entry;
-        else if (dist > uiHashProbeDistance(pos_key, pos))
-            return NULL;
-        pos = (pos+1) & (UI_MAX_ITEMS-1);
-        ++dist;
-    }
-}
-
-int uiGetItem(void *handle) {
-    unsigned int key = uiHashHandle(handle);
-    UIhandleEntry *e = uiHashLookupHandle(key);
-    return e?(e->item):-1;
-}
-
-static void uiHashInsertHandle(void *handle, int item) {
-    unsigned int key = uiHashHandle(handle);
-    UIhandleEntry *e = uiHashLookupHandle(key);
-    if (e) { // update
-        e->item = item;
-        return;
-    }
-
-    int pos = key & (UI_MAX_ITEMS-1);
-    unsigned int dist = 0;
-    for (unsigned int i = 0; i < UI_MAX_ITEMS; ++i) {
-        int index = (pos + i) & (UI_MAX_ITEMS-1);
-        unsigned int pos_key = ui_context->handles[index].key;
-        if (!pos_key) {
-            ui_context->handles[index].key = key;
-            ui_context->handles[index].item = item;
-            break;
-        } else {
-            unsigned int probe_distance = uiHashProbeDistance(pos_key, index);
-            if (dist > probe_distance) {
-                unsigned int oldkey = ui_context->handles[index].key;
-                unsigned int olditem = ui_context->handles[index].item;                
-                ui_context->handles[index].key = key;
-                ui_context->handles[index].item = item;
-                key = oldkey;
-                item = olditem;
-                dist = probe_distance;
-            }
-        }
-        ++dist;
-    }
 }
 
 void uiSetButton(int button, int enabled) {
@@ -1032,12 +952,25 @@ int uiGetHotItem() {
 
 void uiFocus(int item) {
     assert(ui_context && (item >= -1) && (item < ui_context->count));
-    ui_context->focus_handle = (item < 0)?0:uiGetHandle(item);
+    ui_context->focus_item = item;
+}
+
+static void uiValidateStateItems() {
+    assert(ui_context);
+	if (ui_context->hot_item >= ui_context->count)
+		ui_context->hot_item = -1;
+	if (ui_context->active_item >= ui_context->count)
+		ui_context->active_item = -1;
+	if (ui_context->focus_item >= ui_context->count)
+		ui_context->focus_item = -1;
+	if (ui_context->last_click_item >= ui_context->count)
+		ui_context->last_click_item = -1;
 }
 
 int uiGetFocusedItem() {
     assert(ui_context);
-    return ui_context->focus_handle?uiGetItem(ui_context->focus_handle):-1;
+    uiValidateStateItems();
+    return ui_context->focus_item;
 }
 
 void uiClear() {
@@ -1045,15 +978,14 @@ void uiClear() {
     ui_context->count = 0;
     ui_context->datasize = 0;
     ui_context->hot_item = -1;
-    memset(ui_context->handles, 0, sizeof(ui_context->handles));
 }
 
-void uiClearHandleState() {
+void uiClearState() {
     assert(ui_context);
-	ui_context->hot_handle = NULL;
-	ui_context->active_handle = NULL;
-	ui_context->focus_handle = NULL;
-	ui_context->last_click_handle = NULL;
+	ui_context->hot_item = -1;
+	ui_context->active_item = -1;
+	ui_context->focus_item = -1;
+	ui_context->last_click_item = -1;
 }
 
 int uiItem() {
@@ -1410,7 +1342,6 @@ void *uiAllocHandle(int item, int size) {
     pitem->handle = ui_context->data + ui_context->datasize;
     pitem->flags |= UI_ITEM_DATA;
     ui_context->datasize += size;
-    uiHashInsertHandle(pitem->handle, item);
     return pitem->handle;
 }
 
@@ -1418,9 +1349,6 @@ void uiSetHandle(int item, void *handle) {
     UIitem *pitem = uiItemPtr(item);
     assert(pitem->handle == NULL);
     pitem->handle = handle;
-    if (handle) {
-        uiHashInsertHandle(handle, item);
-    }
 }
 
 void *uiGetHandle(int item) {
@@ -1529,6 +1457,7 @@ void uiLayout() {
     uiItemPtr(0)->rect.y = uiItemPtr(0)->margins[1];    
     uiLayoutItem(0,1);
 
+    uiValidateStateItems();
     // drawing routines may require this to be set already
     uiUpdateHotItem();
 }
@@ -1551,9 +1480,9 @@ void uiProcess(int timestamp) {
         return;
     }
     
-    int hot_item = uiGetItem(ui_context->hot_handle);
-    int active_item = uiGetItem(ui_context->active_handle);
-    int focus_item = uiGetItem(ui_context->focus_handle);
+    int hot_item = ui_context->hot_item;
+    int active_item = ui_context->active_item;
+    int focus_item = ui_context->focus_item;
 
     // send all keyboard events
     if (focus_item >= 0) {
@@ -1564,7 +1493,7 @@ void uiProcess(int timestamp) {
                 ui_context->events[i].event);
         }
     } else {
-        ui_context->focus_handle = 0;
+        ui_context->focus_item = -1;
     }
     if (ui_context->scroll.x || ui_context->scroll.y) {
     	int scroll_item = uiFindItemForEvent(0, UI_SCROLL, NULL,
@@ -1589,20 +1518,19 @@ void uiProcess(int timestamp) {
             
             if (active_item != focus_item) {
                 focus_item = -1;
-                ui_context->focus_handle = 0;
+                ui_context->focus_item = -1;
             }
             
             if (active_item >= 0) {
-            	void *active_handle = uiGetHandle(active_item);
             	if (
             		((timestamp - ui_context->last_click_timestamp) > UI_CLICK_THRESHOLD)
-            	 || (ui_context->last_click_handle != active_handle)) {
+            	 || (ui_context->last_click_item != active_item)) {
             		ui_context->clicks = 0;
             	}
             	ui_context->clicks++;
 
                 ui_context->last_click_timestamp = timestamp;
-                ui_context->last_click_handle = active_handle;
+                ui_context->last_click_item = active_item;
                 uiNotifyItem(active_item, UI_BUTTON0_DOWN);
             }            
             ui_context->state = UI_STATE_CAPTURE;            
@@ -1641,10 +1569,8 @@ void uiProcess(int timestamp) {
     }
     
     ui_context->last_cursor = ui_context->cursor;
-    ui_context->hot_handle = (hot_item>=0)?
-        uiGetHandle(hot_item):0;
-    ui_context->active_handle = (active_item>=0)?
-        uiGetHandle(active_item):0;
+    ui_context->hot_item = hot_item;
+    ui_context->active_item = active_item;
 
     ui_context->last_timestamp = timestamp;
     ui_context->last_buttons = ui_context->buttons;
@@ -1652,17 +1578,17 @@ void uiProcess(int timestamp) {
 
 static int uiIsActive(int item) {
     assert(ui_context);
-    return (ui_context->active_handle)&&(uiGetHandle(item) == ui_context->active_handle);
+    return ui_context->active_item == item;
 }
 
 static int uiIsHot(int item) {
     assert(ui_context);
-    return (ui_context->hot_handle)&&(uiGetHandle(item) == ui_context->hot_handle);
+    return ui_context->hot_item == item;
 }
 
 static int uiIsFocused(int item) {
     assert(ui_context);
-    return (ui_context->focus_handle)&&(uiGetHandle(item) == ui_context->focus_handle);
+    return ui_context->focus_item == item;
 }
 
 UIitemState uiGetState(int item) {
