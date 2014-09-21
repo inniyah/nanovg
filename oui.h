@@ -232,12 +232,12 @@ typedef enum UIitemState {
 typedef enum UIlayoutFlags {
     // container flags:
 
-    // flex-direction (bit 0)
+    // flex-direction (bit 0+1)
 
     // left to right
-    UI_ROW = 0x000,
+    UI_ROW = 0x002,
     // top to bottom
-    UI_COLUMN = 0x001,
+    UI_COLUMN = 0x003,
 
     // model (bit 1)
 
@@ -257,16 +257,10 @@ typedef enum UIlayoutFlags {
     // can be implemented by putting flex container in a layout container,
     // then using UI_LEFT, UI_RIGHT, UI_HFILL, UI_HCENTER, etc.
 
-    // align-items (bit 3-4)
-
-    // stretch all items to match largest extent
-    UI_STRETCH = 0x000,
-    // align all items at start of row/column
-    UI_START = 0x008,
-    // align all items at end of row/column (margin is used as baseline)
-    UI_END = 0x010,
-    // align all items in the middle of row/column
-    UI_MIDDLE = 0x018,
+    // align-items
+    // can be implemented by putting flex container in a layout container,
+    // then using UI_TOP, UI_DOWN, UI_VFILL, UI_VCENTER, etc.
+    // FILL is equivalent to stretch/grow
 
     // align-content (start, end, center, stretch)
     // can be implemented by putting flex container in a layout container,
@@ -275,8 +269,9 @@ typedef enum UIlayoutFlags {
 
     // child item flags:
 
-    // layout: attachments (bit 5-8)
-    // only valid when parent uses UI_LAYOUT model
+    // attachments (bit 5-8)
+    // fully valid when parent uses UI_LAYOUT model
+    // partially valid when in UI_FLEX model
 
     // anchor to left item or left side of parent
     UI_LEFT = 0x020,
@@ -299,13 +294,6 @@ typedef enum UIlayoutFlags {
     // anchor to all four directions
     UI_FILL = 0x1e0,
 
-    // flex-item (bit 5-8)
-    // only valid when parent uses UI_FLEX model
-
-    // flex-grow (bit 5+7)
-    // divide up remaining space among other UI_GROW items
-    // this flag aligns in value with UI_HFILL because the behavior is similar
-    UI_GROW = 0x0a0,
 } UIlayoutFlags;
 
 // event flags
@@ -339,10 +327,6 @@ typedef enum UIevent {
     // item is focused and has received a character event
     // the respective character can be queried using uiGetKey()
     UI_CHAR = 0x20000,
-    // if this flag is set, all events will propagate to the parent;
-    // the original item firing this event can be retrieved using
-    // uiGetEventItem()
-    UI_PROPAGATE = 0x40000,
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -502,10 +486,14 @@ OUI_EXPORT void uiSetHandle(int item, void *handle);
 // upon the next call to uiClear()
 OUI_EXPORT void *uiAllocHandle(int item, int size);
 
-// set the handler callback for an interactive item. 
+// set the global handler callback for interactive items.
+// the handler will be called for each item whose event flags are set using
+// uiSetEvents.
+OUI_EXPORT void uiSetHandler(UIhandler handler);
+
 // flags is a combination of UI_EVENT_* and designates for which events the 
 // handler should be called. 
-OUI_EXPORT void uiSetHandler(int item, UIhandler handler, int flags);
+OUI_EXPORT void uiSetEvents(int item, int flags);
 
 // assign an item to a container.
 // an item ID of 0 refers to the root item.
@@ -523,20 +511,7 @@ OUI_EXPORT void uiSetLayout(int item, int flags);
 // set the left, top, right and bottom margins of an item; when the item is
 // anchored to the parent or another item, the margin controls the distance
 // from the neighboring element.
-OUI_EXPORT void uiSetMargins(int item, int l, int t, int r, int b);
-
-// anchor the item to another sibling within the same container, so that the
-// sibling is left to this item.
-OUI_EXPORT void uiSetRightTo(int item, int other);
-// anchor the item to another sibling within the same container, so that the
-// sibling is above this item.
-OUI_EXPORT void uiSetBelow(int item, int other);
-// anchor the item to another sibling within the same container, so that the
-// sibling is right to this item.
-OUI_EXPORT void uiSetLeftTo(int item, int other);
-// anchor the item to another sibling within the same container, so that the
-// sibling is below this item.
-OUI_EXPORT void uiSetAbove(int item, int other);
+OUI_EXPORT void uiSetMargins(int item, short l, short t, short r, short b);
 
 // set item as recipient of all keyboard events; the item must have a handle
 // assigned; if item is -1, no item will be focused.
@@ -588,27 +563,14 @@ OUI_EXPORT int uiGetHotItem();
 // return the item that is currently focused or -1 for none
 OUI_EXPORT int uiGetFocusedItem();
 
-// return the handler callback for an item as passed to uiSetHandler()
-OUI_EXPORT UIhandler uiGetHandler(int item);
-// return the handler flags for an item as passed to uiSetHandler()
-OUI_EXPORT int uiGetHandlerFlags(int item);
+// return the handler callback as passed to uiSetHandler()
+OUI_EXPORT UIhandler uiGetHandler();
+// return the event flags for an item as passed to uiSetEvents()
+OUI_EXPORT int uiGetEvents(int item);
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
 OUI_EXPORT unsigned int uiGetKey();
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
 OUI_EXPORT unsigned int uiGetModifier();
-// when handling a PROPAGATE event; the original item firing this event
-OUI_EXPORT int uiGetEventItem();
-
-// returns the number of child items a container item contains. If the item 
-// is not a container or does not contain any items, 0 is returned.
-// if item is 0, the child item count of the root item will be returned.
-OUI_EXPORT int uiGetChildCount(int item);
-
-// returns an items child index relative to its parent. If the item is the
-// first item, the return value is 0; If the item is the last item, the return
-// value is equivalent to uiGetChildCount(uiParent(item))-1.
-// if item is 0, 0 will be returned.
-OUI_EXPORT int uiGetChildId(int item);
 
 // returns the items layout rectangle relative to the parent. If uiGetRect()
 // is called before uiLayout(), the values of the returned rectangle are
@@ -639,26 +601,13 @@ OUI_EXPORT int uiGetHeight(int item);
 OUI_EXPORT int uiGetLayout(int item);
 
 // return the left margin of the item as set with uiSetMargins()
-OUI_EXPORT int uiGetMarginLeft(int item);
+OUI_EXPORT short uiGetMarginLeft(int item);
 // return the top margin of the item as set with uiSetMargins()
-OUI_EXPORT int uiGetMarginTop(int item);
+OUI_EXPORT short uiGetMarginTop(int item);
 // return the right margin of the item as set with uiSetMargins()
-OUI_EXPORT int uiGetMarginRight(int item);
+OUI_EXPORT short uiGetMarginRight(int item);
 // return the bottom margin of the item as set with uiSetMargins()
-OUI_EXPORT int uiGetMarginDown(int item);
-
-// return the items anchored sibling as assigned with uiSetRightTo()
-// or -1 if not set.
-OUI_EXPORT int uiGetRightTo(int item);
-// return the items anchored sibling as assigned with uiSetBelow()
-// or -1 if not set.
-OUI_EXPORT int uiGetBelow(int item);
-// return the items anchored sibling as assigned with uiSetLeftTo()
-// or -1 if not set.
-OUI_EXPORT int uiGetLeftTo(int item);
-// return the items anchored sibling as assigned with uiSetAbove()
-// or -1 if not set.
-OUI_EXPORT int uiGetAbove(int item);
+OUI_EXPORT short uiGetMarginDown(int item);
 
 #ifdef __cplusplus
 };
@@ -701,9 +650,6 @@ OUI_EXPORT int uiGetAbove(int item);
 #define UI_ANY_INPUT (UI_ANY_MOUSE_INPUT \
     |UI_ANY_KEY_INPUT)
 
-#define UI_ITEM_VISITED_XY_FLAG(X) (1<<(UI_ITEM_VISITED_BITOFS+(X)))
-#define UI_ITEM_VISITED_WH_FLAG(X) (4<<(UI_ITEM_VISITED_BITOFS+(X)))
-
 // extra item flags
 enum {
 	// bit 0-8
@@ -714,26 +660,16 @@ enum {
 	UI_ITEM_FROZEN      = 0x080000,
 	// item handle is pointer to data (bit 20)
 	UI_ITEM_DATA	    = 0x100000,
-	UI_ITEM_VISITED_BITOFS = 21,
-	// bit 21-24
-	UI_ITEM_VISITED_MASK = (UI_ITEM_VISITED_XY_FLAG(0)
-						 | UI_ITEM_VISITED_XY_FLAG(1)
-						 | UI_ITEM_VISITED_WH_FLAG(0)
-						 | UI_ITEM_VISITED_WH_FLAG(1)),
 };
 
 typedef struct UIitem {
     // declaration independent unique handle (for persistence)
     void *handle;
-    // handler
-    UIhandler handler;
 
     unsigned int flags;
 
     // container structure
     
-    // number of kids
-    int numkids;
     // index of first kid
     int firstkid;
     // index of last kid
@@ -743,51 +679,17 @@ typedef struct UIitem {
     
     // parent item
     int parent;
-    // index of kid relative to parent
-    int kidid;
     // index of next sibling with same parent
     int nextitem;
     // index of previous sibling with same parent
     int previtem;
     
-    // size
-    UIvec2 size;
     // margin offsets, interpretation depends on flags
-    int margins[4];
-    // neighbors to position borders to
-    int relto[4];
-    
-    // computed size
-    UIvec2 computed_size;
-    // relative rect
-    UIrect rect;
-} UIitem;
-
-// 40 bytes
-typedef struct UIitem2 {
-    // declaration independent unique handle (for persistence)
-    void *handle;
-    // handler
-    UIhandler handler;
-
-    // flags: unifies: 4 layout bits, 11 event bits, 1 frozen bit, 2 visited bits
-    // 2 new layout bits: rect w/h is fixed
-    int flags;
-
-    // container structure
-
-    // index of first kid
-    int firstkid;
-    // index of next sibling with same parent
-    int nextitem;
-
-    // margin offsets, orientation/interpretation depends on layout flags
-    short margins[2];
-    // relative / absolute offset
-    short offset[2];
-    // measured / fixed size
+    // after layouting, the first two components are absolute coordinates
+    short margins[4];
+    // size
     short size[2];
-} UIitem2;
+} UIitem;
 
 typedef enum UIstate {
     UI_STATE_IDLE = 0,
@@ -806,6 +708,9 @@ typedef struct UIinputEvent {
 } UIinputEvent;
 
 struct UIcontext {
+    // handler
+    UIhandler handler;
+
     // button state in this frame
     unsigned long long buttons;
     // button state in the previous frame
@@ -985,10 +890,6 @@ unsigned int uiGetModifier() {
     return ui_context->active_modifier;
 }
 
-int uiGetEventItem() {
-	return ui_context->event_item;
-}
-
 // return the total number of allocated items
 OUI_EXPORT int uiGetItemCount() {
     assert(ui_context);
@@ -1053,24 +954,19 @@ int uiItem() {
     item->lastkid = -1;
     item->nextitem = -1;
     item->previtem = -1;
-    for (int i = 0; i < 4; ++i)
-        item->relto[i] = -1;
     return idx;
 }
 
 void uiNotifyItem(int item, UIevent event) {
     assert(ui_context);
+    if (!ui_context->handler)
+    	return;
     assert((event & UI_ITEM_EVENT_MASK) == event);
     ui_context->event_item = item;
-    while (item >= 0) {
-		UIitem *pitem = uiItemPtr(item);
-		if (pitem->handler && (pitem->flags & event)) {
-			pitem->handler(item, event);
-		}
-		if (!(pitem->flags & UI_PROPAGATE))
-			break;
-		item = uiParent(item);
-    }
+	UIitem *pitem = uiItemPtr(item);
+	if (pitem->flags & event) {
+		ui_context->handler(item, event);
+	}
 }
 
 int uiAppend(int item, int child) {
@@ -1079,7 +975,6 @@ int uiAppend(int item, int child) {
     UIitem *pitem = uiItemPtr(child);
     UIitem *pparent = uiItemPtr(item);
     pitem->parent = item;
-    pitem->kidid = pparent->numkids++;
     if (pparent->lastkid < 0) {
         pparent->firstkid = child;
         pparent->lastkid = child;
@@ -1101,16 +996,16 @@ void uiSetFrozen(int item, int enable) {
 
 void uiSetSize(int item, int w, int h) {
     UIitem *pitem = uiItemPtr(item);
-    pitem->size.x = w;
-    pitem->size.y = h;
+    pitem->size[0] = w;
+    pitem->size[1] = h;
 }
 
 int uiGetWidth(int item) {
-    return uiItemPtr(item)->size.x;
+    return uiItemPtr(item)->size[0];
 }
 
 int uiGetHeight(int item) {
-    return uiItemPtr(item)->size.y;
+    return uiItemPtr(item)->size[1];
 }
 
 void uiSetLayout(int item, int flags) {
@@ -1121,7 +1016,7 @@ int uiGetLayout(int item) {
     return uiItemPtr(item)->flags & UI_ITEM_LAYOUT_MASK;
 }
 
-void uiSetMargins(int item, int l, int t, int r, int b) {
+void uiSetMargins(int item, short l, short t, short r, short b) {
     UIitem *pitem = uiItemPtr(item);
     pitem->margins[0] = l;
     pitem->margins[1] = t;
@@ -1129,117 +1024,56 @@ void uiSetMargins(int item, int l, int t, int r, int b) {
     pitem->margins[3] = b;
 }
 
-int uiGetMarginLeft(int item) {
+short uiGetMarginLeft(int item) {
     return uiItemPtr(item)->margins[0];
 }
-int uiGetMarginTop(int item) {
+short uiGetMarginTop(int item) {
     return uiItemPtr(item)->margins[1];
 }
-int uiGetMarginRight(int item) {
+short uiGetMarginRight(int item) {
     return uiItemPtr(item)->margins[2];
 }
-int uiGetMarginDown(int item) {
+short uiGetMarginDown(int item) {
     return uiItemPtr(item)->margins[3];
 }
 
-
-void uiSetRightTo(int item, int other) {
-    assert((other < 0) || (uiParent(other) == uiParent(item)));
-    uiItemPtr(item)->relto[0] = other;
-}
-
-int uiGetRightTo(int item) {
-    return uiItemPtr(item)->relto[0];
-}
-
-void uiSetBelow(int item, int other) {
-    assert((other < 0) || (uiParent(other) == uiParent(item)));
-    uiItemPtr(item)->relto[1] = other;
-}
-int uiGetBelow(int item) {
-    return uiItemPtr(item)->relto[1];
-}
-
-void uiSetLeftTo(int item, int other) {
-    assert((other < 0) || (uiParent(other) == uiParent(item)));
-    uiItemPtr(item)->relto[2] = other;
-}
-int uiGetLeftTo(int item) {
-    return uiItemPtr(item)->relto[2];
-}
-
-void uiSetAbove(int item, int other) {
-    assert((other < 0) || (uiParent(other) == uiParent(item)));
-    uiItemPtr(item)->relto[3] = other;
-}
-int uiGetAbove(int item) {
-    return uiItemPtr(item)->relto[3];
-}
-
-
-UI_INLINE void uiComputeChainSize(UIitem *pkid, 
-    int *need_size, int *hard_size, int dim) {
-    UIitem *pitem = pkid;
+// compute bounding box of all items super-imposed
+UI_INLINE void uiComputeImposedSizeDim(UIitem *pitem, int dim) {
     int wdim = dim+2;
-    int size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
-    *need_size = size;
-    *hard_size = pitem->size.v[dim]?size:0;
-    
-    int it = 0;
-    pitem->flags |= UI_ITEM_VISITED_XY_FLAG(dim);
-    // traverse along left neighbors
-    while (((pitem->flags&UI_ITEM_LAYOUT_MASK)>>dim) & UI_LEFT) {
-        if (pitem->relto[dim] < 0) break;
-        pitem = uiItemPtr(pitem->relto[dim]);
-        pitem->flags |= UI_ITEM_VISITED_XY_FLAG(dim);
-        size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
-        *need_size = (*need_size) + size;
-        *hard_size = (*hard_size) + (pitem->size.v[dim]?size:0);
-        it++;
-        assert(it<1000000); // infinite loop
-    }
-    // traverse along right neighbors
-    pitem = pkid;
-    it = 0;
-    while (((pitem->flags&UI_ITEM_LAYOUT_MASK)>>dim) & UI_RIGHT) {
-        if (pitem->relto[wdim] < 0) break;
-        pitem = uiItemPtr(pitem->relto[wdim]);
-        pitem->flags |= UI_ITEM_VISITED_XY_FLAG(dim);
-        size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
-        *need_size = (*need_size) + size;
-        *hard_size = (*hard_size) + (pitem->size.v[dim]?size:0);
-        it++;
-        assert(it<1000000); // infinite loop
-    }
+	if (pitem->size[dim])
+		return;
+	// largest size is required size
+	short need_size = 0;
+	int kid = pitem->firstkid;
+	while (kid >= 0) {
+		UIitem *pkid = uiItemPtr(kid);
+		// width = start margin + calculated width + end margin
+		int kidsize = pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
+		need_size = ui_max(need_size, kidsize);
+		kid = uiNextSibling(kid);
+	}
+	pitem->size[dim] = need_size;
 }
 
-UI_INLINE void uiComputeSizeDim(UIitem *pitem, int dim) {
+// compute bounding box of all items stacked
+UI_INLINE void uiComputeStackedSizeDim(UIitem *pitem, int dim) {
     int wdim = dim+2;
-    int need_size = 0;
-    int hard_size = 0;
-    int kid = pitem->firstkid;
-    while (kid >= 0) {
-        UIitem *pkid = uiItemPtr(kid);
-        if (!(pkid->flags & UI_ITEM_VISITED_XY_FLAG(dim))) {
-            int ns,hs;
-            uiComputeChainSize(pkid, &ns, &hs, dim);
-            need_size = ui_max(need_size, ns);
-            hard_size = ui_max(hard_size, hs);
-        }
-        kid = uiNextSibling(kid);
-    }
-    pitem->computed_size.v[dim] = hard_size;
-    
-    if (pitem->size.v[dim]) {
-        pitem->rect.v[wdim] = pitem->size.v[dim];
-    } else {
-        pitem->rect.v[wdim] = need_size;
-    }
+	if (pitem->size[dim])
+		return;
+	short need_size = 0;
+	int kid = pitem->firstkid;
+	while (kid >= 0) {
+		UIitem *pkid = uiItemPtr(kid);
+		// width += start margin + calculated width + end margin
+		need_size += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
+		kid = uiNextSibling(kid);
+	}
+    pitem->size[dim] = need_size;
 }
 
 static void uiComputeBestSize(int item, int dim) {
     UIitem *pitem = uiItemPtr(item);
-    pitem->flags &= ~UI_ITEM_VISITED_MASK;
+
     // children expand the size
     int kid = uiFirstChild(item);
     while (kid >= 0) {
@@ -1247,91 +1081,110 @@ static void uiComputeBestSize(int item, int dim) {
         kid = uiNextSibling(kid);
     }
     
-    uiComputeSizeDim(pitem, dim);
+    if(pitem->flags & UI_FLEX) {
+    	// flex model
+    	if ((pitem->flags & 1) == (unsigned int)dim) // direction
+    		uiComputeStackedSizeDim(pitem, dim);
+    	else
+    		uiComputeImposedSizeDim(pitem, dim);
+    } else {
+    	// layout model
+    	uiComputeImposedSizeDim(pitem, dim);
+    }
 }
 
-static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, 
-    int *dyncount, int *consumed_space, int dim) {
-    if (pitem->flags & UI_ITEM_VISITED_WH_FLAG(dim)) return;
-    pitem->flags |= UI_ITEM_VISITED_WH_FLAG(dim);
-    
+// stack all items according to their alignment
+UI_INLINE void uiLayoutStackedItemDim(UIitem *pitem, int dim) {
     int wdim = dim+2;
-    
-    int x = 0;
-    int s = pparent->rect.v[wdim];
-    
-    int flags = (pitem->flags & UI_ITEM_LAYOUT_MASK) >> dim;
-    int hasl = (flags & UI_LEFT) && (pitem->relto[dim] >= 0);
-    int hasr = (flags & UI_RIGHT) && (pitem->relto[wdim] >= 0);
-    
-    if ((flags & UI_HFILL) != UI_HFILL) {
-        *consumed_space = (*consumed_space)
-            + pitem->rect.v[wdim]
-            + pitem->margins[wdim]
-            + pitem->margins[dim];
-    } else if (!pitem->size.v[dim]) {
-        *dyncount = (*dyncount)+1;
-    }
-    
-    if (hasl) {
-        UIitem *pl = uiItemPtr(pitem->relto[dim]);
-        uiLayoutChildItem(pparent, pl, dyncount, consumed_space, dim);
-        x = pl->rect.v[dim]+pl->rect.v[wdim]+pl->margins[wdim];
-        s -= x;
-    }
-    if (hasr) {
-        UIitem *pl = uiItemPtr(pitem->relto[wdim]);
-        uiLayoutChildItem(pparent, pl, dyncount, consumed_space, dim);
-        s = pl->rect.v[dim]-pl->margins[dim]-x;
-    }
 
-    switch(flags & UI_HFILL) {
-    default:
-    case UI_HCENTER: {
-        pitem->rect.v[dim] = x+(s-pitem->rect.v[wdim])/2+pitem->margins[dim];
-    } break;
-    case UI_LEFT: {
-        pitem->rect.v[dim] = x+pitem->margins[dim];
-    } break;
-    case UI_RIGHT: {
-        pitem->rect.v[dim] = x+s-pitem->rect.v[wdim]-pitem->margins[wdim];
-    } break;
-    case UI_HFILL: {
-        if (pitem->size.v[dim]) { // hard maximum size; can't stretch
-            if (!hasl)
-                pitem->rect.v[dim] = x+pitem->margins[dim];
-            else
-                pitem->rect.v[dim] = x+s-pitem->rect.v[wdim]-pitem->margins[wdim];
-        } else {
-            if (1) { //!pitem->rect.v[wdim]) {
-                //int width = (pparent->rect.v[wdim] - pparent->computed_size.v[dim]);
-                int width = (pparent->rect.v[wdim] - (*consumed_space));
-                int space = width / (*dyncount);
-                //int rest = width - space*(*dyncount);
-                if (!hasl) {
-                    pitem->rect.v[dim] = x+pitem->margins[dim];
-                    pitem->rect.v[wdim] = s-pitem->margins[dim]-pitem->margins[wdim];
-                } else {
-                    pitem->rect.v[wdim] = space-pitem->margins[dim]-pitem->margins[wdim];
-                    pitem->rect.v[dim] = x+s-pitem->rect.v[wdim]-pitem->margins[wdim];
-                }
-            } else {
-                pitem->rect.v[dim] = x+pitem->margins[dim];
-                pitem->rect.v[wdim] = s-pitem->margins[dim]-pitem->margins[wdim];
-            }
-        }
-    } break;
-    }    
+    short space = pitem->size[dim];
+    short used = 0;
+
+	int count = 0;
+	// first pass: count items that need to be expanded,
+	// and the space that is used
+	int kid = pitem->firstkid;
+	while (kid >= 0) {
+		UIitem *pkid = uiItemPtr(kid);
+		int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
+		if ((flags & UI_HFILL) == UI_HFILL) { // grow
+			count++;
+			used += pkid->margins[dim] + pkid->margins[wdim];
+		} else {
+			used += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
+		}
+		kid = uiNextSibling(kid);
+	}
+
+    int extra_space = ui_max(space - used,0);
+
+    if (extra_space && count) {
+		// distribute width among items
+		float width = (float)extra_space / (float)count;
+		float x = 0.0f;
+		float x1;
+		// second pass: distribute and rescale
+		kid = pitem->firstkid;
+		while (kid >= 0) {
+			short ix0,ix1;
+			UIitem *pkid = uiItemPtr(kid);
+			int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
+
+			x += (float)pkid->margins[dim];
+			if ((flags & UI_HFILL) == UI_HFILL) { // grow
+				x1 = x+width;
+			} else {
+				x1 = x+(float)pkid->size[dim];
+			}
+			ix0 = (short)x;
+			ix1 = (short)x1;
+			pkid->margins[dim] = ix0;
+			pkid->size[dim] = ix1-ix0;
+			x = x1 + (float)pkid->margins[wdim];
+
+			kid = uiNextSibling(kid);
+		}
+    } else {
+		// single pass: just distribute
+		short x = 0;
+		int kid = pitem->firstkid;
+		while (kid >= 0) {
+			UIitem *pkid = uiItemPtr(kid);
+
+			x += pkid->margins[dim];
+			pkid->margins[dim] = x;
+			x += pkid->size[dim] + pkid->margins[wdim];
+
+			kid = uiNextSibling(kid);
+		}
+    }
 }
 
-UI_INLINE void uiLayoutItemDim(UIitem *pitem, int dim) {
-    //int wdim = dim+2;
+// superimpose all items according to their alignment
+UI_INLINE void uiLayoutImposedItemDim(UIitem *pitem, int dim) {
+    int wdim = dim+2;
+
+    short space = pitem->size[dim];
+
     int kid = pitem->firstkid;
-    int consumed_space = 0;
-    int dyncount = 0;
     while (kid >= 0) {
         UIitem *pkid = uiItemPtr(kid);
-        uiLayoutChildItem(pitem, pkid, &dyncount, &consumed_space, dim);
+
+        int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
+
+        switch(flags & UI_HFILL) {
+        default: break;
+        case UI_HCENTER: {
+            pkid->margins[dim] += (space-pkid->size[dim])/2;
+        } break;
+        case UI_RIGHT: {
+            pkid->margins[dim] = space-pkid->size[dim]-pkid->margins[wdim];
+        } break;
+        case UI_HFILL: {
+        	pkid->size[dim] = ui_max(0,space-pkid->margins[dim]-pkid->margins[wdim]);
+        } break;
+        }
+
         kid = uiNextSibling(kid);
     }
 }
@@ -1339,7 +1192,16 @@ UI_INLINE void uiLayoutItemDim(UIitem *pitem, int dim) {
 static void uiLayoutItem(int item, int dim) {
     UIitem *pitem = uiItemPtr(item);
     
-    uiLayoutItemDim(pitem, dim);
+    if(pitem->flags & UI_FLEX) {
+    	// flex model
+    	if ((pitem->flags & 1) == (unsigned int)dim) // direction
+    		uiLayoutStackedItemDim(pitem, dim);
+    	else
+    		uiLayoutImposedItemDim(pitem, dim);
+    } else {
+    	// layout model
+    	uiLayoutImposedItemDim(pitem, dim);
+    }
     
     int kid = uiFirstChild(item);
     while (kid >= 0) {
@@ -1349,7 +1211,12 @@ static void uiLayoutItem(int item, int dim) {
 }
 
 UIrect uiGetRect(int item) {
-    return uiItemPtr(item)->rect;
+	UIitem *pitem = uiItemPtr(item);
+	UIrect rc = {{{
+		pitem->margins[0], pitem->margins[1],
+		pitem->size[0], pitem->size[1]
+	}}};
+    return rc;
 }
 
 UIrect uiGetActiveRect() {
@@ -1398,35 +1265,32 @@ void *uiGetHandle(int item) {
     return uiItemPtr(item)->handle;
 }
 
-void uiSetHandler(int item, UIhandler handler, int flags) {
+void uiSetHandler(UIhandler handler) {
+	assert(ui_context);
+	ui_context->handler = handler;
+}
+
+UIhandler uiGetHandler() {
+	assert(ui_context);
+    return ui_context->handler;
+}
+
+void uiSetEvents(int item, int flags) {
     UIitem *pitem = uiItemPtr(item);
-    pitem->handler = handler;
     pitem->flags &= ~UI_ITEM_EVENT_MASK;
-    pitem->flags |= flags;
+    pitem->flags |= flags & UI_ITEM_EVENT_MASK;
 }
 
-UIhandler uiGetHandler(int item) {
-    return uiItemPtr(item)->handler;
-}
-
-int uiGetHandlerFlags(int item) {
+int uiGetEvents(int item) {
     return uiItemPtr(item)->flags & UI_ITEM_EVENT_MASK;
-}
-
-int uiGetChildId(int item) {
-    return uiItemPtr(item)->kidid;
-}
-
-int uiGetChildCount(int item) {
-    return uiItemPtr(item)->numkids;
 }
 
 UIrect uiGetAbsoluteRect(int item) {
     UIrect rect = uiGetRect(item);
     item = uiParent(item);
     while (item >= 0) {
-        rect.x += uiItemPtr(item)->rect.x;
-        rect.y += uiItemPtr(item)->rect.y;
+        rect.x += uiItemPtr(item)->margins[0];
+        rect.y += uiItemPtr(item)->margins[1];
         item = uiParent(item);
     }    
     return rect;
@@ -1448,7 +1312,8 @@ int uiFindItemForEvent(int item, UIevent event,
 		int x, int y, int ox, int oy) {
     UIitem *pitem = uiItemPtr(item);
     if (pitem->flags & UI_ITEM_FROZEN) return -1;
-    UIrect rect = pitem->rect;
+    UIrect rect = {{{ pitem->margins[0], pitem->margins[1],
+    				  pitem->size[0], pitem->size[1] }}};
     x -= rect.x;
     y -= rect.y;
     ox += rect.x;
@@ -1487,14 +1352,10 @@ void uiLayout() {
 
     // compute widths
     uiComputeBestSize(0,0);
-    // position root element rect
-    uiItemPtr(0)->rect.x = uiItemPtr(0)->margins[0];
     uiLayoutItem(0,0);
 
     // compute heights
     uiComputeBestSize(0,1);
-    // position root element rect
-    uiItemPtr(0)->rect.y = uiItemPtr(0)->margins[1];    
     uiLayoutItem(0,1);
 
     uiValidateStateItems();
