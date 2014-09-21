@@ -530,10 +530,6 @@ OUI_EXPORT int uiFirstChild(int item);
 // if item is 0, the last child item of the root item will be returned.
 OUI_EXPORT int uiLastChild(int item);
 
-// returns an items parent container item.
-// if item is 0, -1 will be returned.
-OUI_EXPORT int uiParent(int item);
-
 // returns an items next sibling in the list of the parent containers children.
 // if item is 0 or the item is the last child item, -1 will be returned.
 OUI_EXPORT int uiNextSibling(int item);
@@ -572,25 +568,14 @@ OUI_EXPORT unsigned int uiGetKey();
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
 OUI_EXPORT unsigned int uiGetModifier();
 
-// returns the items layout rectangle relative to the parent. If uiGetRect()
-// is called before uiLayout(), the values of the returned rectangle are
-// undefined.
-OUI_EXPORT UIrect uiGetRect(int item);
-
 // returns the items layout rectangle in absolute coordinates. If 
-// uiGetAbsoluteRect() is called before uiLayout(), the values of the returned
+// uiGetRect() is called before uiLayout(), the values of the returned
 // rectangle are undefined.
-// This function has complexity O(N) for N parents
-OUI_EXPORT UIrect uiGetAbsoluteRect(int item);
+OUI_EXPORT UIrect uiGetRect(int item);
 
 // returns 1 if an items absolute rectangle contains a given coordinate
 // otherwise 0
 OUI_EXPORT int uiContains(int item, int x, int y);
-
-// when called from an input event handler, returns the active items absolute
-// layout rectangle. If uiGetActiveRect() is called outside of a handler,
-// the values of the returned rectangle are undefined.
-OUI_EXPORT UIrect uiGetActiveRect();
 
 // return the width of the item as set by uiSetSize()
 OUI_EXPORT int uiGetWidth(int item);
@@ -677,8 +662,6 @@ typedef struct UIitem {
     
     // child structure
     
-    // parent item
-    int parent;
     // index of next sibling with same parent
     int nextitem;
     // index of previous sibling with same parent
@@ -731,8 +714,6 @@ struct UIcontext {
     int last_click_item;
     int hot_item;
 
-    UIrect hot_rect;
-    UIrect active_rect;
     UIstate state;
     unsigned int active_key;
     unsigned int active_modifier;
@@ -949,7 +930,6 @@ int uiItem() {
     int idx = ui_context->count++;
     UIitem *item = uiItemPtr(idx);
     memset(item, 0, sizeof(UIitem));
-    item->parent = -1;
     item->firstkid = -1;
     item->lastkid = -1;
     item->nextitem = -1;
@@ -971,10 +951,8 @@ void uiNotifyItem(int item, UIevent event) {
 
 int uiAppend(int item, int child) {
     assert(child > 0);
-    assert(uiParent(child) == -1);
     UIitem *pitem = uiItemPtr(child);
     UIitem *pparent = uiItemPtr(item);
-    pitem->parent = item;
     if (pparent->lastkid < 0) {
         pparent->firstkid = child;
         pparent->lastkid = child;
@@ -1121,7 +1099,7 @@ UI_INLINE void uiLayoutStackedItemDim(UIitem *pitem, int dim) {
     if (extra_space && count) {
 		// distribute width among items
 		float width = (float)extra_space / (float)count;
-		float x = 0.0f;
+		float x = (float)pitem->margins[dim];
 		float x1;
 		// second pass: distribute and rescale
 		kid = pitem->firstkid;
@@ -1146,7 +1124,7 @@ UI_INLINE void uiLayoutStackedItemDim(UIitem *pitem, int dim) {
 		}
     } else {
 		// single pass: just distribute
-		short x = 0;
+		short x = pitem->margins[dim];
 		int kid = pitem->firstkid;
 		while (kid >= 0) {
 			UIitem *pkid = uiItemPtr(kid);
@@ -1165,6 +1143,7 @@ UI_INLINE void uiLayoutImposedItemDim(UIitem *pitem, int dim) {
     int wdim = dim+2;
 
     short space = pitem->size[dim];
+    short offset = pitem->margins[dim];
 
     int kid = pitem->firstkid;
     while (kid >= 0) {
@@ -1184,6 +1163,7 @@ UI_INLINE void uiLayoutImposedItemDim(UIitem *pitem, int dim) {
         	pkid->size[dim] = ui_max(0,space-pkid->margins[dim]-pkid->margins[wdim]);
         } break;
         }
+        pkid->margins[dim] += offset;
 
         kid = uiNextSibling(kid);
     }
@@ -1219,11 +1199,6 @@ UIrect uiGetRect(int item) {
     return rc;
 }
 
-UIrect uiGetActiveRect() {
-    assert(ui_context);
-    return ui_context->active_rect;
-}
-
 int uiFirstChild(int item) {
     return uiItemPtr(item)->firstkid;
 }
@@ -1238,10 +1213,6 @@ int uiNextSibling(int item) {
 
 int uiPrevSibling(int item) {
     return uiItemPtr(item)->previtem;
-}
-
-int uiParent(int item) {
-    return uiItemPtr(item)->parent;
 }
 
 void *uiAllocHandle(int item, int size) {
@@ -1285,19 +1256,8 @@ int uiGetEvents(int item) {
     return uiItemPtr(item)->flags & UI_ITEM_EVENT_MASK;
 }
 
-UIrect uiGetAbsoluteRect(int item) {
-    UIrect rect = uiGetRect(item);
-    item = uiParent(item);
-    while (item >= 0) {
-        rect.x += uiItemPtr(item)->margins[0];
-        rect.y += uiItemPtr(item)->margins[1];
-        item = uiParent(item);
-    }    
-    return rect;
-}
-
 int uiContains(int item, int x, int y) {
-    UIrect rect = uiGetAbsoluteRect(item);
+    UIrect rect = uiGetRect(item);
     x -= rect.x;
     y -= rect.y;
     if ((x>=0)
@@ -1307,43 +1267,22 @@ int uiContains(int item, int x, int y) {
     return 0;
 }
 
-int uiFindItemForEvent(int item, UIevent event,
-		UIrect *hot_rect,
-		int x, int y, int ox, int oy) {
+int uiFindItemForEvent(int item, UIevent event, int x, int y) {
     UIitem *pitem = uiItemPtr(item);
     if (pitem->flags & UI_ITEM_FROZEN) return -1;
-    UIrect rect = {{{ pitem->margins[0], pitem->margins[1],
-    				  pitem->size[0], pitem->size[1] }}};
-    x -= rect.x;
-    y -= rect.y;
-    ox += rect.x;
-    oy += rect.y;
-    if ((x>=0)
-     && (y>=0)
-     && (x<rect.w)
-     && (y<rect.h)) {
+    if (uiContains(item, x, y)) {
         int kid = uiLastChild(item);
         while (kid >= 0) {
-            int best_hit = uiFindItemForEvent(kid,
-            		event,hot_rect,x,y,ox,oy);
+            int best_hit = uiFindItemForEvent(kid, event, x, y);
             if (best_hit >= 0) return best_hit;
             kid = uiPrevSibling(kid);
         }
         // click-through if the item has no handler for this event
         if (pitem->flags & event) {
-            rect.x = ox;
-            rect.y = oy;
-            if (hot_rect)
-            	*hot_rect = rect;
             return item;
         }
     }
     return -1;
-}
-
-int uiFindItem(int item, int x, int y, int ox, int oy) {
-	return uiFindItemForEvent(item, (UIevent)UI_ANY_MOUSE_INPUT,
-			&ui_context->hot_rect, x, y, ox, oy);
 }
 
 void uiLayout() {
@@ -1366,8 +1305,9 @@ void uiLayout() {
 void uiUpdateHotItem() {
     assert(ui_context);
     if (!ui_context->count) return;
-    ui_context->hot_item = uiFindItem(0,
-        ui_context->cursor.x, ui_context->cursor.y, 0, 0);
+    ui_context->hot_item = uiFindItemForEvent(0,
+    		(UIevent)UI_ANY_MOUSE_INPUT,
+			ui_context->cursor.x, ui_context->cursor.y);
 }
 
 int uiGetClicks() {
@@ -1397,8 +1337,8 @@ void uiProcess(int timestamp) {
         ui_context->focus_item = -1;
     }
     if (ui_context->scroll.x || ui_context->scroll.y) {
-    	int scroll_item = uiFindItemForEvent(0, UI_SCROLL, NULL,
-    			ui_context->cursor.x, ui_context->cursor.y, 0, 0);
+    	int scroll_item = uiFindItemForEvent(0, UI_SCROLL,
+    			ui_context->cursor.x, ui_context->cursor.y);
     	if (scroll_item >= 0) {
             uiNotifyItem(scroll_item, UI_SCROLL);
     	}
@@ -1415,7 +1355,6 @@ void uiProcess(int timestamp) {
         if (uiGetButton(0)) {
             hot_item = -1;
             active_item = hot;
-            ui_context->active_rect = ui_context->hot_rect;
             
             if (active_item != focus_item) {
                 focus_item = -1;
@@ -1438,8 +1377,7 @@ void uiProcess(int timestamp) {
         } else if (uiGetButton(2) && !uiGetLastButton(2)) {
             hot_item = -1;
         	hot = uiFindItemForEvent(0, UI_BUTTON2_DOWN,
-        			&ui_context->active_rect,
-        			ui_context->cursor.x, ui_context->cursor.y, 0, 0);
+        			ui_context->cursor.x, ui_context->cursor.y);
         	if (hot >= 0) {
         		uiNotifyItem(hot, UI_BUTTON2_DOWN);
         	}
