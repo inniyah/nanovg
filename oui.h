@@ -230,68 +230,119 @@ typedef enum UIitemState {
 
 // layout flags
 typedef enum UIlayoutFlags {
+    // container flags:
+
+    // flex-direction (bit 0)
+
+    // left to right
+    UI_ROW = 0x000,
+    // top to bottom
+    UI_COLUMN = 0x001,
+
+    // model (bit 1)
+
+    // free layout
+    UI_LAYOUT = 0x000,
+    // flex model
+    UI_FLEX = 0x002,
+
+    // flex-wrap (bit 2)
+
+    // single-line
+    UI_NOWRAP = 0x000,
+    // multi-line, wrap left to right
+    UI_WRAP = 0x004,
+
+    // justify-content (start, end, center, space-between)
+    // can be implemented by putting flex container in a layout container,
+    // then using UI_LEFT, UI_RIGHT, UI_HFILL, UI_HCENTER, etc.
+
+    // align-items (bit 3-4)
+
+    // stretch all items to match largest extent
+    UI_STRETCH = 0x000,
+    // align all items at start of row/column
+    UI_START = 0x008,
+    // align all items at end of row/column (margin is used as baseline)
+    UI_END = 0x010,
+    // align all items in the middle of row/column
+    UI_MIDDLE = 0x018,
+
+    // align-content (start, end, center, stretch)
+    // can be implemented by putting flex container in a layout container,
+    // then using UI_TOP, UI_DOWN, UI_VFILL, UI_VCENTER, etc.
+    // FILL is equivalent to stretch; space-between is not supported.
+
+    // child item flags:
+
+    // layout: attachments (bit 5-8)
+    // only valid when parent uses UI_LAYOUT model
+
     // anchor to left item or left side of parent
-    UI_LEFT = 0x1,
+    UI_LEFT = 0x020,
     // anchor to top item or top side of parent
-    UI_TOP = 0x2,
+    UI_TOP = 0x040,
     // anchor to right item or right side of parent
-    UI_RIGHT = 0x4,
+    UI_RIGHT = 0x080,
     // anchor to bottom item or bottom side of parent
-    UI_DOWN = 0x8,
+    UI_DOWN = 0x100,
     // anchor to both left and right item or parent borders
-    UI_HFILL = 0x5,
+    UI_HFILL = 0x0a0,
     // anchor to both top and bottom item or parent borders
-    UI_VFILL = 0xA,
+    UI_VFILL = 0x140,
     // center horizontally, with left margin as offset
-    UI_HCENTER = 0x0,
+    UI_HCENTER = 0x000,
     // center vertically, with top margin as offset
-    UI_VCENTER = 0x0,
+    UI_VCENTER = 0x000,
     // center in both directions, with left/top margin as offset
-    UI_CENTER = 0x0,
+    UI_CENTER = 0x000,
     // anchor to all four directions
-    UI_FILL = 0xF,
+    UI_FILL = 0x1e0,
+
+    // flex-item (bit 5-8)
+    // only valid when parent uses UI_FLEX model
+
+    // flex-grow (bit 5+7)
+    // divide up remaining space among other UI_GROW items
+    // this flag aligns in value with UI_HFILL because the behavior is similar
+    UI_GROW = 0x0a0,
 } UIlayoutFlags;
 
 // event flags
 typedef enum UIevent {
     // on button 0 down
-    UI_BUTTON0_DOWN = 0x0010,
+    UI_BUTTON0_DOWN = 0x0200,
     // on button 0 up
     // when this event has a handler, uiGetState() will return UI_ACTIVE as
     // long as button 0 is down.
-    UI_BUTTON0_UP = 0x0020,
+    UI_BUTTON0_UP = 0x0400,
     // on button 0 up while item is hovered
     // when this event has a handler, uiGetState() will return UI_ACTIVE
     // when the cursor is hovering the items rectangle; this is the
     // behavior expected for buttons.
-    UI_BUTTON0_HOT_UP = 0x0040,
+    UI_BUTTON0_HOT_UP = 0x0800,
     // item is being captured (button 0 constantly pressed); 
     // when this event has a handler, uiGetState() will return UI_ACTIVE as
     // long as button 0 is down.
-    UI_BUTTON0_CAPTURE = 0x0080,
+    UI_BUTTON0_CAPTURE = 0x1000,
     // on button 2 down (right mouse button, usually triggers context menu)
-    UI_BUTTON2_DOWN = 0x0100,
+    UI_BUTTON2_DOWN = 0x2000,
     // item has received a scrollwheel event
     // the accumulated wheel offset can be queried with uiGetScroll()
-    UI_SCROLL = 0x0200,
+    UI_SCROLL = 0x4000,
     // item is focused and has received a key-down event
     // the respective key can be queried using uiGetKey() and uiGetModifier()
-    UI_KEY_DOWN = 0x0400,
+    UI_KEY_DOWN = 0x8000,
     // item is focused and has received a key-up event
     // the respective key can be queried using uiGetKey() and uiGetModifier()
-    UI_KEY_UP = 0x0800,
+    UI_KEY_UP = 0x10000,
     // item is focused and has received a character event
     // the respective character can be queried using uiGetKey()
-    UI_CHAR = 0x1000,
+    UI_CHAR = 0x20000,
     // if this flag is set, all events will propagate to the parent;
     // the original item firing this event can be retrieved using
     // uiGetEventItem()
-    UI_PROPAGATE = 0x2000,
-    // used if, after computing the horizontal size of the element, the vertical
-    // size needs adjustment.
-    // the handler is called after the horizontal layout step, and can make
-    // modifications to the items height using uiSetSize()
-    UI_ADJUST_HEIGHT = 0x4000,
+    UI_PROPAGATE = 0x40000,
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -655,13 +706,16 @@ OUI_EXPORT int uiGetAbove(int item);
 
 // extra item flags
 enum {
-    UI_ITEM_LAYOUT_MASK = 0x000F,
-    UI_ITEM_EVENT_MASK  = 0xFFF0,
-    // item is frozen
-	UI_ITEM_FROZEN     = 0x10000,
-	// item handle is pointer to data
-	UI_ITEM_DATA	   = 0x20000,
-	UI_ITEM_VISITED_BITOFS = 18, // 0x4 0000, 0x8 0000, 0x10 0000, 0x20 0000
+	// bit 0-8
+    UI_ITEM_LAYOUT_MASK = 0x0001FF,
+    // bit 9-18
+    UI_ITEM_EVENT_MASK  = 0x07FE00,
+    // item is frozen (bit 19)
+	UI_ITEM_FROZEN      = 0x080000,
+	// item handle is pointer to data (bit 20)
+	UI_ITEM_DATA	    = 0x100000,
+	UI_ITEM_VISITED_BITOFS = 21,
+	// bit 21-24
 	UI_ITEM_VISITED_MASK = (UI_ITEM_VISITED_XY_FLAG(0)
 						 | UI_ITEM_VISITED_XY_FLAG(1)
 						 | UI_ITEM_VISITED_WH_FLAG(0)
@@ -1002,17 +1056,6 @@ int uiItem() {
     for (int i = 0; i < 4; ++i)
         item->relto[i] = -1;
     return idx;
-}
-
-void uiNotifyAllItems(UIevent event) {
-    assert(ui_context);
-    assert((event & UI_ITEM_EVENT_MASK) == event);
-    for (int i = 0; i < ui_context->count; ++i) {
-        UIitem *pitem = ui_context->items + i;
-		if (pitem->handler && (pitem->flags & event)) {
-			pitem->handler(i, event);
-		}
-    }
 }
 
 void uiNotifyItem(int item, UIevent event) {
@@ -1447,9 +1490,6 @@ void uiLayout() {
     // position root element rect
     uiItemPtr(0)->rect.x = uiItemPtr(0)->margins[0];
     uiLayoutItem(0,0);
-    
-    // give items a chance to adjust their height
-    uiNotifyAllItems(UI_ADJUST_HEIGHT);
 
     // compute heights
     uiComputeBestSize(0,1);
