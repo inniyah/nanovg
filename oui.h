@@ -234,67 +234,67 @@ typedef enum UIitemState {
 // layout flags
 typedef enum UIlayoutFlags {
     // anchor to left item or left side of parent
-    UI_LEFT = 0x01,
+    UI_LEFT = 0x1,
     // anchor to top item or top side of parent
-    UI_TOP = 0x02,
+    UI_TOP = 0x2,
     // anchor to right item or right side of parent
-    UI_RIGHT = 0x04,
+    UI_RIGHT = 0x4,
     // anchor to bottom item or bottom side of parent
-    UI_DOWN = 0x08,
+    UI_DOWN = 0x8,
     // anchor to both left and right item or parent borders
-    UI_HFILL = 0x05,
+    UI_HFILL = 0x5,
     // anchor to both top and bottom item or parent borders
-    UI_VFILL = 0x0A,
+    UI_VFILL = 0xA,
     // center horizontally, with left margin as offset
-    UI_HCENTER = 0x00,
+    UI_HCENTER = 0x0,
     // center vertically, with top margin as offset
-    UI_VCENTER = 0x00,
+    UI_VCENTER = 0x0,
     // center in both directions, with left/top margin as offset
-    UI_CENTER = 0x00,
+    UI_CENTER = 0x0,
     // anchor to all four directions
-    UI_FILL = 0x0F,
+    UI_FILL = 0xF,
 } UIlayoutFlags;
 
 // event flags
 typedef enum UIevent {
     // on button 0 down
-    UI_BUTTON0_DOWN = 0x0001,
+    UI_BUTTON0_DOWN = 0x0010,
     // on button 0 up
     // when this event has a handler, uiGetState() will return UI_ACTIVE as
     // long as button 0 is down.
-    UI_BUTTON0_UP = 0x0002,
+    UI_BUTTON0_UP = 0x0020,
     // on button 0 up while item is hovered
     // when this event has a handler, uiGetState() will return UI_ACTIVE
     // when the cursor is hovering the items rectangle; this is the
     // behavior expected for buttons.
-    UI_BUTTON0_HOT_UP = 0x0004,
+    UI_BUTTON0_HOT_UP = 0x0040,
     // item is being captured (button 0 constantly pressed); 
     // when this event has a handler, uiGetState() will return UI_ACTIVE as
     // long as button 0 is down.
-    UI_BUTTON0_CAPTURE = 0x0008,
+    UI_BUTTON0_CAPTURE = 0x0080,
     // on button 2 down (right mouse button, usually triggers context menu)
-    UI_BUTTON2_DOWN = 0x0010,
+    UI_BUTTON2_DOWN = 0x0100,
     // item has received a scrollwheel event
     // the accumulated wheel offset can be queried with uiGetScroll()
-    UI_SCROLL = 0x0020,
+    UI_SCROLL = 0x0200,
     // item is focused and has received a key-down event
     // the respective key can be queried using uiGetKey() and uiGetModifier()
-    UI_KEY_DOWN = 0x0040,
+    UI_KEY_DOWN = 0x0400,
     // item is focused and has received a key-up event
     // the respective key can be queried using uiGetKey() and uiGetModifier()
-    UI_KEY_UP = 0x0080,
+    UI_KEY_UP = 0x0800,
     // item is focused and has received a character event
     // the respective character can be queried using uiGetKey()
-    UI_CHAR = 0x0100,
+    UI_CHAR = 0x1000,
     // if this flag is set, all events will propagate to the parent;
     // the original item firing this event can be retrieved using
     // uiGetEventItem()
-    UI_PROPAGATE = 0x0200,
-    // after computing the horizontal size of the element, the vertical
+    UI_PROPAGATE = 0x2000,
+    // used if, after computing the horizontal size of the element, the vertical
     // size needs adjustment.
     // the handler is called after the horizontal layout step, and can make
     // modifications to the items height using uiSetSize()
-    UI_ADJUST_HEIGHT = 0x0400,
+    UI_ADJUST_HEIGHT = 0x4000,
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -660,6 +660,21 @@ OUI_EXPORT int uiGetAbove(int item);
 #define UI_ANY_INPUT (UI_ANY_MOUSE_INPUT \
     |UI_ANY_KEY_INPUT)
 
+#define UI_ITEM_VISITED_XY_FLAG(X) (1<<(UI_ITEM_VISITED_BITOFS+(X)))
+#define UI_ITEM_VISITED_WH_FLAG(X) (4<<(UI_ITEM_VISITED_BITOFS+(X)))
+
+// extra item flags
+enum {
+    UI_ITEM_LAYOUT_MASK = 0x000F,
+    UI_ITEM_EVENT_MASK  = 0xFFF0,
+	UI_ITEM_FROZEN     = 0x10000,
+	UI_ITEM_VISITED_BITOFS = 17, // 0x20000, 0x40000, 0x80000, 0x100000
+	UI_ITEM_VISITED_MASK = (UI_ITEM_VISITED_XY_FLAG(0)
+						 | UI_ITEM_VISITED_XY_FLAG(1)
+						 | UI_ITEM_VISITED_WH_FLAG(0)
+						 | UI_ITEM_VISITED_WH_FLAG(1)),
+};
+
 typedef struct UIitem {
     // declaration independent unique handle (for persistence)
     UIhandle handle;
@@ -667,6 +682,7 @@ typedef struct UIitem {
     UIhandler handler;
     
     // container structure
+    unsigned int flags;
     
     // number of kids
     int numkids;
@@ -686,12 +702,8 @@ typedef struct UIitem {
     // index of previous sibling with same parent
     int previtem;
     
-    // one or multiple of UIlayoutFlags
-    int layout_flags;
     // size
     UIvec2 size;
-    // visited flags for layouting
-    int visited;
     // margin offsets, interpretation depends on flags
     int margins[4];
     // neighbors to position borders to
@@ -704,14 +716,35 @@ typedef struct UIitem {
     
     // attributes
     
-    int frozen;
     // index of data or -1 for none
     int data;
-    // size of data
-    int datasize;
-    // a combination of UIevents
-    int event_flags;
 } UIitem;
+
+// 40 bytes
+typedef struct UIitem2 {
+    // declaration independent unique handle (for persistence)
+    UIhandle handle;
+    // handler
+    UIhandler handler;
+
+    // flags: unifies: 4 layout bits, 11 event bits, 1 frozen bit, 2 visited bits
+    // 2 new layout bits: rect w/h is fixed
+    int flags;
+
+    // container structure
+
+    // index of first kid
+    int firstkid;
+    // index of next sibling with same parent
+    int nextitem;
+
+    // margin offsets, orientation/interpretation depends on layout flags
+    short margins[2];
+    // relative / absolute offset
+    short offset[2];
+    // measured / fixed size
+    short size[2];
+} UIitem2;
 
 typedef enum UIstate {
     UI_STATE_IDLE = 0,
@@ -1039,9 +1072,10 @@ int uiItem() {
 
 void uiNotifyAllItems(UIevent event) {
     assert(ui_context);
+    assert((event & UI_ITEM_EVENT_MASK) == event);
     for (int i = 0; i < ui_context->count; ++i) {
         UIitem *pitem = ui_context->items + i;
-		if (pitem->handler && (pitem->event_flags & event)) {
+		if (pitem->handler && (pitem->flags & event)) {
 			pitem->handler(i, event);
 		}
     }
@@ -1049,13 +1083,14 @@ void uiNotifyAllItems(UIevent event) {
 
 void uiNotifyItem(int item, UIevent event) {
     assert(ui_context);
+    assert((event & UI_ITEM_EVENT_MASK) == event);
     ui_context->event_item = item;
     while (item >= 0) {
 		UIitem *pitem = uiItemPtr(item);
-		if (pitem->handler && (pitem->event_flags & event)) {
+		if (pitem->handler && (pitem->flags & event)) {
 			pitem->handler(item, event);
 		}
-		if (!(pitem->event_flags & UI_PROPAGATE))
+		if (!(pitem->flags & UI_PROPAGATE))
 			break;
 		item = uiParent(item);
     }
@@ -1081,7 +1116,10 @@ int uiAppend(int item, int child) {
 
 void uiSetFrozen(int item, int enable) {
     UIitem *pitem = uiItemPtr(item);
-    pitem->frozen = enable;
+    if (enable)
+    	pitem->flags |= UI_ITEM_FROZEN;
+    else
+    	pitem->flags &= ~UI_ITEM_FROZEN;
 }
 
 void uiSetSize(int item, int w, int h) {
@@ -1099,11 +1137,11 @@ int uiGetHeight(int item) {
 }
 
 void uiSetLayout(int item, int flags) {
-    uiItemPtr(item)->layout_flags = flags;
+    uiItemPtr(item)->flags |= flags & UI_ITEM_LAYOUT_MASK;
 }
 
 int uiGetLayout(int item) {
-    return uiItemPtr(item)->layout_flags;
+    return uiItemPtr(item)->flags & UI_ITEM_LAYOUT_MASK;
 }
 
 void uiSetMargins(int item, int l, int t, int r, int b) {
@@ -1171,12 +1209,12 @@ UI_INLINE void uiComputeChainSize(UIitem *pkid,
     *hard_size = pitem->size.v[dim]?size:0;
     
     int it = 0;
-    pitem->visited |= 1<<dim;
+    pitem->flags |= UI_ITEM_VISITED_XY_FLAG(dim);
     // traverse along left neighbors
-    while ((pitem->layout_flags>>dim) & UI_LEFT) {
+    while (((pitem->flags&UI_ITEM_LAYOUT_MASK)>>dim) & UI_LEFT) {
         if (pitem->relto[dim] < 0) break;
         pitem = uiItemPtr(pitem->relto[dim]);
-        pitem->visited |= 1<<dim;
+        pitem->flags |= UI_ITEM_VISITED_XY_FLAG(dim);
         size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
         *need_size = (*need_size) + size;
         *hard_size = (*hard_size) + (pitem->size.v[dim]?size:0);
@@ -1186,10 +1224,10 @@ UI_INLINE void uiComputeChainSize(UIitem *pkid,
     // traverse along right neighbors
     pitem = pkid;
     it = 0;
-    while ((pitem->layout_flags>>dim) & UI_RIGHT) {
+    while (((pitem->flags&UI_ITEM_LAYOUT_MASK)>>dim) & UI_RIGHT) {
         if (pitem->relto[wdim] < 0) break;
         pitem = uiItemPtr(pitem->relto[wdim]);
-        pitem->visited |= 1<<dim;
+        pitem->flags |= UI_ITEM_VISITED_XY_FLAG(dim);
         size = pitem->rect.v[wdim] + pitem->margins[dim] + pitem->margins[wdim];
         *need_size = (*need_size) + size;
         *hard_size = (*hard_size) + (pitem->size.v[dim]?size:0);
@@ -1205,7 +1243,7 @@ UI_INLINE void uiComputeSizeDim(UIitem *pitem, int dim) {
     int kid = pitem->firstkid;
     while (kid >= 0) {
         UIitem *pkid = uiItemPtr(kid);
-        if (!(pkid->visited & (1<<dim))) {
+        if (!(pkid->flags & UI_ITEM_VISITED_XY_FLAG(dim))) {
             int ns,hs;
             uiComputeChainSize(pkid, &ns, &hs, dim);
             need_size = ui_max(need_size, ns);
@@ -1224,7 +1262,7 @@ UI_INLINE void uiComputeSizeDim(UIitem *pitem, int dim) {
 
 static void uiComputeBestSize(int item, int dim) {
     UIitem *pitem = uiItemPtr(item);
-    pitem->visited = 0;
+    pitem->flags &= ~UI_ITEM_VISITED_MASK;
     // children expand the size
     int kid = uiFirstChild(item);
     while (kid >= 0) {
@@ -1237,15 +1275,15 @@ static void uiComputeBestSize(int item, int dim) {
 
 static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem, 
     int *dyncount, int *consumed_space, int dim) {
-    if (pitem->visited & (4<<dim)) return;
-    pitem->visited |= (4<<dim);
+    if (pitem->flags & UI_ITEM_VISITED_WH_FLAG(dim)) return;
+    pitem->flags |= UI_ITEM_VISITED_WH_FLAG(dim);
     
     int wdim = dim+2;
     
     int x = 0;
     int s = pparent->rect.v[wdim];
     
-    int flags = pitem->layout_flags>>dim;
+    int flags = (pitem->flags & UI_ITEM_LAYOUT_MASK) >> dim;
     int hasl = (flags & UI_LEFT) && (pitem->relto[dim] >= 0);
     int hasr = (flags & UI_RIGHT) && (pitem->relto[wdim] >= 0);
     
@@ -1310,7 +1348,7 @@ static void uiLayoutChildItem(UIitem *pparent, UIitem *pitem,
 }
 
 UI_INLINE void uiLayoutItemDim(UIitem *pitem, int dim) {
-    int wdim = dim+2;
+    //int wdim = dim+2;
     int kid = pitem->firstkid;
     int consumed_space = 0;
     int dyncount = 0;
@@ -1398,7 +1436,8 @@ UIhandle uiGetHandle(int item) {
 void uiSetHandler(int item, UIhandler handler, int flags) {
     UIitem *pitem = uiItemPtr(item);
     pitem->handler = handler;
-    pitem->event_flags = flags;
+    pitem->flags &= ~UI_ITEM_EVENT_MASK;
+    pitem->flags |= flags;
 }
 
 UIhandler uiGetHandler(int item) {
@@ -1406,7 +1445,7 @@ UIhandler uiGetHandler(int item) {
 }
 
 int uiGetHandlerFlags(int item) {
-    return uiItemPtr(item)->event_flags;
+    return uiItemPtr(item)->flags & UI_ITEM_EVENT_MASK;
 }
 
 int uiGetChildId(int item) {
@@ -1443,7 +1482,7 @@ int uiFindItemForEvent(int item, UIevent event,
 		UIrect *hot_rect,
 		int x, int y, int ox, int oy) {
     UIitem *pitem = uiItemPtr(item);
-    if (pitem->frozen) return -1;
+    if (pitem->flags & UI_ITEM_FROZEN) return -1;
     UIrect rect = pitem->rect;
     x -= rect.x;
     y -= rect.y;
@@ -1461,7 +1500,7 @@ int uiFindItemForEvent(int item, UIevent event,
             kid = uiPrevSibling(kid);
         }
         // click-through if the item has no handler for this event
-        if (pitem->event_flags & event) {
+        if (pitem->flags & event) {
             rect.x = ox;
             rect.y = oy;
             if (hot_rect)
@@ -1634,13 +1673,13 @@ static int uiIsFocused(int item) {
 
 UIitemState uiGetState(int item) {
     UIitem *pitem = uiItemPtr(item);
-    if (pitem->frozen) return UI_FROZEN;
+    if (pitem->flags & UI_ITEM_FROZEN) return UI_FROZEN;
     if (uiIsFocused(item)) {
-        if (pitem->event_flags & (UI_KEY_DOWN|UI_CHAR|UI_KEY_UP)) return UI_ACTIVE;
+        if (pitem->flags & (UI_KEY_DOWN|UI_CHAR|UI_KEY_UP)) return UI_ACTIVE;
     }
     if (uiIsActive(item)) {
-        if (pitem->event_flags & (UI_BUTTON0_CAPTURE|UI_BUTTON0_UP)) return UI_ACTIVE;
-        if ((pitem->event_flags & UI_BUTTON0_HOT_UP)
+        if (pitem->flags & (UI_BUTTON0_CAPTURE|UI_BUTTON0_UP)) return UI_ACTIVE;
+        if ((pitem->flags & UI_BUTTON0_HOT_UP)
             && uiIsHot(item)) return UI_ACTIVE;
         return UI_COLD;
     } else if (uiIsHot(item)) {
