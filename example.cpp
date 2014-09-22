@@ -861,6 +861,59 @@ void build_columndemo(int parent) {
     }
 }
 
+void fill_wrap_box(int box) {
+    const int M = 5;
+    const int S = 100;
+    const int T = 50;
+
+    srand(303);
+    for (int i = 0; i < 20; ++i) {
+        float hue = (float)(rand()%360)/360.0f;
+        int width = 10 + (rand()%5)*10;
+
+        switch(rand()%4) {
+        default: break;
+        case 0: {
+            demorect(box, "Layout( UI_TOP )", hue, 0, UI_TOP, width, T, M, M, M, M);
+        } break;
+        case 1: {
+            demorect(box, "Layout( UI_VCENTER )", hue, 0, UI_VCENTER, width, T/2, M, 0, M, 0);
+        } break;
+        case 2: {
+            demorect(box, "Layout( UI_VFILL )", hue, 0, UI_VFILL, width, T, M, M, M, M);
+        } break;
+        case 3: {
+            demorect(box, "Layout( UI_DOWN )", hue, 0, UI_DOWN, width, T/2, M, M, M, M);
+        } break;
+        }
+    }
+
+}
+
+void build_wrapdemo(int parent) {
+    int col = uiItem();
+    uiAppend(parent, col);
+    uiSetBox(col, UI_COLUMN);
+    uiSetLayout(col, UI_HFILL|UI_TOP);
+
+    const int M = 5;
+    const int S = 100;
+    const int T = 50;
+
+    int box;
+    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_START )\nLayout( UI_HFILL | UI_TOP )", 0.6f, UI_ROW | UI_WRAP | UI_START, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
+    fill_wrap_box(box);
+
+    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_MIDDLE )\nLayout( UI_HFILL | UI_TOP )", 0.6f, UI_ROW | UI_WRAP, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
+    fill_wrap_box(box);
+
+    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_END )\nLayout( UI_HFILL | UI_TOP )", 0.6f, UI_ROW | UI_WRAP | UI_END, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
+    fill_wrap_box(box);
+
+    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_JUSTIFY )\nLayout( UI_HFILL | UI_TOP )", 0.6f, UI_ROW | UI_WRAP | UI_JUSTIFY, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
+    fill_wrap_box(box);
+}
+
 
 int add_menu_option(int parent, const char *name, int *choice) {
     int opt = radio(-1, name, choice);
@@ -898,7 +951,7 @@ void draw(NVGcontext *vg, float w, float h) {
     int opt_column = add_menu_option(menu, "UI_COLUMN", &choice);
     int opt_wrap = add_menu_option(menu, "UI_WRAP", &choice);
     if (choice < 0)
-        choice = opt_blendish_demo;
+        choice = opt_wrap;
 
     int content = uiItem();
     uiSetLayout(content, UI_FILL);
@@ -925,6 +978,8 @@ void draw(NVGcontext *vg, float w, float h) {
         build_rowdemo(content);
     } else if (choice == opt_column) {
         build_columndemo(content);
+    } else if (choice == opt_wrap) {
+        build_wrapdemo(content);
     }
 
     uiLayout();
