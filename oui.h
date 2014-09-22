@@ -251,9 +251,16 @@ typedef enum UIboxFlags {
     // multi-line, wrap left to right
     UI_WRAP = 0x004,
 
+
     // justify-content (start, end, center, space-between)
-    // can be implemented by putting a flex container in a layout container,
-    // then using UI_LEFT, UI_RIGHT, UI_HFILL, UI_HCENTER, etc.
+    // at start of row/column
+    UI_START = 0x008,
+    // at center of row/column
+    UI_MIDDLE = 0x000,
+    // at end of row/column
+    UI_END = 0x010,
+    // insert spacing to stretch across whole row/column
+    UI_JUSTIFY = 0x018,
 
     // align-items
     // can be implemented by putting a flex container in a layout container,
@@ -641,7 +648,7 @@ OUI_EXPORT short uiGetMarginDown(int item);
 // extra item flags
 enum {
     // bit 0-2
-    UI_ITEM_BOX_MASK    = 0x000007,
+    UI_ITEM_BOX_MASK    = 0x00001F,
     // bit 5-8
     UI_ITEM_LAYOUT_MASK = 0x0001E0,
     // bit 9-18
@@ -652,6 +659,8 @@ enum {
     UI_ITEM_DATA	    = 0x100000,
     // item has been inserted
     UI_ITEM_INSERTED	= 0x200000,
+    // item is on a new line (wrap marker)
+    UI_ITEM_NEWLINE     = 0x400000,
 };
 
 typedef struct UIitem {
@@ -1049,15 +1058,14 @@ short uiGetMarginDown(int item) {
 }
 
 // compute bounding box of all items super-imposed
-UI_INLINE void uiComputeImposedSizeDim(UIitem *pitem, int dim) {
+UI_INLINE void uiComputeImposedSize(UIitem *pitem, int dim) {
     int wdim = dim+2;
-    if (pitem->size[dim])
-        return;
     // largest size is required size
     short need_size = 0;
     int kid = pitem->firstkid;
     while (kid >= 0) {
         UIitem *pkid = uiItemPtr(kid);
+
         // width = start margin + calculated width + end margin
         int kidsize = pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
         need_size = ui_max(need_size, kidsize);
@@ -1067,10 +1075,8 @@ UI_INLINE void uiComputeImposedSizeDim(UIitem *pitem, int dim) {
 }
 
 // compute bounding box of all items stacked
-UI_INLINE void uiComputeStackedSizeDim(UIitem *pitem, int dim) {
+UI_INLINE void uiComputeStackedSize(UIitem *pitem, int dim) {
     int wdim = dim+2;
-    if (pitem->size[dim])
-        return;
     short need_size = 0;
     int kid = pitem->firstkid;
     while (kid >= 0) {
@@ -1082,102 +1088,164 @@ UI_INLINE void uiComputeStackedSizeDim(UIitem *pitem, int dim) {
     pitem->size[dim] = need_size;
 }
 
-static void uiComputeBestSize(int item, int dim) {
+// compute bounding box of all items stacked + wrapped
+UI_INLINE void uiComputeWrappedSize(UIitem *pitem, int dim) {
+    int wdim = dim+2;
+
+    short need_size = 0;
+    short need_size2 = 0;
+    int kid = pitem->firstkid;
+    while (kid >= 0) {
+        UIitem *pkid = uiItemPtr(kid);
+
+        // if next position moved back, we assume a new line
+        if (pkid->flags & UI_ITEM_NEWLINE) {
+            need_size2 += need_size;
+            // newline
+            need_size = 0;
+        }
+
+        // width = start margin + calculated width + end margin
+        int kidsize = pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
+        need_size = ui_max(need_size, kidsize);
+        kid = uiNextSibling(kid);
+    }
+    pitem->size[dim] = need_size2 + need_size;
+}
+
+static void uiComputeSize(int item, int dim) {
     UIitem *pitem = uiItemPtr(item);
 
     // children expand the size
-    int kid = uiFirstChild(item);
+    int kid = pitem->firstkid;
     while (kid >= 0) {
-        uiComputeBestSize(kid, dim);
+        uiComputeSize(kid, dim);
         kid = uiNextSibling(kid);
     }
 
-    if(pitem->flags & UI_FLEX) {
-        // flex model
-        if ((pitem->flags & 1) == (unsigned int)dim) // direction
-            uiComputeStackedSizeDim(pitem, dim);
-        else
-            uiComputeImposedSizeDim(pitem, dim);
+    if (pitem->size[dim]) {
+        return;
+    } else if(pitem->flags & UI_FLEX) {
+        if (pitem->flags & UI_WRAP) {
+            // flex model
+            if ((pitem->flags & 1) == (unsigned int)dim) // direction
+                uiComputeStackedSize(pitem, dim);
+            else
+                uiComputeWrappedSize(pitem, dim);
+        } else {
+            // flex model
+            if ((pitem->flags & 1) == (unsigned int)dim) // direction
+                uiComputeStackedSize(pitem, dim);
+            else
+                uiComputeImposedSize(pitem, dim);
+        }
     } else {
         // layout model
-        uiComputeImposedSizeDim(pitem, dim);
+        uiComputeImposedSize(pitem, dim);
     }
 }
 
 // stack all items according to their alignment
-UI_INLINE void uiLayoutStackedItemDim(UIitem *pitem, int dim) {
+UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
     int wdim = dim+2;
 
     short space = pitem->size[dim];
-    short used = 0;
 
-    int count = 0;
-    int total = 0;
-    // first pass: count items that need to be expanded,
-    // and the space that is used
-    int kid = pitem->firstkid;
-    while (kid >= 0) {
-        UIitem *pkid = uiItemPtr(kid);
-        int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
-        total++;
-        if ((flags & UI_HFILL) == UI_HFILL) { // grow
-            count++;
-            used += pkid->margins[dim] + pkid->margins[wdim];
-        } else {
-            used += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
+    int start_kid = pitem->firstkid;
+    while (start_kid >= 0) {
+        short used = 0;
+
+        int count = 0;
+        int total = 0;
+        // first pass: count items that need to be expanded,
+        // and the space that is used
+        int kid = start_kid;
+        int end_kid = -1;
+        while (kid >= 0) {
+            UIitem *pkid = uiItemPtr(kid);
+            int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
+            total++;
+            short extend = used;
+            if ((flags & UI_HFILL) == UI_HFILL) { // grow
+                count++;
+                extend += pkid->margins[dim] + pkid->margins[wdim];
+            } else {
+                extend += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
+            }
+            if (wrap && (extend > space) && (total>1)) {
+                end_kid = kid;
+                // add marker for subsequent queries
+                pkid->flags |= UI_ITEM_NEWLINE;
+                break;
+            } else {
+                used = extend;
+                kid = uiNextSibling(kid);
+            }
         }
-        kid = uiNextSibling(kid);
-    }
 
-    int extra_space = ui_max(space - used,0);
-    float filler = 0.0f;
-    float spacer = 0.0f;
+        int extra_space = ui_max(space - used,0);
+        float filler = 0.0f;
+        float spacer = 0.0f;
+        float extra_margin = 0.0f;
 
-    if (extra_space) {
-        if (count) {
-            filler = (float)extra_space / (float)count;
-        } else if (total) {
-            spacer = (float)extra_space / (float)(total-1);
+        if (extra_space) {
+            if (count) {
+                filler = (float)extra_space / (float)count;
+            } else if (total) {
+                switch(pitem->flags & UI_JUSTIFY) {
+                default: {
+                    extra_margin = extra_space / 2.0f;
+                } break;
+                case UI_JUSTIFY: {
+                    if (!wrap || (end_kid != -1))
+                        spacer = (float)extra_space / (float)(total-1);
+                } break;
+                case UI_START: {
+                } break;
+                case UI_END: {
+                    extra_margin = extra_space;
+                } break;
+                }
+            }
         }
-    }
 
-    // distribute width among items
-    float x = (float)pitem->margins[dim];
-    float x1;
-    float extra_margin = 0.0f;
-    // second pass: distribute and rescale
-    kid = pitem->firstkid;
-    while (kid >= 0) {
-        short ix0,ix1;
-        UIitem *pkid = uiItemPtr(kid);
-        int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
+        // distribute width among items
+        float x = (float)pitem->margins[dim];
+        float x1;
+        // second pass: distribute and rescale
+        kid = start_kid;
+        while (kid != end_kid) {
+            short ix0,ix1;
+            UIitem *pkid = uiItemPtr(kid);
+            int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
 
-        x += (float)pkid->margins[dim] + extra_margin;
-        if ((flags & UI_HFILL) == UI_HFILL) { // grow
-            x1 = x+filler;
-        } else {
-            x1 = x+(float)pkid->size[dim];
+            x += (float)pkid->margins[dim] + extra_margin;
+            if ((flags & UI_HFILL) == UI_HFILL) { // grow
+                x1 = x+filler;
+            } else {
+                x1 = x+(float)pkid->size[dim];
+            }
+            ix0 = (short)x;
+            ix1 = (short)x1;
+            pkid->margins[dim] = ix0;
+            pkid->size[dim] = ix1-ix0;
+            x = x1 + (float)pkid->margins[wdim];
+
+            kid = uiNextSibling(kid);
+            extra_margin = spacer;
         }
-        ix0 = (short)x;
-        ix1 = (short)x1;
-        pkid->margins[dim] = ix0;
-        pkid->size[dim] = ix1-ix0;
-        x = x1 + (float)pkid->margins[wdim];
 
-        kid = uiNextSibling(kid);
-        extra_margin = spacer;
+        start_kid = end_kid;
     }
 }
 
 // superimpose all items according to their alignment
-UI_INLINE void uiLayoutImposedItemDim(UIitem *pitem, int dim) {
+UI_INLINE void uiArrangeImposedRange(UIitem *pitem, int dim,
+        int start_kid, int end_kid, short offset, short space) {
     int wdim = dim+2;
 
-    short space = pitem->size[dim];
-    short offset = pitem->margins[dim];
-
-    int kid = pitem->firstkid;
-    while (kid >= 0) {
+    int kid = start_kid;
+    while (kid != end_kid) {
         UIitem *pkid = uiItemPtr(kid);
 
         int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
@@ -1200,25 +1268,85 @@ UI_INLINE void uiLayoutImposedItemDim(UIitem *pitem, int dim) {
     }
 }
 
-static void uiLayoutItem(int item, int dim) {
+UI_INLINE void uiArrangeImposed(UIitem *pitem, int dim) {
+    uiArrangeImposedRange(pitem, dim, pitem->firstkid, -1, pitem->margins[dim], pitem->size[dim]);
+}
+
+// superimpose all items according to their alignment
+UI_INLINE void uiArrangeWrappedImposed(UIitem *pitem, int dim) {
+    int wdim = dim+2;
+
+    short offset = pitem->margins[dim];
+
+    short need_size = 0;
+    int kid = pitem->firstkid;
+    int start_kid = kid;
+    while (kid >= 0) {
+        UIitem *pkid = uiItemPtr(kid);
+
+        if (pkid->flags & UI_ITEM_NEWLINE) {
+            uiArrangeImposedRange(pitem, dim, start_kid, kid, offset, need_size);
+            offset += need_size;
+            start_kid = kid;
+            // newline
+            need_size = 0;
+        }
+
+        // width = start margin + calculated width + end margin
+        int kidsize = pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
+        need_size = ui_max(need_size, kidsize);
+        kid = uiNextSibling(kid);
+    }
+
+    uiArrangeImposedRange(pitem, dim, start_kid, -1, offset, need_size);
+}
+
+static void uiArrange(int item, int dim) {
     UIitem *pitem = uiItemPtr(item);
 
     if(pitem->flags & UI_FLEX) {
-        // flex model
-        if ((pitem->flags & 1) == (unsigned int)dim) // direction
-            uiLayoutStackedItemDim(pitem, dim);
-        else
-            uiLayoutImposedItemDim(pitem, dim);
+        if (pitem->flags & UI_WRAP) {
+            if ((pitem->flags & 1) == (unsigned int)dim) { // direction
+                uiArrangeStacked(pitem, dim, true);
+            } else {
+                uiArrangeWrappedImposed(pitem, dim);
+            }
+        } else {
+            // flex model
+            if ((pitem->flags & 1) == (unsigned int)dim) // direction
+                uiArrangeStacked(pitem, dim, false);
+            else
+                uiArrangeImposed(pitem, dim);
+        }
     } else {
         // layout model
-        uiLayoutImposedItemDim(pitem, dim);
+        uiArrangeImposed(pitem, dim);
     }
 
     int kid = uiFirstChild(item);
     while (kid >= 0) {
-        uiLayoutItem(kid, dim);
+        uiArrange(kid, dim);
         kid = uiNextSibling(kid);
     }
+}
+
+static void uiNestedLayout(int item, int dim) {
+    uiComputeSize(item,dim);
+    uiArrange(item,dim);
+
+    uiComputeSize(item,1-dim);
+    uiArrange(item,1-dim);
+}
+
+void uiLayout() {
+    assert(ui_context);
+    if (!ui_context->count) return;
+
+    uiNestedLayout(0,0);
+
+    uiValidateStateItems();
+    // drawing routines may require this to be set already
+    uiUpdateHotItem();
 }
 
 UIrect uiGetRect(int item) {
@@ -1312,23 +1440,6 @@ int uiFindItemForEvent(int item, UIevent event, int x, int y) {
         }
     }
     return -1;
-}
-
-void uiLayout() {
-    assert(ui_context);
-    if (!ui_context->count) return;
-
-    // compute widths
-    uiComputeBestSize(0,0);
-    uiLayoutItem(0,0);
-
-    // compute heights
-    uiComputeBestSize(0,1);
-    uiLayoutItem(0,1);
-
-    uiValidateStateItems();
-    // drawing routines may require this to be set already
-    uiUpdateHotItem();
 }
 
 void uiUpdateHotItem() {
