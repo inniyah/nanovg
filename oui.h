@@ -515,8 +515,8 @@ OUI_EXPORT void uiSetSize(int item, int w, int h);
 // set the anchoring behavior of the item to one or multiple UIlayoutFlags
 OUI_EXPORT void uiSetLayout(int item, int flags);
 
-// like uiSetLayout, but accumulates to the existing flags
-OUI_EXPORT void uiAddLayout(int item, int flags);
+// set the box model behavior of the item to one or multiple UIboxFlags
+OUI_EXPORT void uiSetBox(int item, int flags);
 
 // set the left, top, right and bottom margins of an item; when the item is
 // anchored to the parent or another item, the margin controls the distance
@@ -585,6 +585,8 @@ OUI_EXPORT int uiGetHeight(int item);
 
 // return the anchoring behavior as set by uiSetLayout()
 OUI_EXPORT int uiGetLayout(int item);
+// return the box model as set by uiSetBox()
+OUI_EXPORT int uiGetBox(int item);
 
 // return the left margin of the item as set with uiSetMargins()
 OUI_EXPORT short uiGetMarginLeft(int item);
