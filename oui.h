@@ -1112,12 +1112,14 @@ UI_INLINE void uiLayoutStackedItemDim(UIitem *pitem, int dim) {
     short used = 0;
 
     int count = 0;
+    int total = 0;
     // first pass: count items that need to be expanded,
     // and the space that is used
     int kid = pitem->firstkid;
     while (kid >= 0) {
         UIitem *pkid = uiItemPtr(kid);
         int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
+        total++;
         if ((flags & UI_HFILL) == UI_HFILL) { // grow
             count++;
             used += pkid->margins[dim] + pkid->margins[wdim];
@@ -1128,46 +1130,42 @@ UI_INLINE void uiLayoutStackedItemDim(UIitem *pitem, int dim) {
     }
 
     int extra_space = ui_max(space - used,0);
+    float filler = 0.0f;
+    float spacer = 0.0f;
 
-    if (extra_space && count) {
-        // distribute width among items
-        float width = (float)extra_space / (float)count;
-        float x = (float)pitem->margins[dim];
-        float x1;
-        // second pass: distribute and rescale
-        kid = pitem->firstkid;
-        while (kid >= 0) {
-            short ix0,ix1;
-            UIitem *pkid = uiItemPtr(kid);
-            int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
-
-            x += (float)pkid->margins[dim];
-            if ((flags & UI_HFILL) == UI_HFILL) { // grow
-                x1 = x+width;
-            } else {
-                x1 = x+(float)pkid->size[dim];
-            }
-            ix0 = (short)x;
-            ix1 = (short)x1;
-            pkid->margins[dim] = ix0;
-            pkid->size[dim] = ix1-ix0;
-            x = x1 + (float)pkid->margins[wdim];
-
-            kid = uiNextSibling(kid);
+    if (extra_space) {
+        if (count) {
+            filler = (float)extra_space / (float)count;
+        } else if (total) {
+            spacer = (float)extra_space / (float)(total-1);
         }
-    } else {
-        // single pass: just distribute
-        short x = pitem->margins[dim];
-        int kid = pitem->firstkid;
-        while (kid >= 0) {
-            UIitem *pkid = uiItemPtr(kid);
+    }
 
-            x += pkid->margins[dim];
-            pkid->margins[dim] = x;
-            x += pkid->size[dim] + pkid->margins[wdim];
+    // distribute width among items
+    float x = (float)pitem->margins[dim];
+    float x1;
+    float extra_margin = 0.0f;
+    // second pass: distribute and rescale
+    kid = pitem->firstkid;
+    while (kid >= 0) {
+        short ix0,ix1;
+        UIitem *pkid = uiItemPtr(kid);
+        int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
 
-            kid = uiNextSibling(kid);
+        x += (float)pkid->margins[dim] + extra_margin;
+        if ((flags & UI_HFILL) == UI_HFILL) { // grow
+            x1 = x+filler;
+        } else {
+            x1 = x+(float)pkid->size[dim];
         }
+        ix0 = (short)x;
+        ix1 = (short)x1;
+        pkid->margins[dim] = ix0;
+        pkid->size[dim] = ix1-ix0;
+        x = x1 + (float)pkid->margins[wdim];
+
+        kid = uiNextSibling(kid);
+        extra_margin = spacer;
     }
 }
 
