@@ -516,6 +516,9 @@ OUI_EXPORT void uiSetSize(int item, int w, int h);
 // set the anchoring behavior of the item to one or multiple UIlayoutFlags
 OUI_EXPORT void uiSetLayout(int item, int flags);
 
+// like uiSetLayout, but accumulates to the existing flags
+OUI_EXPORT void uiAddLayout(int item, int flags);
+
 // set the left, top, right and bottom margins of an item; when the item is
 // anchored to the parent or another item, the margin controls the distance
 // from the neighboring element.
@@ -1000,7 +1003,14 @@ int uiGetHeight(int item) {
 }
 
 void uiSetLayout(int item, int flags) {
-    uiItemPtr(item)->flags |= flags & UI_ITEM_LAYOUT_MASK;
+    UIitem *pitem = uiItemPtr(item);
+    pitem->flags &= ~UI_ITEM_LAYOUT_MASK;
+    pitem->flags |= flags & UI_ITEM_LAYOUT_MASK;
+}
+
+void uiAddLayout(int item, int flags) {
+    UIitem *pitem = uiItemPtr(item);
+    pitem->flags |= flags & UI_ITEM_LAYOUT_MASK;
 }
 
 int uiGetLayout(int item) {
