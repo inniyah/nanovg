@@ -354,7 +354,7 @@ int panel() {
 int column_append(int parent, int item) {
     uiAppend(parent, item);
     // fill parent horizontally, anchor to previous item vertically
-    uiSetLayout(item, UI_HFILL);
+    uiAddLayout(item, UI_HFILL);
     // if not the first item, add a margin of 1
     uiSetMargins(item, 0, 1, 0, 0);
     return item;
@@ -369,7 +369,7 @@ int column() {
 int vgroup_append(int parent, int item) {
     uiAppend(parent, item);
     // fill parent horizontally, anchor to previous item vertically
-    uiSetLayout(item, UI_HFILL);
+    uiAddLayout(item, UI_HFILL);
     return item;
 }
 
@@ -381,7 +381,7 @@ int vgroup() {
 
 int hgroup_append(int parent, int item) {
     uiAppend(parent, item);
-    uiSetLayout(item, UI_HFILL);
+    uiAddLayout(item, UI_HFILL);
     return item;
 }
 
@@ -398,7 +398,7 @@ int hgroup() {
 
 int row_append(int parent, int item) {
     uiAppend(parent, item);
-    uiSetLayout(item, UI_HFILL);
+    uiAddLayout(item, UI_HFILL);
     return item;
 }
 
@@ -658,7 +658,7 @@ void draw(NVGcontext *vg, float w, float h) {
     int col = column();
     uiAppend(root, col);
     uiSetMargins(col, 10, 10, 10, 10);
-    uiSetLayout(col, UI_TOP|UI_HFILL);
+    uiAddLayout(col, UI_TOP|UI_HFILL);
     
     
     column_append(col, button(BND_ICONID(6,3), "Item 1", demohandler));
