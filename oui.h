@@ -228,10 +228,8 @@ typedef enum UIitemState {
     UI_FROZEN = 3,
 } UIitemState;
 
-// layout flags
-typedef enum UIlayoutFlags {
-    // container flags:
-
+// container flags to pass to uiSetBox()
+typedef enum UIboxFlags {
     // flex-direction (bit 0+1)
 
     // left to right
@@ -254,21 +252,22 @@ typedef enum UIlayoutFlags {
     UI_WRAP = 0x004,
 
     // justify-content (start, end, center, space-between)
-    // can be implemented by putting flex container in a layout container,
+    // can be implemented by putting a flex container in a layout container,
     // then using UI_LEFT, UI_RIGHT, UI_HFILL, UI_HCENTER, etc.
 
     // align-items
-    // can be implemented by putting flex container in a layout container,
+    // can be implemented by putting a flex container in a layout container,
     // then using UI_TOP, UI_DOWN, UI_VFILL, UI_VCENTER, etc.
     // FILL is equivalent to stretch/grow
 
     // align-content (start, end, center, stretch)
-    // can be implemented by putting flex container in a layout container,
+    // can be implemented by putting a flex container in a layout container,
     // then using UI_TOP, UI_DOWN, UI_VFILL, UI_VCENTER, etc.
     // FILL is equivalent to stretch; space-between is not supported.
+} UIboxFlags;
 
-    // child item flags:
-
+// child layout flags to pass to uiSetLayout()
+typedef enum UIlayoutFlags {
     // attachments (bit 5-8)
     // fully valid when parent uses UI_LAYOUT model
     // partially valid when in UI_FLEX model
@@ -639,8 +638,10 @@ OUI_EXPORT short uiGetMarginDown(int item);
 
 // extra item flags
 enum {
-    // bit 0-8
-    UI_ITEM_LAYOUT_MASK = 0x0001FF,
+    // bit 0-2
+    UI_ITEM_BOX_MASK    = 0x000007,
+    // bit 5-8
+    UI_ITEM_LAYOUT_MASK = 0x0001E0,
     // bit 9-18
     UI_ITEM_EVENT_MASK  = 0x07FE00,
     // item is frozen (bit 19)
@@ -1004,17 +1005,24 @@ int uiGetHeight(int item) {
 
 void uiSetLayout(int item, int flags) {
     UIitem *pitem = uiItemPtr(item);
+    assert((flags & UI_ITEM_LAYOUT_MASK) == flags);
     pitem->flags &= ~UI_ITEM_LAYOUT_MASK;
-    pitem->flags |= flags & UI_ITEM_LAYOUT_MASK;
-}
-
-void uiAddLayout(int item, int flags) {
-    UIitem *pitem = uiItemPtr(item);
     pitem->flags |= flags & UI_ITEM_LAYOUT_MASK;
 }
 
 int uiGetLayout(int item) {
     return uiItemPtr(item)->flags & UI_ITEM_LAYOUT_MASK;
+}
+
+void uiSetBox(int item, int flags) {
+    UIitem *pitem = uiItemPtr(item);
+    assert((flags & UI_ITEM_BOX_MASK) == flags);
+    pitem->flags &= ~UI_ITEM_BOX_MASK;
+    pitem->flags |= flags & UI_ITEM_BOX_MASK;
+}
+
+int uiGetBox(int item) {
+    return uiItemPtr(item)->flags & UI_ITEM_BOX_MASK;
 }
 
 void uiSetMargins(int item, short l, short t, short r, short b) {
