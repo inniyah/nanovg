@@ -497,9 +497,17 @@ OUI_EXPORT void uiSetEvents(int item, int flags);
 
 // assign an item to a container.
 // an item ID of 0 refers to the root item.
-// if child is already assigned to a parent, an assertion will be thrown.
 // the function returns the child item ID
+// if the container has already added items, the function searches
+// for the last item and calls uiInsert() on it, which is an
+// O(N) operation for N siblings.
+// it is usually more efficient to call uiAppend() for the first child,
+// then chain additional siblings using uiInsert().
 OUI_EXPORT int uiAppend(int item, int child);
+
+// assign an item to the same container as another item
+// sibling is inserted after item.
+OUI_EXPORT int uiInsert(int item, int sibling);
 
 // set the size of the item; a size of 0 indicates the dimension to be 
 // dynamic; if the size is set, the item can not expand beyond that size.
@@ -525,18 +533,9 @@ OUI_EXPORT void uiFocus(int item);
 // if item is 0, the first child item of the root item will be returned.
 OUI_EXPORT int uiFirstChild(int item);
 
-// returns the last child item of a container item. If the item is not
-// a container or does not contain any items, -1 is returned.
-// if item is 0, the last child item of the root item will be returned.
-OUI_EXPORT int uiLastChild(int item);
-
 // returns an items next sibling in the list of the parent containers children.
 // if item is 0 or the item is the last child item, -1 will be returned.
 OUI_EXPORT int uiNextSibling(int item);
-// returns an items previous sibling in the list of the parent containers
-// children.
-// if item is 0 or the item is the first child item, -1 will be returned.
-OUI_EXPORT int uiPrevSibling(int item);
 
 // Querying
 // --------
@@ -645,27 +644,21 @@ enum {
 	UI_ITEM_FROZEN      = 0x080000,
 	// item handle is pointer to data (bit 20)
 	UI_ITEM_DATA	    = 0x100000,
+	// item has been inserted
+	UI_ITEM_INSERTED	= 0x200000,
 };
 
 typedef struct UIitem {
-    // declaration independent unique handle (for persistence)
+    // data handle
     void *handle;
 
+    // about 27 bits worth of flags
     unsigned int flags;
 
-    // container structure
-    
     // index of first kid
     int firstkid;
-    // index of last kid
-    int lastkid;
-    
-    // child structure
-    
     // index of next sibling with same parent
     int nextitem;
-    // index of previous sibling with same parent
-    int previtem;
     
     // margin offsets, interpretation depends on flags
     // after layouting, the first two components are absolute coordinates
@@ -931,9 +924,7 @@ int uiItem() {
     UIitem *item = uiItemPtr(idx);
     memset(item, 0, sizeof(UIitem));
     item->firstkid = -1;
-    item->lastkid = -1;
     item->nextitem = -1;
-    item->previtem = -1;
     return idx;
 }
 
@@ -949,17 +940,39 @@ void uiNotifyItem(int item, UIevent event) {
 	}
 }
 
+UI_INLINE int uiLastChild(int item) {
+	item = uiFirstChild(item);
+	if (item < 0)
+		return -1;
+	while (true) {
+		int nextitem = uiNextSibling(item);
+		if (nextitem < 0)
+			return item;
+		item = nextitem;
+	}
+}
+
+int uiInsert(int item, int sibling) {
+    assert(sibling > 0);
+    UIitem *pitem = uiItemPtr(item);
+    UIitem *psibling = uiItemPtr(sibling);
+    assert(!(psibling->flags & UI_ITEM_INSERTED));
+    psibling->nextitem = pitem->nextitem;
+    psibling->flags |= UI_ITEM_INSERTED;
+    pitem->nextitem = sibling;
+    return sibling;
+}
+
 int uiAppend(int item, int child) {
     assert(child > 0);
-    UIitem *pitem = uiItemPtr(child);
     UIitem *pparent = uiItemPtr(item);
-    if (pparent->lastkid < 0) {
+    UIitem *pchild = uiItemPtr(child);
+    assert(!(pchild->flags & UI_ITEM_INSERTED));
+    if (pparent->firstkid < 0) {
         pparent->firstkid = child;
-        pparent->lastkid = child;
+        pchild->flags |= UI_ITEM_INSERTED;
     } else {
-        pitem->previtem = pparent->lastkid;
-        uiItemPtr(pparent->lastkid)->nextitem = child;
-        pparent->lastkid = child;
+    	uiInsert(uiLastChild(item), child);
     }
     return child;
 }
@@ -1203,16 +1216,8 @@ int uiFirstChild(int item) {
     return uiItemPtr(item)->firstkid;
 }
 
-int uiLastChild(int item) {
-    return uiItemPtr(item)->lastkid;
-}
-
 int uiNextSibling(int item) {
     return uiItemPtr(item)->nextitem;
-}
-
-int uiPrevSibling(int item) {
-    return uiItemPtr(item)->previtem;
 }
 
 void *uiAllocHandle(int item, int size) {
@@ -1271,11 +1276,17 @@ int uiFindItemForEvent(int item, UIevent event, int x, int y) {
     UIitem *pitem = uiItemPtr(item);
     if (pitem->flags & UI_ITEM_FROZEN) return -1;
     if (uiContains(item, x, y)) {
-        int kid = uiLastChild(item);
+    	int best_hit = -1;
+        int kid = uiFirstChild(item);
         while (kid >= 0) {
-            int best_hit = uiFindItemForEvent(kid, event, x, y);
-            if (best_hit >= 0) return best_hit;
-            kid = uiPrevSibling(kid);
+            int hit = uiFindItemForEvent(kid, event, x, y);
+            if (hit >= 0) {
+            	best_hit = hit;
+            }
+            kid = uiNextSibling(kid);
+        }
+        if (best_hit >= 0) {
+        	return best_hit;
         }
         // click-through if the item has no handler for this event
         if (pitem->flags & event) {
