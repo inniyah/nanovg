@@ -648,7 +648,9 @@ OUI_EXPORT short uiGetMarginDown(int item);
 // extra item flags
 enum {
     // bit 0-2
-    UI_ITEM_BOX_MASK    = 0x00001F,
+    UI_ITEM_BOX_MODEL_MASK = 0x000007,
+    // bit 0-4
+    UI_ITEM_BOX_MASK       = 0x00001F,
     // bit 5-8
     UI_ITEM_LAYOUT_MASK = 0x0001E0,
     // bit 9-18
@@ -1123,25 +1125,35 @@ static void uiComputeSize(int item, int dim) {
         kid = uiNextSibling(kid);
     }
 
-    if (pitem->size[dim]) {
+    if (pitem->size[dim])
         return;
-    } else if(pitem->flags & UI_FLEX) {
-        if (pitem->flags & UI_WRAP) {
-            // flex model
-            if ((pitem->flags & 1) == (unsigned int)dim) // direction
-                uiComputeStackedSize(pitem, dim);
-            else
-                uiComputeWrappedSize(pitem, dim);
-        } else {
-            // flex model
-            if ((pitem->flags & 1) == (unsigned int)dim) // direction
-                uiComputeStackedSize(pitem, dim);
-            else
-                uiComputeImposedSize(pitem, dim);
-        }
-    } else {
+    switch(pitem->flags & UI_ITEM_BOX_MODEL_MASK) {
+    case UI_COLUMN|UI_WRAP: {
+        // flex model
+        if (dim) // direction
+            uiComputeStackedSize(pitem, 1);
+        else
+            uiComputeImposedSize(pitem, 0);
+    } break;
+    case UI_ROW|UI_WRAP: {
+        // flex model
+        if (!dim) // direction
+            uiComputeStackedSize(pitem, 0);
+        else
+            uiComputeWrappedSize(pitem, 1);
+    } break;
+    case UI_COLUMN:
+    case UI_ROW: {
+        // flex model
+        if ((pitem->flags & 1) == (unsigned int)dim) // direction
+            uiComputeStackedSize(pitem, dim);
+        else
+            uiComputeImposedSize(pitem, dim);
+    } break;
+    default: {
         // layout model
         uiComputeImposedSize(pitem, dim);
+    } break;
     }
 }
 
@@ -1171,7 +1183,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
             } else {
                 extend += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
             }
-            if (wrap && (extend > space) && (total>1)) {
+            if (wrap && (extend > space) && total) {
                 end_kid = kid;
                 // add marker for subsequent queries
                 pkid->flags |= UI_ITEM_NEWLINE;
@@ -1253,7 +1265,7 @@ UI_INLINE void uiArrangeImposedRange(UIitem *pitem, int dim,
         switch(flags & UI_HFILL) {
         default: break;
         case UI_HCENTER: {
-            pkid->margins[dim] += (space-pkid->size[dim])/2;
+            pkid->margins[dim] += (space-pkid->size[dim])/2 - pkid->margins[wdim];
         } break;
         case UI_RIGHT: {
             pkid->margins[dim] = space-pkid->size[dim]-pkid->margins[wdim];
@@ -1273,7 +1285,7 @@ UI_INLINE void uiArrangeImposed(UIitem *pitem, int dim) {
 }
 
 // superimpose all items according to their alignment
-UI_INLINE void uiArrangeWrappedImposed(UIitem *pitem, int dim) {
+UI_INLINE short uiArrangeWrappedImposed(UIitem *pitem, int dim) {
     int wdim = dim+2;
 
     short offset = pitem->margins[dim];
@@ -1299,28 +1311,43 @@ UI_INLINE void uiArrangeWrappedImposed(UIitem *pitem, int dim) {
     }
 
     uiArrangeImposedRange(pitem, dim, start_kid, -1, offset, need_size);
+    offset += need_size;
+    return offset;
 }
 
 static void uiArrange(int item, int dim) {
     UIitem *pitem = uiItemPtr(item);
 
-    if(pitem->flags & UI_FLEX) {
-        if (pitem->flags & UI_WRAP) {
-            if ((pitem->flags & 1) == (unsigned int)dim) { // direction
-                uiArrangeStacked(pitem, dim, true);
-            } else {
-                uiArrangeWrappedImposed(pitem, dim);
-            }
-        } else {
-            // flex model
-            if ((pitem->flags & 1) == (unsigned int)dim) // direction
-                uiArrangeStacked(pitem, dim, false);
-            else
-                uiArrangeImposed(pitem, dim);
+    switch(pitem->flags & UI_ITEM_BOX_MODEL_MASK) {
+    case UI_COLUMN|UI_WRAP: {
+        // flex model, wrapping
+        if (dim) { // direction
+            uiArrangeStacked(pitem, 1, true);
+            // this retroactive resize will not effect parent widths
+            short offset = uiArrangeWrappedImposed(pitem, 0);
+            pitem->size[0] = offset - pitem->margins[0];
         }
-    } else {
+    } break;
+    case UI_ROW|UI_WRAP: {
+        // flex model, wrapping
+        if (!dim) { // direction
+            uiArrangeStacked(pitem, 0, true);
+        } else {
+            uiArrangeWrappedImposed(pitem, 1);
+        }
+    } break;
+    case UI_COLUMN:
+    case UI_ROW: {
+        // flex model
+        if ((pitem->flags & 1) == (unsigned int)dim) // direction
+            uiArrangeStacked(pitem, dim, false);
+        else
+            uiArrangeImposed(pitem, dim);
+    } break;
+    default: {
         // layout model
         uiArrangeImposed(pitem, dim);
+    } break;
     }
 
     int kid = uiFirstChild(item);
@@ -1330,19 +1357,21 @@ static void uiArrange(int item, int dim) {
     }
 }
 
-static void uiNestedLayout(int item, int dim) {
-    uiComputeSize(item,dim);
-    uiArrange(item,dim);
+// vertical layout:
+// compute horizontal: superimposed width of all child items (assume single row)
+// arrange horizontal: arrange all items imposed in-place
+// compute vertical: set size to 0
+// arrange vertical: stack and wrap, vertically and horizontally
 
-    uiComputeSize(item,1-dim);
-    uiArrange(item,1-dim);
-}
 
 void uiLayout() {
     assert(ui_context);
     if (!ui_context->count) return;
 
-    uiNestedLayout(0,0);
+    uiComputeSize(0,0);
+    uiArrange(0,0);
+    uiComputeSize(0,1);
+    uiArrange(0,1);
 
     uiValidateStateItems();
     // drawing routines may require this to be set already
