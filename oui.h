@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 /*
-Revision 2 (2014-07-13)
+Revision 3 (2014-09-23)
 
 OUI (short for "Open UI", spoken like the french "oui" for "yes") is a
 platform agnostic single-header C library for layouting GUI elements and
