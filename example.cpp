@@ -992,7 +992,7 @@ void draw(NVGcontext *vg, float w, float h) {
     int opt_column = add_menu_option(menu, "UI_COLUMN", &choice);
     int opt_wrap = add_menu_option(menu, "UI_WRAP", &choice);
     if (choice < 0)
-        choice = opt_wrap;
+        choice = opt_blendish_demo;
 
     int content = uiItem();
     uiSetLayout(content, UI_FILL);
