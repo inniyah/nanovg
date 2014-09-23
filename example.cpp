@@ -46,6 +46,9 @@ typedef enum {
     ST_DEMOSTUFF = 10,
     // colored rectangle
     ST_RECT = 11,
+
+    ST_HBOX = 12,
+    ST_VBOX = 13,
 } SubType;
 
 typedef struct {
@@ -118,7 +121,52 @@ void testrect(NVGcontext *vg, UIrect rect) {
 #endif    
 }
 
-void drawUI(NVGcontext *vg, int item) {
+
+void drawUI(NVGcontext *vg, int item, int corners);
+
+void drawUIItems(NVGcontext *vg, int item, int corners) {
+    int kid = uiFirstChild(item);
+    while (kid > 0) {
+        drawUI(vg, kid, corners);
+        kid = uiNextSibling(kid);
+    }
+}
+
+void drawUIItemsHbox(NVGcontext *vg, int item) {
+    int kid = uiFirstChild(item);
+    if (kid < 0) return;
+    int nextkid = uiNextSibling(kid);
+    if (nextkid < 0) {
+        drawUI(vg, kid, BND_CORNER_NONE);
+    } else {
+        drawUI(vg, kid, BND_CORNER_RIGHT);
+        kid = nextkid;
+        while (uiNextSibling(kid) > 0) {
+            drawUI(vg, kid, BND_CORNER_ALL);
+            kid = uiNextSibling(kid);
+        }
+        drawUI(vg, kid, BND_CORNER_LEFT);
+    }
+}
+
+void drawUIItemsVbox(NVGcontext *vg, int item) {
+    int kid = uiFirstChild(item);
+    if (kid < 0) return;
+    int nextkid = uiNextSibling(kid);
+    if (nextkid < 0) {
+        drawUI(vg, kid, BND_CORNER_NONE);
+    } else {
+        drawUI(vg, kid, BND_CORNER_DOWN);
+        kid = nextkid;
+        while (uiNextSibling(kid) > 0) {
+            drawUI(vg, kid, BND_CORNER_ALL);
+            kid = uiNextSibling(kid);
+        }
+        drawUI(vg, kid, BND_CORNER_TOP);
+    }
+}
+
+void drawUI(NVGcontext *vg, int item, int corners) {
     const UIData *head = (const UIData *)uiGetHandle(item);
     UIrect rect = uiGetRect(item);
     if (uiGetState(item) == UI_FROZEN) {
@@ -128,9 +176,17 @@ void drawUI(NVGcontext *vg, int item) {
         switch(head->subtype) {
             default: {
                 testrect(vg,rect);
+                drawUIItems(vg,item,corners);
+            } break;
+            case ST_HBOX: {
+                drawUIItemsHbox(vg, item);
+            } break;
+            case ST_VBOX: {
+                drawUIItemsVbox(vg, item);
             } break;
             case ST_PANEL: {
                 bndBevel(vg,rect.x,rect.y,rect.w,rect.h);
+                drawUIItems(vg,item,corners);
             } break;
             case ST_LABEL: {
                 assert(head);
@@ -141,7 +197,7 @@ void drawUI(NVGcontext *vg, int item) {
             case ST_BUTTON: {
                 const UIButtonData *data = (UIButtonData*)head;
                 bndToolButton(vg,rect.x,rect.y,rect.w,rect.h,
-                    BND_CORNER_NONE,(BNDwidgetState)uiGetState(item),
+                        corners,(BNDwidgetState)uiGetState(item),
                     data->iconid,data->label);
             } break;
             case ST_CHECK: {
@@ -158,7 +214,7 @@ void drawUI(NVGcontext *vg, int item) {
                 if (*data->value == item)
                     state = BND_ACTIVE;
                 bndRadioButton(vg,rect.x,rect.y,rect.w,rect.h,
-                	BND_CORNER_NONE,state,
+                        corners,state,
                     data->iconid,data->label);
             } break;
             case ST_SLIDER:{
@@ -167,7 +223,7 @@ void drawUI(NVGcontext *vg, int item) {
                 static char value[32];
                 sprintf(value,"%.0f%%",(*data->progress)*100.0f);
                 bndSlider(vg,rect.x,rect.y,rect.w,rect.h,
-                	BND_CORNER_NONE,state,
+                        corners,state,
                     *data->progress,data->label,value);
             } break;
             case ST_TEXT: {
@@ -175,7 +231,7 @@ void drawUI(NVGcontext *vg, int item) {
                 BNDwidgetState state = (BNDwidgetState)uiGetState(item);
                 int idx = strlen(data->text);
                 bndTextField(vg,rect.x,rect.y,rect.w,rect.h,
-                	BND_CORNER_NONE,state, -1, data->text, idx, idx);
+                        corners,state, -1, data->text, idx, idx);
             } break;
             case ST_DEMOSTUFF: {
                 draw_demostuff(vg, rect.x, rect.y, rect.w, rect.h);
@@ -209,22 +265,15 @@ void drawUI(NVGcontext *vg, int item) {
                 }
                 nvgSave(vg);
                 nvgIntersectScissor(vg, rect.x, rect.y, rect.w, rect.h);
+
+                drawUIItems(vg,item,corners);
+
+                nvgRestore(vg);
             } break;
         }
     } else {
         testrect(vg,rect);
-    }
-    
-    int kid = uiFirstChild(item);
-    while (kid > 0) {
-        drawUI(vg, kid);
-        kid = uiNextSibling(kid);
-    }
-
-    if (head) {
-        if (head->subtype == ST_RECT) {
-            nvgRestore(vg);
-        }
+        drawUIItems(vg,item,corners);
     }
 
     if (uiGetState(item) == UI_FROZEN) {
@@ -413,6 +462,24 @@ int panel() {
     data->subtype = ST_PANEL;
     return item;
 }
+
+int hbox() {
+    int item = uiItem();
+    UIData *data = (UIData *)uiAllocHandle(item, sizeof(UIData));
+    data->subtype = ST_HBOX;
+    uiSetBox(item, UI_ROW);
+    return item;
+}
+
+
+int vbox() {
+    int item = uiItem();
+    UIData *data = (UIData *)uiAllocHandle(item, sizeof(UIData));
+    data->subtype = ST_VBOX;
+    uiSetBox(item, UI_COLUMN);
+    return item;
+}
+
 
 int column_append(int parent, int item) {
     uiInsert(parent, item);
@@ -722,27 +789,27 @@ void build_democontent(int parent) {
     column_append(col, button(BND_ICONID(6,3), "Item 2", demohandler));
 
     {
-        int h = column_append(col, hgroup());
+        int h = column_append(col, hbox());
         hgroup_append(h, radio(BND_ICONID(6,3), "Item 3.0", &enum1));
-        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICONID(0,10), NULL, &enum1)), 1,0,0,0);
-        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICONID(1,10), NULL, &enum1)), 1,0,0,0);
-        uiSetMargins(hgroup_append(h, radio(BND_ICONID(6,3), "Item 3.3", &enum1)), 1,0,0,0);
+        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICONID(0,10), NULL, &enum1)), -1,0,0,0);
+        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICONID(1,10), NULL, &enum1)), -1,0,0,0);
+        uiSetMargins(hgroup_append(h, radio(BND_ICONID(6,3), "Item 3.3", &enum1)), -1,0,0,0);
     }
     
     {
         int rows = column_append(col, row());
         int coll = row_append(rows, vgroup());
         vgroup_append(coll, label(-1, "Items 4.0:"));
-        coll = vgroup_append(coll, vgroup());
+        coll = vgroup_append(coll, vbox());
         vgroup_append(coll, button(BND_ICONID(6,3), "Item 4.0.0", demohandler));
-        vgroup_append(coll, button(BND_ICONID(6,3), "Item 4.0.1", demohandler));
+        uiSetMargins(vgroup_append(coll, button(BND_ICONID(6,3), "Item 4.0.1", demohandler)),0,-2,0,0);
         int colr = row_append(rows, vgroup());
         uiSetMargins(colr, 8, 0, 0, 0);
         uiSetFrozen(colr, option1);
         vgroup_append(colr, label(-1, "Items 4.1:"));
-        colr = vgroup_append(colr, vgroup());
+        colr = vgroup_append(colr, vbox());
         vgroup_append(colr, slider("Item 4.1.0", &progress1));
-        vgroup_append(colr, slider("Item 4.1.1", &progress2));
+        uiSetMargins(vgroup_append(colr, slider("Item 4.1.1", &progress2)),0,-2,0,0);
     }
     
     column_append(col, button(BND_ICONID(6,3), "Item 5", NULL));
@@ -1024,7 +1091,7 @@ void draw(NVGcontext *vg, float w, float h) {
     }
 
     uiLayout();
-    drawUI(vg, 0);
+    drawUI(vg, 0, BND_CORNER_NONE);
     
     if (choice == opt_blendish_demo) {
         UIvec2 cursor = uiGetCursor();
