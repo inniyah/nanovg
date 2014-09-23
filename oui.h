@@ -42,7 +42,7 @@ of the setup and evaluation, but do not need to be kept around longer than one
 frame.
 
 OUI has no widget types; instead, it provides only one kind of element, "Items",
-which can be taylored to the application by the user and expanded with custom
+which can be tailored to the application by the user and expanded with custom
 buffers and event handlers to behave as containers, buttons, sliders, radio
 buttons, and so on.
 
@@ -50,19 +50,45 @@ OUI also does not draw anything; Instead it provides a set of functions to
 iterate and query the layouted items in order to allow client code to render
 each widget with its current state using a preferred graphics library.
 
-A basic setup for OUI usage looks like this:
+See example.cpp in the repository for a full usage example.
+
+A basic setup for OUI usage in C looks like this:
+=================================================
+
+// a header for each widget
+typedef struct Data {
+    int type;
+    UIhandler handler;
+} Data;
+
+/// global event dispatch
+void ui_handler(int item, UIevent event) {
+    Data *data = (Data *)uiGetHandle(item);
+    if (data && data->handler) {
+        data->handler(item, event);
+    }
+}
 
 void app_main(...) {
     UIcontext *context = uiCreateContext();
     uiMakeCurrent(context);
+    uiSetHandler(ui_handler);
 
     while (app_running()) {
         // update position of mouse cursor; the ui can also be updated
         // from received events.
         uiSetCursor(app_get_mouse_x(), app_get_mouse_y());
+
         // update button state
         for (int i = 0; i < 3; ++i)
             uiSetButton(i, app_get_button_state(i));
+
+        // you can also send keys and scroll events; see example.cpp for more
+
+        // --------------
+        // this section does not have to be regenerated on frame; a good
+        // policy is to invalidate it on events, as this usually alters
+        // structure and layout.
 
         // begin new UI declarations
         uiClear();
@@ -73,83 +99,82 @@ void app_main(...) {
         // layout UI
         uiLayout();
 
-        // draw UI
-        app_draw_ui(render_context,0,0,0);
+        // --------------
+
+        // draw UI, starting with the first item, index 0
+        app_draw_ui(render_context,0);
 
         // update states and fire handlers
-        uiProcess();
+        uiProcess(get_time_ms());
     }
 
     uiDestroyContext(context);
 }
 
 Here's an example setup for a checkbox control:
+===============================================
 
 typedef struct CheckBoxData {
-    int type;
+    Data head;
     const char *label;
     bool *checked;
 } CheckBoxData;
 
 // called when the item is clicked (see checkbox())
 void app_checkbox_handler(int item, UIevent event) {
-
     // retrieve custom data (see checkbox())
-    const CheckBoxData *data = (const CheckBoxData *)uiGetData(item);
+    CheckBoxData *data = (CheckBoxData *)uiGetHandle(item);
 
-    // toggle value
- *data->checked = !(*data->checked);
+    switch(event) {
+    default: break;
+    case UI_BUTTON0_DOWN: {
+        // toggle value
+        *data->checked = !(*data->checked);
+    } break;
+    }
 }
 
-// creates a checkbox control for a pointer to a boolean and attaches it to 
-// a parent item.
-int checkbox(int parent, UIhandle handle, const char *label, bool *checked) {
+// creates a checkbox control for a pointer to a boolean
+int checkbox(const char *label, bool *checked) {
 
     // create new ui item
     int item = uiItem(); 
 
-    // set persistent handle for item that is used
-    // to track activity over time
-    uiSetHandle(item, handle);
-
-    // set size of wiget; horizontal size is dynamic, vertical is fixed
+    // set minimum size of wiget; horizontal size is dynamic, vertical is fixed
     uiSetSize(item, 0, APP_WIDGET_HEIGHT);
-
-    // attach checkbox handler, set to fire as soon as the left button is
-    // pressed; UI_BUTTON0_HOT_UP is also a popular alternative.
-    uiSetHandler(item, app_checkbox_handler, UI_BUTTON0_DOWN);
 
     // store some custom data with the checkbox that we use for rendering
     // and value changes.
-    CheckBoxData *data = (CheckBoxData *)uiAllocData(item, sizeof(CheckBoxData));
+    CheckBoxData *data = (CheckBoxData *)uiAllocHandle(item, sizeof(CheckBoxData));
+
     // assign a custom typeid to the data so the renderer knows how to
-    // render this control.
-    data->type = APP_WIDGET_CHECKBOX;
+    // render this control, and our event handler
+    data->head.type = APP_WIDGET_CHECKBOX;
+    data->head.handler = app_checkbox_handler;
     data->label = label;
     data->checked = checked;
 
-    // append to parent
-    uiAppend(parent, item);
+    // set to fire as soon as the left button is
+    // pressed; UI_BUTTON0_HOT_UP is also a popular alternative.
+    uiSetEvents(item, UI_BUTTON0_DOWN);
 
     return item;
 }
 
 A simple recursive drawing routine can look like this:
+======================================================
 
-void app_draw_ui(AppRenderContext *ctx, int item, int x, int y) {
-    // retrieve custom data and cast it to an int; we assume the first member
-    // of every widget data item to be an "int type" field.
-    const int *type = (const int *)uiGetData(item);
+void app_draw_ui(AppRenderContext *ctx, int item) {
+    // retrieve custom data and cast it to Data; we assume the first member
+    // of every widget data item to be a Data field.
+    Data *head = (Data *)uiGetHandle(item);
 
-    // get the widgets relative rectangle and offset by the parents
-    // absolute position.
-    UIrect rect = uiGetRect(item);
-    rect.x += x;
-    rect.y += y; 
+    // if a handle is set, this is a specialized widget
+    if (head) {
+        // get the widgets absolute rectangle
+        UIrect rect = uiGetRect(item);
 
-    // if a type is set, this is a specialized widget
-    if (type) {
-        switch(*type) {
+        switch(head->type) {
             default: break;
             case APP_WIDGET_LABEL: {
                 // ...
@@ -159,7 +184,7 @@ void app_draw_ui(AppRenderContext *ctx, int item, int x, int y) {
             } break;
             case APP_WIDGET_CHECKBOX: {
                 // cast to the full data type
-                const CheckBoxData *data = (CheckBoxData*)type;
+                CheckBoxData *data = (CheckBoxData*)head;
 
                 // get the widgets current state
                 int state = uiGetState(item);
@@ -176,13 +201,47 @@ void app_draw_ui(AppRenderContext *ctx, int item, int x, int y) {
 
     // iterate through all children and draw
     int kid = uiFirstChild(item);
-    while (kid >= 0) {
-        app_draw_ui(ctx, kid, rect.x, rect.y);
+    while (kid != -1) {
+        app_draw_ui(ctx, kid);
         kid = uiNextSibling(kid);
     }
 }
 
-See example.cpp in the repository for a full usage example.
+Layouting items works like this:
+================================
+
+void layout_window(int w, int h) {
+    // create root item; the first item always has index 0
+    int parent = uiItem();
+    // assign fixed size
+    uiSetSize(parent, w, h);
+
+    // create column box and use as new parent
+    parent = uiInsert(parent, uiItem());
+    // configure as column
+    uiSetBox(parent, UI_COLUMN);
+    // span horizontally, attach to top
+    uiSetLayout(parent, UI_HFILL | UI_TOP);
+
+    // add a label - we're assuming custom control functions to exist
+    int item = uiInsert(parent, label("Hello World"));
+    // set a fixed height for the label
+    uiSetSize(item, 0, APP_WIDGET_HEIGHT);
+    // span the label horizontally
+    uiSetLayout(item, UI_HFILL);
+
+    static bool checked = false;
+
+    // add a checkbox to the same parent as item; this is faster than
+    // calling uiInsert on the same parent repeatedly.
+    item = uiAppend(item, checkbox("Checked:", &checked));
+    // set a fixed height for the checkbox
+    uiSetSize(item, 0, APP_WIDGET_HEIGHT);
+    // span the checkbox in the same way as the label
+    uiSetLayout(item, UI_HFILL);
+}
+
+
 
  */
 
@@ -509,15 +568,15 @@ OUI_EXPORT void uiSetEvents(int item, int flags);
 // an item ID of 0 refers to the root item.
 // the function returns the child item ID
 // if the container has already added items, the function searches
-// for the last item and calls uiInsert() on it, which is an
+// for the last item and calls uiAppend() on it, which is an
 // O(N) operation for N siblings.
-// it is usually more efficient to call uiAppend() for the first child,
-// then chain additional siblings using uiInsert().
-OUI_EXPORT int uiAppend(int item, int child);
+// it is usually more efficient to call uiInsert() for the first child,
+// then chain additional siblings using uiAppend().
+OUI_EXPORT int uiInsert(int item, int child);
 
 // assign an item to the same container as another item
 // sibling is inserted after item.
-OUI_EXPORT int uiInsert(int item, int sibling);
+OUI_EXPORT int uiAppend(int item, int sibling);
 
 // set the size of the item; a size of 0 indicates the dimension to be 
 // dynamic; if the size is set, the item can not expand beyond that size.
@@ -971,7 +1030,7 @@ UI_INLINE int uiLastChild(int item) {
     }
 }
 
-int uiInsert(int item, int sibling) {
+int uiAppend(int item, int sibling) {
     assert(sibling > 0);
     UIitem *pitem = uiItemPtr(item);
     UIitem *psibling = uiItemPtr(sibling);
@@ -982,7 +1041,7 @@ int uiInsert(int item, int sibling) {
     return sibling;
 }
 
-int uiAppend(int item, int child) {
+int uiInsert(int item, int child) {
     assert(child > 0);
     UIitem *pparent = uiItemPtr(item);
     UIitem *pchild = uiItemPtr(child);
@@ -991,7 +1050,7 @@ int uiAppend(int item, int child) {
         pparent->firstkid = child;
         pchild->flags |= UI_ITEM_INSERTED;
     } else {
-        uiInsert(uiLastChild(item), child);
+        uiAppend(uiLastChild(item), child);
     }
     return child;
 }
