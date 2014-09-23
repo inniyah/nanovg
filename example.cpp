@@ -286,6 +286,7 @@ int colorrect(const char *label, NVGcolor color) {
     int item = uiItem();
     UIRectData *data = (UIRectData *)uiAllocHandle(item, sizeof(UIRectData));
     data->head.subtype = ST_RECT;
+    data->head.handler = NULL;
     data->label = label;
     data->color = color;
     uiSetEvents(item, UI_BUTTON0_DOWN);
@@ -297,6 +298,7 @@ int label(int iconid, const char *label) {
     uiSetSize(item, 0, BND_WIDGET_HEIGHT);
     UIButtonData *data = (UIButtonData *)uiAllocHandle(item, sizeof(UIButtonData));
     data->head.subtype = ST_LABEL;
+    data->head.handler = NULL;
     data->iconid = iconid;
     data->label = label;
     return item;
@@ -460,6 +462,7 @@ int panel() {
     int item = uiItem();
     UIData *data = (UIData *)uiAllocHandle(item, sizeof(UIData));
     data->subtype = ST_PANEL;
+    data->handler = NULL;
     return item;
 }
 
@@ -467,6 +470,7 @@ int hbox() {
     int item = uiItem();
     UIData *data = (UIData *)uiAllocHandle(item, sizeof(UIData));
     data->subtype = ST_HBOX;
+    data->handler = NULL;
     uiSetBox(item, UI_ROW);
     return item;
 }
@@ -476,6 +480,7 @@ int vbox() {
     int item = uiItem();
     UIData *data = (UIData *)uiAllocHandle(item, sizeof(UIData));
     data->subtype = ST_VBOX;
+    data->handler = NULL;
     uiSetBox(item, UI_COLUMN);
     return item;
 }
