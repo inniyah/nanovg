@@ -1164,7 +1164,6 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
         while (kid >= 0) {
             UIitem *pkid = uiItemPtr(kid);
             int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
-            total++;
             short extend = used;
             if ((flags & UI_HFILL) == UI_HFILL) { // grow
                 count++;
@@ -1181,6 +1180,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                 used = extend;
                 kid = uiNextSibling(kid);
             }
+            total++;
         }
 
         int extra_space = ui_max(space - used,0);
