@@ -299,40 +299,44 @@ typedef enum UIlayoutFlags {
     UI_CENTER = 0x000,
     // anchor to all four directions
     UI_FILL = 0x1e0,
+    // when wrapping, put this element on a new line
+    // wrapping layout code auto-inserts UI_BREAK flags,
+    // drawing routines can read them with uiGetLayout()
+    UI_BREAK = 0x200,
 
 } UIlayoutFlags;
 
 // event flags
 typedef enum UIevent {
     // on button 0 down
-    UI_BUTTON0_DOWN = 0x0200,
+    UI_BUTTON0_DOWN = 0x0400,
     // on button 0 up
     // when this event has a handler, uiGetState() will return UI_ACTIVE as
     // long as button 0 is down.
-    UI_BUTTON0_UP = 0x0400,
+    UI_BUTTON0_UP = 0x0800,
     // on button 0 up while item is hovered
     // when this event has a handler, uiGetState() will return UI_ACTIVE
     // when the cursor is hovering the items rectangle; this is the
     // behavior expected for buttons.
-    UI_BUTTON0_HOT_UP = 0x0800,
+    UI_BUTTON0_HOT_UP = 0x1000,
     // item is being captured (button 0 constantly pressed); 
     // when this event has a handler, uiGetState() will return UI_ACTIVE as
     // long as button 0 is down.
-    UI_BUTTON0_CAPTURE = 0x1000,
+    UI_BUTTON0_CAPTURE = 0x2000,
     // on button 2 down (right mouse button, usually triggers context menu)
-    UI_BUTTON2_DOWN = 0x2000,
+    UI_BUTTON2_DOWN = 0x4000,
     // item has received a scrollwheel event
     // the accumulated wheel offset can be queried with uiGetScroll()
-    UI_SCROLL = 0x4000,
+    UI_SCROLL = 0x8000,
     // item is focused and has received a key-down event
     // the respective key can be queried using uiGetKey() and uiGetModifier()
-    UI_KEY_DOWN = 0x8000,
+    UI_KEY_DOWN = 0x10000,
     // item is focused and has received a key-up event
     // the respective key can be queried using uiGetKey() and uiGetModifier()
-    UI_KEY_UP = 0x10000,
+    UI_KEY_UP = 0x20000,
     // item is focused and has received a character event
     // the respective character can be queried using uiGetKey()
-    UI_CHAR = 0x20000,
+    UI_CHAR = 0x40000,
 } UIevent;
 
 // handler callback; event is one of UI_EVENT_*
@@ -652,17 +656,15 @@ enum {
     // bit 0-4
     UI_ITEM_BOX_MASK       = 0x00001F,
     // bit 5-8
-    UI_ITEM_LAYOUT_MASK = 0x0001E0,
+    UI_ITEM_LAYOUT_MASK = 0x0003E0,
     // bit 9-18
-    UI_ITEM_EVENT_MASK  = 0x07FE00,
+    UI_ITEM_EVENT_MASK  = 0x07FC00,
     // item is frozen (bit 19)
     UI_ITEM_FROZEN      = 0x080000,
     // item handle is pointer to data (bit 20)
     UI_ITEM_DATA	    = 0x100000,
     // item has been inserted
     UI_ITEM_INSERTED	= 0x200000,
-    // item is on a new line (wrap marker)
-    UI_ITEM_NEWLINE     = 0x400000,
 };
 
 typedef struct UIitem {
@@ -1101,7 +1103,7 @@ UI_INLINE void uiComputeWrappedSize(UIitem *pitem, int dim) {
         UIitem *pkid = uiItemPtr(kid);
 
         // if next position moved back, we assume a new line
-        if (pkid->flags & UI_ITEM_NEWLINE) {
+        if (pkid->flags & UI_BREAK) {
             need_size2 += need_size;
             // newline
             need_size = 0;
@@ -1169,6 +1171,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
 
         int count = 0;
         int total = 0;
+        bool hardbreak = false;
         // first pass: count items that need to be expanded,
         // and the space that is used
         int kid = start_kid;
@@ -1183,10 +1186,12 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
             } else {
                 extend += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
             }
-            if (wrap && (extend > space) && total) {
+            // wrap on end of line or manual flag
+            if (wrap && (total && ((extend > space) || (pkid->flags & UI_BREAK)))) {
                 end_kid = kid;
+                hardbreak = ((pkid->flags & UI_BREAK) == UI_BREAK);
                 // add marker for subsequent queries
-                pkid->flags |= UI_ITEM_NEWLINE;
+                pkid->flags |= UI_BREAK;
                 break;
             } else {
                 used = extend;
@@ -1209,7 +1214,9 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                     extra_margin = extra_space / 2.0f;
                 } break;
                 case UI_JUSTIFY: {
-                    if (!wrap || (end_kid != -1))
+                    // justify when not wrapping or not in last line,
+                    // or not manually breaking
+                    if (!wrap || ((end_kid != -1) && !hardbreak))
                         spacer = (float)extra_space / (float)(total-1);
                 } break;
                 case UI_START: {
@@ -1296,7 +1303,7 @@ UI_INLINE short uiArrangeWrappedImposed(UIitem *pitem, int dim) {
     while (kid >= 0) {
         UIitem *pkid = uiItemPtr(kid);
 
-        if (pkid->flags & UI_ITEM_NEWLINE) {
+        if (pkid->flags & UI_BREAK) {
             uiArrangeImposedRange(pitem, dim, start_kid, kid, offset, need_size);
             offset += need_size;
             start_kid = kid;
@@ -1356,13 +1363,6 @@ static void uiArrange(int item, int dim) {
         kid = uiNextSibling(kid);
     }
 }
-
-// vertical layout:
-// compute horizontal: superimposed width of all child items (assume single row)
-// arrange horizontal: arrange all items imposed in-place
-// compute vertical: set size to 0
-// arrange vertical: stack and wrap, vertically and horizontally
-
 
 void uiLayout() {
     assert(ui_context);

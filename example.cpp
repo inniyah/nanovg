@@ -871,21 +871,26 @@ void fill_wrap_row_box(int box) {
         float hue = (float)(rand()%360)/360.0f;
         int width = 10 + (rand()%5)*10;
 
+        int u;
         switch(rand()%4) {
         default: break;
         case 0: {
-            demorect(box, "Layout( UI_TOP )", hue, 0, UI_TOP, width, T, M, M, M, M);
+            u = demorect(box, "Layout( UI_TOP )", hue, 0, UI_TOP, width, T, M, M, M, M);
         } break;
         case 1: {
-            demorect(box, "Layout( UI_VCENTER )", hue, 0, UI_VCENTER, width, T/2, M, M, M, M);
+            u = demorect(box, "Layout( UI_VCENTER )", hue, 0, UI_VCENTER, width, T/2, M, M, M, M);
         } break;
         case 2: {
-            demorect(box, "Layout( UI_VFILL )", hue, 0, UI_VFILL, width, T, M, M, M, M);
+            u = demorect(box, "Layout( UI_VFILL )", hue, 0, UI_VFILL, width, T, M, M, M, M);
         } break;
         case 3: {
-            demorect(box, "Layout( UI_DOWN )", hue, 0, UI_DOWN, width, T/2, M, M, M, M);
+            u = demorect(box, "Layout( UI_DOWN )", hue, 0, UI_DOWN, width, T/2, M, M, M, M);
         } break;
         }
+
+        if (rand()%10 == 0)
+            uiSetLayout(u, uiGetLayout(u)|UI_BREAK);
+
     }
 
 }
@@ -900,21 +905,25 @@ void fill_wrap_column_box(int box) {
         float hue = (float)(rand()%360)/360.0f;
         int height = 10 + (rand()%5)*10;
 
+        int u;
         switch(rand()%4) {
         default: break;
         case 0: {
-            demorect(box, "Layout( UI_LEFT )", hue, 0, UI_LEFT, T, height, M, M, M, M);
+            u = demorect(box, "Layout( UI_LEFT )", hue, 0, UI_LEFT, T, height, M, M, M, M);
         } break;
         case 1: {
-            demorect(box, "Layout( UI_HCENTER )", hue, 0, UI_HCENTER, T/2, height, M, M, M, M);
+            u = demorect(box, "Layout( UI_HCENTER )", hue, 0, UI_HCENTER, T/2, height, M, M, M, M);
         } break;
         case 2: {
-            demorect(box, "Layout( UI_HFILL )", hue, 0, UI_HFILL, T, height, M, M, M, M);
+            u = demorect(box, "Layout( UI_HFILL )", hue, 0, UI_HFILL, T, height, M, M, M, M);
         } break;
         case 3: {
-            demorect(box, "Layout( UI_RIGHT )", hue, 0, UI_RIGHT, T/2, height, M, M, M, M);
+            u = demorect(box, "Layout( UI_RIGHT )", hue, 0, UI_RIGHT, T/2, height, M, M, M, M);
         } break;
         }
+
+        if (rand()%10 == 0)
+            uiSetLayout(u, uiGetLayout(u)|UI_BREAK);
     }
 
 }
