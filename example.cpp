@@ -415,7 +415,7 @@ int panel() {
 }
 
 int column_append(int parent, int item) {
-    uiAppend(parent, item);
+    uiInsert(parent, item);
     // fill parent horizontally, anchor to previous item vertically
     uiSetLayout(item, UI_HFILL);
     // if not the first item, add a margin of 1
@@ -430,7 +430,7 @@ int column() {
 }
 
 int vgroup_append(int parent, int item) {
-    uiAppend(parent, item);
+    uiInsert(parent, item);
     // fill parent horizontally, anchor to previous item vertically
     uiSetLayout(item, UI_HFILL);
     return item;
@@ -443,13 +443,13 @@ int vgroup() {
 }
 
 int hgroup_append(int parent, int item) {
-    uiAppend(parent, item);
+    uiInsert(parent, item);
     uiSetLayout(item, UI_HFILL);
     return item;
 }
 
 int hgroup_append_fixed(int parent, int item) {
-    uiAppend(parent, item);
+    uiInsert(parent, item);
     return item;
 }
 
@@ -460,7 +460,7 @@ int hgroup() {
 }
 
 int row_append(int parent, int item) {
-    uiAppend(parent, item);
+    uiInsert(parent, item);
     uiSetLayout(item, UI_HFILL);
     return item;
 }
@@ -713,7 +713,7 @@ void build_democontent(int parent) {
     static int option3 = 0;
 
     int col = column();
-    uiAppend(parent, col);
+    uiInsert(parent, col);
     uiSetMargins(col, 10, 10, 10, 10);
     uiSetLayout(col, UI_TOP|UI_HFILL);
     
@@ -761,7 +761,7 @@ int demorect(int parent, const char *label, float hue, int box, int layout, int 
     uiSetBox(item, box);
     uiSetMargins(item, m1, m2, m3, m4);
     uiSetSize(item, w, h);
-    uiAppend(parent, item);
+    uiInsert(parent, item);
     return item;
 }
 
@@ -930,7 +930,7 @@ void fill_wrap_column_box(int box) {
 
 void build_wrapdemo(int parent) {
     int col = uiItem();
-    uiAppend(parent, col);
+    uiInsert(parent, col);
     uiSetBox(col, UI_COLUMN);
     uiSetLayout(col, UI_FILL);
 
@@ -958,7 +958,7 @@ void build_wrapdemo(int parent) {
 
 int add_menu_option(int parent, const char *name, int *choice) {
     int opt = radio(-1, name, choice);
-    uiAppend(parent, opt);
+    uiInsert(parent, opt);
     uiSetLayout(opt, UI_HFILL|UI_TOP);
     uiSetMargins(opt, 1, 1, 1, 1);
     return opt;
@@ -983,7 +983,7 @@ void draw(NVGcontext *vg, float w, float h) {
     int menu = uiItem();
     uiSetLayout(menu, UI_HFILL|UI_TOP);
     uiSetBox(menu, UI_ROW);
-    uiAppend(root, menu);
+    uiInsert(root, menu);
 
     int opt_blendish_demo = add_menu_option(menu, "Blendish Demo", &choice);
     int opt_oui_demo = add_menu_option(menu, "OUI Demo", &choice);
@@ -996,12 +996,12 @@ void draw(NVGcontext *vg, float w, float h) {
 
     int content = uiItem();
     uiSetLayout(content, UI_FILL);
-    uiAppend(root, content);
+    uiInsert(root, content);
 
     if (choice == opt_blendish_demo) {
         int democontent = uiItem();
         uiSetLayout(democontent, UI_FILL);
-        uiAppend(content, democontent);
+        uiInsert(content, democontent);
 
         UIData *data = (UIData *)uiAllocHandle(democontent, sizeof(UIData));
         data->handler = 0;
@@ -1010,7 +1010,7 @@ void draw(NVGcontext *vg, float w, float h) {
         int democontent = uiItem();
         uiSetLayout(democontent, UI_TOP);
         uiSetSize(democontent, 250, 0);
-        uiAppend(content, democontent);
+        uiInsert(content, democontent);
 
         build_democontent(democontent);
     } else if (choice == opt_layouts) {
