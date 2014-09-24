@@ -249,7 +249,11 @@ void drawUI(NVGcontext *vg, int item, int corners) {
                     }
                     nvgStrokeWidth(vg,2);
                     nvgBeginPath(vg);
+                    #if 0
+                    nvgRect(vg,rect.x,rect.y,rect.w,rect.h);
+                    #else
                     nvgRoundedRect(vg,rect.x,rect.y,rect.w,rect.h,3);
+                    #endif
                     nvgFill(vg);
                     nvgStroke(vg);
 
@@ -490,7 +494,6 @@ int column_append(int parent, int item) {
     uiInsert(parent, item);
     // fill parent horizontally, anchor to previous item vertically
     uiSetLayout(item, UI_HFILL);
-    // if not the first item, add a margin of 1
     uiSetMargins(item, 0, 1, 0, 0);
     return item;
 }
@@ -790,15 +793,15 @@ void build_democontent(int parent) {
     uiSetLayout(col, UI_TOP|UI_HFILL);
     
     
-    column_append(col, button(BND_ICONID(6,3), "Item 1", demohandler));
-    column_append(col, button(BND_ICONID(6,3), "Item 2", demohandler));
+    column_append(col, button(BND_ICON_GHOST, "Item 1", demohandler));
+    column_append(col, button(BND_ICON_GHOST, "Item 2", demohandler));
 
     {
         int h = column_append(col, hbox());
-        hgroup_append(h, radio(BND_ICONID(6,3), "Item 3.0", &enum1));
-        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICONID(0,10), NULL, &enum1)), -1,0,0,0);
-        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICONID(1,10), NULL, &enum1)), -1,0,0,0);
-        uiSetMargins(hgroup_append(h, radio(BND_ICONID(6,3), "Item 3.3", &enum1)), -1,0,0,0);
+        hgroup_append(h, radio(BND_ICON_GHOST, "Item 3.0", &enum1));
+        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICON_REC, NULL, &enum1)), -1,0,0,0);
+        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICON_PLAY, NULL, &enum1)), -1,0,0,0);
+        uiSetMargins(hgroup_append(h, radio(BND_ICON_GHOST, "Item 3.3", &enum1)), -1,0,0,0);
     }
     
     {
@@ -806,8 +809,8 @@ void build_democontent(int parent) {
         int coll = row_append(rows, vgroup());
         vgroup_append(coll, label(-1, "Items 4.0:"));
         coll = vgroup_append(coll, vbox());
-        vgroup_append(coll, button(BND_ICONID(6,3), "Item 4.0.0", demohandler));
-        uiSetMargins(vgroup_append(coll, button(BND_ICONID(6,3), "Item 4.0.1", demohandler)),0,-2,0,0);
+        vgroup_append(coll, button(BND_ICON_GHOST, "Item 4.0.0", demohandler));
+        uiSetMargins(vgroup_append(coll, button(BND_ICON_GHOST, "Item 4.0.1", demohandler)),0,-2,0,0);
         int colr = row_append(rows, vgroup());
         uiSetMargins(colr, 8, 0, 0, 0);
         uiSetFrozen(colr, option1);
@@ -817,7 +820,7 @@ void build_democontent(int parent) {
         uiSetMargins(vgroup_append(colr, slider("Item 4.1.1", &progress2)),0,-2,0,0);
     }
     
-    column_append(col, button(BND_ICONID(6,3), "Item 5", NULL));
+    column_append(col, button(BND_ICON_GHOST, "Item 5", NULL));
 
     static char textbuffer[1024] = "The quick brown fox.";
     column_append(col, textbox(textbuffer, 1024));
@@ -1199,7 +1202,8 @@ int main()
 	glGetError();
 #endif
 
-	_vg = nvgCreateGL3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
+	//_vg = nvgCreateGL3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
+	_vg = nvgCreateGL3(NVG_ANTIALIAS);
 	if (_vg == NULL) {
 		printf("Could not init nanovg.\n");
 		return -1;
