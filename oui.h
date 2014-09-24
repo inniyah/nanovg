@@ -678,15 +678,18 @@ OUI_EXPORT short uiGetMarginDown(int item);
 #include <assert.h>
 
 #ifdef _MSC_VER
-#pragma warning (disable: 4996) // Switch off security warnings
-#pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
-#ifdef __cplusplus
-#define UI_INLINE inline
+    #pragma warning (disable: 4996) // Switch off security warnings
+    #pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
+    #pragma warning (disable: 4244)
+    #pragma warning (disable: 4305)
+
+    #ifdef __cplusplus
+    #define UI_INLINE inline
+    #else
+    #define UI_INLINE
+    #endif
 #else
-#define UI_INLINE
-#endif
-#else
-#define UI_INLINE inline
+    #define UI_INLINE inline
 #endif
 
 #define UI_MAX_KIND 16

@@ -1213,6 +1213,9 @@ int main()
 
 	glfwSetTime(0);
 
+	double c = 0.0;
+	int total = 0;
+
 	while (!glfwWindowShouldClose(window))
 	{
 		double mx, my;
@@ -1231,11 +1234,20 @@ int main()
 		glClearColor(0,0,0,1);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 
+        double t = glfwGetTime();
 		nvgBeginFrame(_vg, winWidth, winHeight, pxRatio);
 
         draw(_vg, winWidth, winHeight);
 
 		nvgEndFrame(_vg);
+        double t2 = glfwGetTime();
+        c += (t2 - t);
+        total++;
+        if (total > (1*60)) {
+            printf("%fms\n", (c / (double)total)*1000.0);
+            total = 0;
+            c = 0.0;
+        }
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

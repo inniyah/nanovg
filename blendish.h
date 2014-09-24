@@ -1089,6 +1089,8 @@ BND_EXPORT NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState s
 #ifdef _MSC_VER
     #pragma warning (disable: 4996) // Switch off security warnings
     #pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
+    #pragma warning (disable: 4244)
+    #pragma warning (disable: 4305)
     #ifdef __cplusplus
     #define BND_INLINE inline
     #else
