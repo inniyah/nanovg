@@ -763,8 +763,9 @@ OUI_EXPORT int uiGetLastItemCount();
 #define UI_ANY_INPUT (UI_ANY_MOUSE_INPUT \
         |UI_ANY_KEY_INPUT)
 
-// extra item flags
 enum {
+    // extra item flags
+
     // bit 0-2
     UI_ITEM_BOX_MODEL_MASK = 0x000007,
     // bit 0-4
@@ -812,6 +813,12 @@ typedef enum UIstate {
     UI_STATE_CAPTURE,
 } UIstate;
 
+typedef enum UIstage {
+    UI_STAGE_DECLARE = 0,
+    UI_STAGE_DRAW,
+    UI_STAGE_PROCESS,
+} UIstage;
+
 typedef struct UIhandleEntry {
     unsigned int key;
     int item;
@@ -851,6 +858,7 @@ struct UIcontext {
     int hot_item;
 
     UIstate state;
+    UIstage stage;
     unsigned int active_key;
     unsigned int active_modifier;
     int last_timestamp;
@@ -887,6 +895,7 @@ UIcontext *uiCreateContext(
     memset(ctx, 0, sizeof(UIcontext));
     ctx->item_capacity = item_capacity;
     ctx->buffer_capacity = buffer_capacity;
+    ctx->stage = UI_STAGE_PROCESS;
     ctx->items = (UIitem *)malloc(sizeof(UIitem) * item_capacity);
     ctx->last_items = (UIitem *)malloc(sizeof(UIitem) * item_capacity);
     ctx->item_map = (int *)malloc(sizeof(int) * item_capacity);
@@ -897,6 +906,7 @@ UIcontext *uiCreateContext(
     UIcontext *oldctx = ui_context;
     uiMakeCurrent(ctx);
     uiClear();
+    ctx->stage = UI_STAGE_PROCESS;
     uiClearState();
     uiMakeCurrent(oldctx);
     return ctx;
@@ -1061,6 +1071,7 @@ int uiGetHotItem() {
 
 void uiFocus(int item) {
     assert(ui_context && (item >= -1) && (item < ui_context->count));
+    assert(ui_context->stage == UI_STAGE_PROCESS);
     ui_context->focus_item = item;
 }
 
@@ -1079,6 +1090,7 @@ int uiGetFocusedItem() {
 
 void uiClear() {
     assert(ui_context);
+    assert(ui_context->stage == UI_STAGE_PROCESS); // must run uiLayout(), uiProcess() first
     ui_context->last_count = ui_context->count;
     ui_context->count = 0;
     ui_context->datasize = 0;
@@ -1090,6 +1102,7 @@ void uiClear() {
     for (int i = 0; i < ui_context->last_count; ++i) {
         ui_context->item_map[i] = -1;
     }
+    ui_context->stage = UI_STAGE_DECLARE;
 }
 
 void uiClearState() {
@@ -1102,6 +1115,7 @@ void uiClearState() {
 
 int uiItem() {
     assert(ui_context);
+    assert(ui_context->stage == UI_STAGE_DECLARE); // must run between uiClear() and uiLayout()
     assert(ui_context->count < (int)ui_context->item_capacity);
     int idx = ui_context->count++;
     UIitem *item = uiItemPtr(idx);
@@ -1584,21 +1598,27 @@ void uiRemapItem(int olditem, int newitem) {
 
 void uiLayout() {
     assert(ui_context);
-    if (!ui_context->count) return;
+    assert(ui_context->stage == UI_STAGE_DECLARE); // must run uiClear() first
 
-    uiComputeSize(0,0);
-    uiArrange(0,0);
-    uiComputeSize(0,1);
-    uiArrange(0,1);
+    if (ui_context->count) {
+        uiComputeSize(0,0);
+        uiArrange(0,0);
+        uiComputeSize(0,1);
+        uiArrange(0,1);
 
-    if (ui_context->last_count && ui_context->count) {
-        // map old item id to new item id
-        uiMapItems(0,0);
+        if (ui_context->last_count) {
+            // map old item id to new item id
+            uiMapItems(0,0);
+        }
     }
 
     uiValidateStateItems();
-    // drawing routines may require this to be set already
-    uiUpdateHotItem();
+    if (ui_context->count) {
+        // drawing routines may require this to be set already
+        uiUpdateHotItem();
+    }
+
+    ui_context->stage = UI_STAGE_DRAW;
 }
 
 UIrect uiGetRect(int item) {
@@ -1719,6 +1739,10 @@ int uiGetClicks() {
 
 void uiProcess(int timestamp) {
     assert(ui_context);
+
+    assert(ui_context->stage == UI_STAGE_DRAW); // must run uiClear(), uiLayout() first
+    ui_context->stage = UI_STAGE_PROCESS;
+
     if (!ui_context->count) {
         uiClearInputEvents();
         return;
