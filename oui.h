@@ -649,6 +649,7 @@ OUI_EXPORT int uiGetFocusedItem();
 // if mask is UI_ANY, the first topmost item matching *any* of flags is returned.
 // otherwise the first item matching (item.flags & flags) == mask is returned.
 // you may combine box, layout, event and user flags.
+// frozen items will always be ignored.
 OUI_EXPORT int uiFindItem(int item, int x, int y,
         unsigned int flags, unsigned int mask);
 
