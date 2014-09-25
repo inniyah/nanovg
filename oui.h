@@ -815,7 +815,6 @@ typedef enum UIstate {
 
 typedef enum UIstage {
     UI_STAGE_DECLARE = 0,
-    UI_STAGE_DRAW,
     UI_STAGE_PROCESS,
 } UIstage;
 
@@ -1618,7 +1617,7 @@ void uiLayout() {
         uiUpdateHotItem();
     }
 
-    ui_context->stage = UI_STAGE_DRAW;
+    ui_context->stage = UI_STAGE_PROCESS;
 }
 
 UIrect uiGetRect(int item) {
@@ -1740,8 +1739,7 @@ int uiGetClicks() {
 void uiProcess(int timestamp) {
     assert(ui_context);
 
-    assert(ui_context->stage == UI_STAGE_DRAW); // must run uiClear(), uiLayout() first
-    ui_context->stage = UI_STAGE_PROCESS;
+    assert(ui_context->stage == UI_STAGE_PROCESS); // must run uiClear(), uiLayout() first
 
     if (!ui_context->count) {
         uiClearInputEvents();
