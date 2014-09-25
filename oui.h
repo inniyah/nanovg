@@ -447,6 +447,9 @@ OUI_EXPORT void uiMakeCurrent(UIcontext *ctx);
 // context is the current context, the current context will be set to NULL
 OUI_EXPORT void uiDestroyContext(UIcontext *ctx);
 
+// returns the currently selected context or NULL
+OUI_EXPORT UIcontext *uiGetContext();
+
 // Input Control
 // -------------
 
@@ -698,6 +701,24 @@ OUI_EXPORT short uiGetMarginRight(int item);
 // return the bottom margin of the item as set with uiSetMargins()
 OUI_EXPORT short uiGetMarginDown(int item);
 
+// when uiClear() is called, the most recently declared items are retained.
+// when uiLayout() completes, it matches the old item hierarchy to the new one
+// and attempts to map old items to new items as well as possible.
+// when passed an item Id from the previous frame, uiRecoverItem() returns the
+// items new assumed Id, or -1 if the item could not be mapped.
+// it is valid to pass -1 as item.
+OUI_EXPORT int uiRecoverItem(int olditem);
+
+// in cases where it is important to recover old state over changes in
+// the view, and the built-in remapping fails, the UI declaration can manually
+// remap old items to new IDs in cases where e.g. the previous item ID has been
+// temporarily saved; uiRemapItem() would then be called after creating the
+// new item using uiItem().
+OUI_EXPORT void uiRemapItem(int olditem, int newitem);
+
+// returns the number if items that have been allocated in the last frame
+OUI_EXPORT int uiGetLastItemCount();
+
 #ifdef __cplusplus
 };
 #endif
@@ -758,6 +779,12 @@ enum {
     UI_ITEM_DATA	    = 0x100000,
     // item has been inserted (bit 21)
     UI_ITEM_INSERTED	= 0x200000,
+
+    // which flag bits will be compared
+    UI_ITEM_COMPARE_MASK = UI_ITEM_BOX_MODEL_MASK
+        | (UI_ITEM_LAYOUT_MASK & ~UI_BREAK)
+        | UI_ITEM_EVENT_MASK
+        | UI_USERMASK,
 };
 
 typedef struct UIitem {
@@ -768,6 +795,7 @@ typedef struct UIitem {
     unsigned int flags;
 
     // index of first kid
+    // if old item: index of equivalent new item
     int firstkid;
     // index of next sibling with same parent
     int nextitem;
@@ -825,17 +853,19 @@ struct UIcontext {
     UIstate state;
     unsigned int active_key;
     unsigned int active_modifier;
-    int event_item;
     int last_timestamp;
     int last_click_timestamp;
     int clicks;
 
     int count;    
+    int last_count;
     int eventcount;
     unsigned int datasize;
 
     UIitem *items;
     unsigned char *data;
+    UIitem *last_items;
+    int *item_map;
     UIinputEvent events[UI_MAX_INPUT_EVENTS];
 };
 
@@ -858,6 +888,8 @@ UIcontext *uiCreateContext(
     ctx->item_capacity = item_capacity;
     ctx->buffer_capacity = buffer_capacity;
     ctx->items = (UIitem *)malloc(sizeof(UIitem) * item_capacity);
+    ctx->last_items = (UIitem *)malloc(sizeof(UIitem) * item_capacity);
+    ctx->item_map = (int *)malloc(sizeof(int) * item_capacity);
     if (buffer_capacity) {
         ctx->data = (unsigned char *)malloc(buffer_capacity);
     }
@@ -878,8 +910,14 @@ void uiDestroyContext(UIcontext *ctx) {
     if (ui_context == ctx)
         uiMakeCurrent(NULL);
     free(ctx->items);
+    free(ctx->last_items);
+    free(ctx->item_map);
     free(ctx->data);
     free(ctx);
+}
+
+OUI_EXPORT UIcontext *uiGetContext() {
+    return ui_context;
 }
 
 void uiSetButton(int button, int enabled) {
@@ -996,6 +1034,11 @@ int uiGetItemCount() {
     return ui_context->count;
 }
 
+int uiGetLastItemCount() {
+    assert(ui_context);
+    return ui_context->last_count;
+}
+
 unsigned int uiGetAllocSize() {
     assert(ui_context);
     return ui_context->datasize;
@@ -1004,6 +1047,11 @@ unsigned int uiGetAllocSize() {
 UIitem *uiItemPtr(int item) {
     assert(ui_context && (item >= 0) && (item < ui_context->count));
     return ui_context->items + item;
+}
+
+UIitem *uiLastItemPtr(int item) {
+    assert(ui_context && (item >= 0) && (item < ui_context->last_count));
+    return ui_context->last_items + item;
 }
 
 int uiGetHotItem() {
@@ -1018,14 +1066,10 @@ void uiFocus(int item) {
 
 static void uiValidateStateItems() {
     assert(ui_context);
-    if (ui_context->last_hot_item >= ui_context->count)
-        ui_context->last_hot_item = -1;
-    if (ui_context->active_item >= ui_context->count)
-        ui_context->active_item = -1;
-    if (ui_context->focus_item >= ui_context->count)
-        ui_context->focus_item = -1;
-    if (ui_context->last_click_item >= ui_context->count)
-        ui_context->last_click_item = -1;
+    ui_context->last_hot_item = uiRecoverItem(ui_context->last_hot_item);
+    ui_context->active_item = uiRecoverItem(ui_context->active_item);
+    ui_context->focus_item = uiRecoverItem(ui_context->focus_item);
+    ui_context->last_click_item = uiRecoverItem(ui_context->last_click_item);
 }
 
 int uiGetFocusedItem() {
@@ -1035,9 +1079,17 @@ int uiGetFocusedItem() {
 
 void uiClear() {
     assert(ui_context);
+    ui_context->last_count = ui_context->count;
     ui_context->count = 0;
     ui_context->datasize = 0;
     ui_context->hot_item = -1;
+    // swap buffers
+    UIitem *items = ui_context->items;
+    ui_context->items = ui_context->last_items;
+    ui_context->last_items = items;
+    for (int i = 0; i < ui_context->last_count; ++i) {
+        ui_context->item_map[i] = -1;
+    }
 }
 
 void uiClearState() {
@@ -1064,7 +1116,6 @@ void uiNotifyItem(int item, UIevent event) {
     if (!ui_context->handler)
         return;
     assert((event & UI_ITEM_EVENT_MASK) == event);
-    ui_context->event_item = item;
     UIitem *pitem = uiItemPtr(item);
     if (pitem->flags & event) {
         ui_context->handler(item, event);
@@ -1476,6 +1527,61 @@ static void uiArrange(int item, int dim) {
     }
 }
 
+UI_INLINE bool uiCompareItems(UIitem *item1, UIitem *item2) {
+    return ((item1->flags & UI_ITEM_COMPARE_MASK) == (item2->flags & UI_ITEM_COMPARE_MASK));
+
+}
+
+static bool uiMapItems(int item1, int item2) {
+    UIitem *pitem1 = uiLastItemPtr(item1);
+    if (item2 == -1) {
+        return false;
+    }
+
+    UIitem *pitem2 = uiItemPtr(item2);
+    if (!uiCompareItems(pitem1, pitem2)) {
+        return false;
+    }
+
+    int count = 0;
+    int failed = 0;
+    int kid1 = pitem1->firstkid;
+    int kid2 = pitem2->firstkid;
+    while (kid1 != -1) {
+        UIitem *pkid1 = uiLastItemPtr(kid1);
+        count++;
+        if (!uiMapItems(kid1, kid2)) {
+            failed = count;
+            break;
+        }
+        kid1 = pkid1->nextitem;
+        if (kid2 != -1) {
+            kid2 = uiItemPtr(kid2)->nextitem;
+        }
+    }
+
+    if (count && (failed == 1)) {
+        return false;
+    }
+
+    ui_context->item_map[item1] = item2;
+    return true;
+}
+
+int uiRecoverItem(int olditem) {
+    assert(ui_context);
+    assert((olditem >= -1) && (olditem < ui_context->last_count));
+    if (olditem == -1) return -1;
+    return ui_context->item_map[olditem];
+}
+
+void uiRemapItem(int olditem, int newitem) {
+    assert(ui_context);
+    assert((olditem >= 0) && (olditem < ui_context->last_count));
+    assert((newitem >= -1) && (newitem < ui_context->count));
+    ui_context->item_map[olditem] = newitem;
+}
+
 void uiLayout() {
     assert(ui_context);
     if (!ui_context->count) return;
@@ -1484,6 +1590,11 @@ void uiLayout() {
     uiArrange(0,0);
     uiComputeSize(0,1);
     uiArrange(0,1);
+
+    if (ui_context->last_count && ui_context->count) {
+        // map old item id to new item id
+        uiMapItems(0,0);
+    }
 
     uiValidateStateItems();
     // drawing routines may require this to be set already
