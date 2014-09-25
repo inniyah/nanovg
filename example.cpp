@@ -1161,7 +1161,7 @@ int main()
 	GLFWwindow* window;
     UIcontext *uictx;
     
-    uictx = uiCreateContext();
+    uictx = uiCreateContext(4096, 1<<20);
     uiMakeCurrent(uictx);
     uiSetHandler(ui_handler);
 
