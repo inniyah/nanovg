@@ -398,6 +398,16 @@ typedef enum UIevent {
     UI_CHAR = 0x40000,
 } UIevent;
 
+enum {
+    // these bits, starting at bit 24, can be safely assigned by the
+    // application, e.g. as item types, other event types, drop targets, etc.
+    // they can be set and queried using uiSetFlags() and uiGetFlags()
+    UI_USERMASK = 0xff000000,
+
+    // a special mask passed to uiFindItem()
+    UI_ANY = 0xffffffff,
+};
+
 // handler callback; event is one of UI_EVENT_*
 typedef void (*UIhandler)(int item, UIevent event);
 
@@ -564,6 +574,9 @@ OUI_EXPORT void uiSetHandler(UIhandler handler);
 // handler should be called. 
 OUI_EXPORT void uiSetEvents(int item, int flags);
 
+// flags is a user-defined set of flags defined by UI_USERMASK.
+OUI_EXPORT void uiSetFlags(int item, unsigned int flags);
+
 // assign an item to a container.
 // an item ID of 0 refers to the root item.
 // the function returns the child item ID
@@ -630,10 +643,22 @@ OUI_EXPORT int uiGetHotItem();
 // return the item that is currently focused or -1 for none
 OUI_EXPORT int uiGetFocusedItem();
 
+// returns the topmost item containing absolute location (x,y), starting with
+// item as parent, using a set of flags and masks as filter:
+// if both flags and mask are UI_ANY, the first topmost item is returned.
+// if mask is UI_ANY, the first topmost item matching *any* of flags is returned.
+// otherwise the first item matching (item.flags & flags) == mask is returned.
+// you may combine box, layout, event and user flags.
+OUI_EXPORT int uiFindItem(int item, int x, int y,
+        unsigned int flags, unsigned int mask);
+
 // return the handler callback as passed to uiSetHandler()
 OUI_EXPORT UIhandler uiGetHandler();
 // return the event flags for an item as passed to uiSetEvents()
 OUI_EXPORT int uiGetEvents(int item);
+// return the user-defined flags for an item as passed to uiSetFlags()
+OUI_EXPORT unsigned int uiGetFlags(int item);
+
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
 OUI_EXPORT unsigned int uiGetKey();
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
@@ -725,7 +750,7 @@ enum {
     UI_ITEM_FROZEN      = 0x080000,
     // item handle is pointer to data (bit 20)
     UI_ITEM_DATA	    = 0x100000,
-    // item has been inserted
+    // item has been inserted (bit 21)
     UI_ITEM_INSERTED	= 0x200000,
 };
 
@@ -1498,6 +1523,16 @@ int uiGetEvents(int item) {
     return uiItemPtr(item)->flags & UI_ITEM_EVENT_MASK;
 }
 
+void uiSetFlags(int item, unsigned int flags) {
+    UIitem *pitem = uiItemPtr(item);
+    pitem->flags &= ~UI_USERMASK;
+    pitem->flags |= flags & UI_USERMASK;
+}
+
+unsigned int uiGetFlags(int item) {
+    return uiItemPtr(item)->flags & UI_USERMASK;
+}
+
 int uiContains(int item, int x, int y) {
     UIrect rect = uiGetRect(item);
     x -= rect.x;
@@ -1509,14 +1544,14 @@ int uiContains(int item, int x, int y) {
     return 0;
 }
 
-int uiFindItemForEvent(int item, UIevent event, int x, int y) {
+int uiFindItem(int item, int x, int y, unsigned int flags, unsigned int mask) {
     UIitem *pitem = uiItemPtr(item);
     if (pitem->flags & UI_ITEM_FROZEN) return -1;
     if (uiContains(item, x, y)) {
         int best_hit = -1;
         int kid = uiFirstChild(item);
         while (kid >= 0) {
-            int hit = uiFindItemForEvent(kid, event, x, y);
+            int hit = uiFindItem(kid, x, y, flags, mask);
             if (hit >= 0) {
                 best_hit = hit;
             }
@@ -1525,8 +1560,9 @@ int uiFindItemForEvent(int item, UIevent event, int x, int y) {
         if (best_hit >= 0) {
             return best_hit;
         }
-        // click-through if the item has no handler for this event
-        if (pitem->flags & event) {
+        if (((mask == UI_ANY) && ((flags == UI_ANY)
+            || (pitem->flags & flags)))
+            || ((pitem->flags & flags) == mask)) {
             return item;
         }
     }
@@ -1536,9 +1572,9 @@ int uiFindItemForEvent(int item, UIevent event, int x, int y) {
 void uiUpdateHotItem() {
     assert(ui_context);
     if (!ui_context->count) return;
-    ui_context->hot_item = uiFindItemForEvent(0,
-            (UIevent)UI_ANY_MOUSE_INPUT,
-            ui_context->cursor.x, ui_context->cursor.y);
+    ui_context->hot_item = uiFindItem(0,
+            ui_context->cursor.x, ui_context->cursor.y,
+            UI_ANY_MOUSE_INPUT, UI_ANY);
 }
 
 int uiGetClicks() {
@@ -1568,8 +1604,9 @@ void uiProcess(int timestamp) {
         ui_context->focus_item = -1;
     }
     if (ui_context->scroll.x || ui_context->scroll.y) {
-        int scroll_item = uiFindItemForEvent(0, UI_SCROLL,
-                ui_context->cursor.x, ui_context->cursor.y);
+        int scroll_item = uiFindItem(0,
+                ui_context->cursor.x, ui_context->cursor.y,
+                UI_SCROLL, UI_ANY);
         if (scroll_item >= 0) {
             uiNotifyItem(scroll_item, UI_SCROLL);
         }
@@ -1607,8 +1644,8 @@ void uiProcess(int timestamp) {
             ui_context->state = UI_STATE_CAPTURE;            
         } else if (uiGetButton(2) && !uiGetLastButton(2)) {
             hot_item = -1;
-            hot = uiFindItemForEvent(0, UI_BUTTON2_DOWN,
-                    ui_context->cursor.x, ui_context->cursor.y);
+            hot = uiFindItem(0, ui_context->cursor.x, ui_context->cursor.y,
+                    UI_BUTTON2_DOWN, UI_ANY);
             if (hot >= 0) {
                 uiNotifyItem(hot, UI_BUTTON2_DOWN);
             }
