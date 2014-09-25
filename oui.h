@@ -565,7 +565,7 @@ OUI_EXPORT void uiSetHandle(int item, void *handle);
 // as the handle to the item.
 // The memory of the pointer is managed by the UI context and released
 // upon the next call to uiClear()
-OUI_EXPORT void *uiAllocHandle(int item, int size);
+OUI_EXPORT void *uiAllocHandle(int item, unsigned int size);
 
 // set the global handler callback for interactive items.
 // the handler will be called for each item whose event flags are set using
@@ -629,6 +629,9 @@ OUI_EXPORT int uiNextSibling(int item);
 
 // return the total number of allocated items
 OUI_EXPORT int uiGetItemCount();
+
+// return the total bytes that have been allocated by uiAllocHandle()
+OUI_EXPORT unsigned int uiGetAllocSize();
 
 // return the current state of the item. This state is only valid after
 // a call to uiProcess().
@@ -828,8 +831,8 @@ struct UIcontext {
     int clicks;
 
     int count;    
-    int datasize;
     int eventcount;
+    unsigned int datasize;
 
     UIitem *items;
     unsigned char *data;
@@ -988,10 +991,14 @@ unsigned int uiGetModifier() {
     return ui_context->active_modifier;
 }
 
-// return the total number of allocated items
-OUI_EXPORT int uiGetItemCount() {
+int uiGetItemCount() {
     assert(ui_context);
     return ui_context->count;
+}
+
+unsigned int uiGetAllocSize() {
+    assert(ui_context);
+    return ui_context->datasize;
 }
 
 UIitem *uiItemPtr(int item) {
@@ -1043,7 +1050,7 @@ void uiClearState() {
 
 int uiItem() {
     assert(ui_context);
-    assert(ui_context->count < ui_context->item_capacity);
+    assert(ui_context->count < (int)ui_context->item_capacity);
     int idx = ui_context->count++;
     UIitem *item = uiItemPtr(idx);
     memset(item, 0, sizeof(UIitem));
@@ -1500,7 +1507,7 @@ int uiNextSibling(int item) {
     return uiItemPtr(item)->nextitem;
 }
 
-void *uiAllocHandle(int item, int size) {
+void *uiAllocHandle(int item, unsigned int size) {
     assert((size > 0) && (size < UI_MAX_DATASIZE));
     UIitem *pitem = uiItemPtr(item);
     assert(pitem->handle == NULL);
