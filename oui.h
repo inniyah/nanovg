@@ -70,7 +70,7 @@ void ui_handler(int item, UIevent event) {
 }
 
 void app_main(...) {
-    UIcontext *context = uiCreateContext();
+    UIcontext *context = uiCreateContext(4096, 1<<20);
     uiMakeCurrent(context);
     uiSetHandler(ui_handler);
 
@@ -254,11 +254,6 @@ void layout_window(int w, int h) {
 // limits
 
 enum {
-    // maximum number of items that may be added (must be power of 2)
-    UI_MAX_ITEMS = 4096,
-    // maximum size in bytes reserved for storage of application dependent data
-    // as passed to uiAllocData().
-    UI_MAX_BUFFERSIZE = 1048576,
     // maximum size in bytes of a single data buffer passed to uiAllocData().
     UI_MAX_DATASIZE = 4096,
     // maximum depth of nested containers
@@ -435,7 +430,14 @@ typedef struct UIrect {
 // create a new UI context; call uiMakeCurrent() to make this context the
 // current context. The context is managed by the client and must be released
 // using uiDestroyContext()
-OUI_EXPORT UIcontext *uiCreateContext();
+// item_capacity is the maximum of number of items that can be declared.
+// buffer_capacity is the maximum total size of bytes that can be allocated
+// using uiAllocHandle(); you may pass 0 if you don't need to allocate
+// handles.
+// 4096 and (1<<20) are good starting values.
+OUI_EXPORT UIcontext *uiCreateContext(
+        unsigned int item_capacity,
+        unsigned int buffer_capacity);
 
 // select an UI context as the current context; a context must always be 
 // selected before using any of the other UI functions
@@ -791,6 +793,9 @@ typedef struct UIinputEvent {
 } UIinputEvent;
 
 struct UIcontext {
+    unsigned int item_capacity;
+    unsigned int buffer_capacity;
+
     // handler
     UIhandler handler;
 
@@ -826,8 +831,8 @@ struct UIcontext {
     int datasize;
     int eventcount;
 
-    UIitem items[UI_MAX_ITEMS];    
-    unsigned char data[UI_MAX_BUFFERSIZE];
+    UIitem *items;
+    unsigned char *data;
     UIinputEvent events[UI_MAX_INPUT_EVENTS];
 };
 
@@ -841,9 +846,19 @@ UI_INLINE int ui_min(int a, int b) {
 
 static UIcontext *ui_context = NULL;
 
-UIcontext *uiCreateContext() {
+UIcontext *uiCreateContext(
+        unsigned int item_capacity,
+        unsigned int buffer_capacity) {
+    assert(item_capacity);
     UIcontext *ctx = (UIcontext *)malloc(sizeof(UIcontext));
     memset(ctx, 0, sizeof(UIcontext));
+    ctx->item_capacity = item_capacity;
+    ctx->buffer_capacity = buffer_capacity;
+    ctx->items = (UIitem *)malloc(sizeof(UIitem) * item_capacity);
+    if (buffer_capacity) {
+        ctx->data = (unsigned char *)malloc(buffer_capacity);
+    }
+
     UIcontext *oldctx = ui_context;
     uiMakeCurrent(ctx);
     uiClear();
@@ -859,6 +874,8 @@ void uiMakeCurrent(UIcontext *ctx) {
 void uiDestroyContext(UIcontext *ctx) {
     if (ui_context == ctx)
         uiMakeCurrent(NULL);
+    free(ctx->items);
+    free(ctx->data);
     free(ctx);
 }
 
@@ -1026,7 +1043,7 @@ void uiClearState() {
 
 int uiItem() {
     assert(ui_context);
-    assert(ui_context->count < UI_MAX_ITEMS);
+    assert(ui_context->count < ui_context->item_capacity);
     int idx = ui_context->count++;
     UIitem *item = uiItemPtr(idx);
     memset(item, 0, sizeof(UIitem));
@@ -1487,7 +1504,7 @@ void *uiAllocHandle(int item, int size) {
     assert((size > 0) && (size < UI_MAX_DATASIZE));
     UIitem *pitem = uiItemPtr(item);
     assert(pitem->handle == NULL);
-    assert((ui_context->datasize+size) <= UI_MAX_BUFFERSIZE);
+    assert((ui_context->datasize+size) <= ui_context->buffer_capacity);
     pitem->handle = ui_context->data + ui_context->datasize;
     pitem->flags |= UI_ITEM_DATA;
     ui_context->datasize += size;
