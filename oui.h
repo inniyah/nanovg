@@ -91,13 +91,13 @@ void app_main(...) {
         // structure and layout.
 
         // begin new UI declarations
-        uiClear();
+        uiBeginLayout();
 
         // - UI setup code goes here -
         app_setup_ui();
 
         // layout UI
-        uiLayout();
+        uiEndLayout();
 
         // --------------
 
@@ -511,22 +511,23 @@ OUI_EXPORT UIvec2 uiGetScroll();
 // Stages
 // ------
 
-// clear the item buffer; uiClear() should be called before the first 
+// clear the item buffer; uiBeginLayout() should be called before the first
 // UI declaration for this frame to avoid concatenation of the same UI multiple 
 // times.
 // After the call, all previously declared item IDs are invalid, and all
 // application dependent context data has been freed.
-OUI_EXPORT void uiClear();
+// uiBeginLayout() must be followed by uiEndLayout().
+OUI_EXPORT void uiBeginLayout();
 
 // layout all added items starting from the root item 0.
-// after calling uiLayout(), no further modifications to the item tree should
-// be done until the next call to uiClear().
-// It is safe to immediately draw the items after a call to uiLayout().
+// after calling uiEndLayout(), no further modifications to the item tree should
+// be done until the next call to uiBeginLayout().
+// It is safe to immediately draw the items after a call to uiEndLayout().
 // this is an O(N) operation for N = number of declared items.
-OUI_EXPORT void uiLayout();
+OUI_EXPORT void uiEndLayout();
 
 // update the current hot item; this only needs to be called if items are kept
-// for more than one frame and uiLayout() is not called
+// for more than one frame and uiEndLayout() is not called
 OUI_EXPORT void uiUpdateHotItem();
 
 // update the internal state according to the current cursor position and 
@@ -534,7 +535,7 @@ OUI_EXPORT void uiUpdateHotItem();
 // timestamp is the time in milliseconds relative to the last call to uiProcess()
 // and is used to estimate the threshold for double-clicks
 // after calling uiProcess(), no further modifications to the item tree should
-// be done until the next call to uiClear().
+// be done until the next call to uiBeginLayout().
 // Items should be drawn before a call to uiProcess()
 // this is an O(N) operation for N = number of declared items.
 OUI_EXPORT void uiProcess(int timestamp);
@@ -567,7 +568,7 @@ OUI_EXPORT void uiSetHandle(int item, void *handle);
 // allocate space for application-dependent context data and assign it
 // as the handle to the item.
 // The memory of the pointer is managed by the UI context and released
-// upon the next call to uiClear()
+// upon the next call to uiBeginLayout()
 OUI_EXPORT void *uiAllocHandle(int item, unsigned int size);
 
 // set the global handler callback for interactive items.
@@ -577,7 +578,7 @@ OUI_EXPORT void uiSetHandler(UIhandler handler);
 
 // flags is a combination of UI_EVENT_* and designates for which events the 
 // handler should be called. 
-OUI_EXPORT void uiSetEvents(int item, int flags);
+OUI_EXPORT void uiSetEvents(int item, unsigned int flags);
 
 // flags is a user-defined set of flags defined by UI_USERMASK.
 OUI_EXPORT void uiSetFlags(int item, unsigned int flags);
@@ -601,18 +602,18 @@ OUI_EXPORT int uiAppend(int item, int sibling);
 OUI_EXPORT void uiSetSize(int item, int w, int h);
 
 // set the anchoring behavior of the item to one or multiple UIlayoutFlags
-OUI_EXPORT void uiSetLayout(int item, int flags);
+OUI_EXPORT void uiSetLayout(int item, unsigned int flags);
 
 // set the box model behavior of the item to one or multiple UIboxFlags
-OUI_EXPORT void uiSetBox(int item, int flags);
+OUI_EXPORT void uiSetBox(int item, unsigned int flags);
 
 // set the left, top, right and bottom margins of an item; when the item is
 // anchored to the parent or another item, the margin controls the distance
 // from the neighboring element.
 OUI_EXPORT void uiSetMargins(int item, short l, short t, short r, short b);
 
-// set item as recipient of all keyboard events; the item must have a handle
-// assigned; if item is -1, no item will be focused.
+// set item as recipient of all keyboard events; if item is -1, no item will
+// be focused.
 OUI_EXPORT void uiFocus(int item);
 
 // Iteration
@@ -664,7 +665,7 @@ OUI_EXPORT int uiFindItem(int item, int x, int y,
 // return the handler callback as passed to uiSetHandler()
 OUI_EXPORT UIhandler uiGetHandler();
 // return the event flags for an item as passed to uiSetEvents()
-OUI_EXPORT int uiGetEvents(int item);
+OUI_EXPORT unsigned int uiGetEvents(int item);
 // return the user-defined flags for an item as passed to uiSetFlags()
 OUI_EXPORT unsigned int uiGetFlags(int item);
 
@@ -674,7 +675,7 @@ OUI_EXPORT unsigned int uiGetKey();
 OUI_EXPORT unsigned int uiGetModifier();
 
 // returns the items layout rectangle in absolute coordinates. If 
-// uiGetRect() is called before uiLayout(), the values of the returned
+// uiGetRect() is called before uiEndLayout(), the values of the returned
 // rectangle are undefined.
 OUI_EXPORT UIrect uiGetRect(int item);
 
@@ -688,9 +689,9 @@ OUI_EXPORT int uiGetWidth(int item);
 OUI_EXPORT int uiGetHeight(int item);
 
 // return the anchoring behavior as set by uiSetLayout()
-OUI_EXPORT int uiGetLayout(int item);
+OUI_EXPORT unsigned int uiGetLayout(int item);
 // return the box model as set by uiSetBox()
-OUI_EXPORT int uiGetBox(int item);
+OUI_EXPORT unsigned int uiGetBox(int item);
 
 // return the left margin of the item as set with uiSetMargins()
 OUI_EXPORT short uiGetMarginLeft(int item);
@@ -701,8 +702,8 @@ OUI_EXPORT short uiGetMarginRight(int item);
 // return the bottom margin of the item as set with uiSetMargins()
 OUI_EXPORT short uiGetMarginDown(int item);
 
-// when uiClear() is called, the most recently declared items are retained.
-// when uiLayout() completes, it matches the old item hierarchy to the new one
+// when uiBeginLayout() is called, the most recently declared items are retained.
+// when uiEndLayout() completes, it matches the old item hierarchy to the new one
 // and attempts to map old items to new items as well as possible.
 // when passed an item Id from the previous frame, uiRecoverItem() returns the
 // items new assumed Id, or -1 if the item could not be mapped.
@@ -814,7 +815,8 @@ typedef enum UIstate {
 } UIstate;
 
 typedef enum UIstage {
-    UI_STAGE_DECLARE = 0,
+    UI_STAGE_LAYOUT = 0,
+    UI_STAGE_POST_LAYOUT,
     UI_STAGE_PROCESS,
 } UIstage;
 
@@ -886,6 +888,20 @@ UI_INLINE int ui_min(int a, int b) {
 
 static UIcontext *ui_context = NULL;
 
+void uiClear() {
+    ui_context->last_count = ui_context->count;
+    ui_context->count = 0;
+    ui_context->datasize = 0;
+    ui_context->hot_item = -1;
+    // swap buffers
+    UIitem *items = ui_context->items;
+    ui_context->items = ui_context->last_items;
+    ui_context->last_items = items;
+    for (int i = 0; i < ui_context->last_count; ++i) {
+        ui_context->item_map[i] = -1;
+    }
+}
+
 UIcontext *uiCreateContext(
         unsigned int item_capacity,
         unsigned int buffer_capacity) {
@@ -905,7 +921,6 @@ UIcontext *uiCreateContext(
     UIcontext *oldctx = ui_context;
     uiMakeCurrent(ctx);
     uiClear();
-    ctx->stage = UI_STAGE_PROCESS;
     uiClearState();
     uiMakeCurrent(oldctx);
     return ctx;
@@ -1070,7 +1085,7 @@ int uiGetHotItem() {
 
 void uiFocus(int item) {
     assert(ui_context && (item >= -1) && (item < ui_context->count));
-    assert(ui_context->stage == UI_STAGE_PROCESS);
+    assert(ui_context->stage != UI_STAGE_LAYOUT);
     ui_context->focus_item = item;
 }
 
@@ -1087,21 +1102,12 @@ int uiGetFocusedItem() {
     return ui_context->focus_item;
 }
 
-void uiClear() {
+
+void uiBeginLayout() {
     assert(ui_context);
-    assert(ui_context->stage == UI_STAGE_PROCESS); // must run uiLayout(), uiProcess() first
-    ui_context->last_count = ui_context->count;
-    ui_context->count = 0;
-    ui_context->datasize = 0;
-    ui_context->hot_item = -1;
-    // swap buffers
-    UIitem *items = ui_context->items;
-    ui_context->items = ui_context->last_items;
-    ui_context->last_items = items;
-    for (int i = 0; i < ui_context->last_count; ++i) {
-        ui_context->item_map[i] = -1;
-    }
-    ui_context->stage = UI_STAGE_DECLARE;
+    assert(ui_context->stage == UI_STAGE_PROCESS); // must run uiEndLayout(), uiProcess() first
+    uiClear();
+    ui_context->stage = UI_STAGE_LAYOUT;
 }
 
 void uiClearState() {
@@ -1114,7 +1120,7 @@ void uiClearState() {
 
 int uiItem() {
     assert(ui_context);
-    assert(ui_context->stage == UI_STAGE_DECLARE); // must run between uiClear() and uiLayout()
+    assert(ui_context->stage == UI_STAGE_LAYOUT); // must run between uiBeginLayout() and uiEndLayout()
     assert(ui_context->count < (int)ui_context->item_capacity);
     int idx = ui_context->count++;
     UIitem *item = uiItemPtr(idx);
@@ -1194,25 +1200,25 @@ int uiGetHeight(int item) {
     return uiItemPtr(item)->size[1];
 }
 
-void uiSetLayout(int item, int flags) {
+void uiSetLayout(int item, unsigned int flags) {
     UIitem *pitem = uiItemPtr(item);
-    assert((flags & UI_ITEM_LAYOUT_MASK) == flags);
+    assert((flags & UI_ITEM_LAYOUT_MASK) == (unsigned int)flags);
     pitem->flags &= ~UI_ITEM_LAYOUT_MASK;
     pitem->flags |= flags & UI_ITEM_LAYOUT_MASK;
 }
 
-int uiGetLayout(int item) {
+unsigned int uiGetLayout(int item) {
     return uiItemPtr(item)->flags & UI_ITEM_LAYOUT_MASK;
 }
 
-void uiSetBox(int item, int flags) {
+void uiSetBox(int item, unsigned int flags) {
     UIitem *pitem = uiItemPtr(item);
-    assert((flags & UI_ITEM_BOX_MASK) == flags);
+    assert((flags & UI_ITEM_BOX_MASK) == (unsigned int)flags);
     pitem->flags &= ~UI_ITEM_BOX_MASK;
     pitem->flags |= flags & UI_ITEM_BOX_MASK;
 }
 
-int uiGetBox(int item) {
+unsigned int uiGetBox(int item) {
     return uiItemPtr(item)->flags & UI_ITEM_BOX_MASK;
 }
 
@@ -1595,9 +1601,9 @@ void uiRemapItem(int olditem, int newitem) {
     ui_context->item_map[olditem] = newitem;
 }
 
-void uiLayout() {
+void uiEndLayout() {
     assert(ui_context);
-    assert(ui_context->stage == UI_STAGE_DECLARE); // must run uiClear() first
+    assert(ui_context->stage == UI_STAGE_LAYOUT); // must run uiBeginLayout() first
 
     if (ui_context->count) {
         uiComputeSize(0,0);
@@ -1617,7 +1623,7 @@ void uiLayout() {
         uiUpdateHotItem();
     }
 
-    ui_context->stage = UI_STAGE_PROCESS;
+    ui_context->stage = UI_STAGE_POST_LAYOUT;
 }
 
 UIrect uiGetRect(int item) {
@@ -1668,13 +1674,13 @@ UIhandler uiGetHandler() {
     return ui_context->handler;
 }
 
-void uiSetEvents(int item, int flags) {
+void uiSetEvents(int item, unsigned int flags) {
     UIitem *pitem = uiItemPtr(item);
     pitem->flags &= ~UI_ITEM_EVENT_MASK;
     pitem->flags |= flags & UI_ITEM_EVENT_MASK;
 }
 
-int uiGetEvents(int item) {
+unsigned int uiGetEvents(int item) {
     return uiItemPtr(item)->flags & UI_ITEM_EVENT_MASK;
 }
 
@@ -1739,7 +1745,12 @@ int uiGetClicks() {
 void uiProcess(int timestamp) {
     assert(ui_context);
 
-    assert(ui_context->stage == UI_STAGE_PROCESS); // must run uiClear(), uiLayout() first
+    assert(ui_context->stage != UI_STAGE_LAYOUT); // must run uiBeginLayout(), uiEndLayout() first
+
+    if (ui_context->stage == UI_STAGE_PROCESS) {
+        uiUpdateHotItem();
+    }
+    ui_context->stage = UI_STAGE_PROCESS;
 
     if (!ui_context->count) {
         uiClearInputEvents();

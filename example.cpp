@@ -1046,7 +1046,7 @@ void draw(NVGcontext *vg, float w, float h) {
 
     // some OUI stuff
 
-    uiClear();
+    uiBeginLayout();
 
     int root = panel();
     // position root element
@@ -1100,7 +1100,7 @@ void draw(NVGcontext *vg, float w, float h) {
         build_wrapdemo(content);
     }
 
-    uiLayout();
+    uiEndLayout();
 
     drawUI(vg, 0, BND_CORNER_NONE);
     
