@@ -778,9 +778,10 @@ void draw_demostuff(NVGcontext *vg, int x, int y, float w, float h) {
     nvgRestore(vg);
 }
 
+static int enum1 = -1;
+
 void build_democontent(int parent) {
     // some persistent variables for demonstration
-    static int enum1 = -1;
     static float progress1 = 0.25f;
     static float progress2 = 0.75f;
     static int option1 = 1;
@@ -791,7 +792,6 @@ void build_democontent(int parent) {
     uiInsert(parent, col);
     uiSetMargins(col, 10, 10, 10, 10);
     uiSetLayout(col, UI_TOP|UI_HFILL);
-    
     
     column_append(col, button(BND_ICON_GHOST, "Item 1", demohandler));
     if (option3)
@@ -1101,8 +1101,10 @@ void draw(NVGcontext *vg, float w, float h) {
     }
 
     uiLayout();
+
     drawUI(vg, 0, BND_CORNER_NONE);
     
+#if 0
     for (int i = 0; i < uiGetLastItemCount(); ++i) {
         if (uiRecoverItem(i) == -1) {
             UIitem *pitem = uiLastItemPtr(i);
@@ -1113,6 +1115,7 @@ void draw(NVGcontext *vg, float w, float h) {
             nvgStroke(vg);
         }
     }
+#endif
 
     if (choice == opt_blendish_demo) {
         UIvec2 cursor = uiGetCursor();
