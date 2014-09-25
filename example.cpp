@@ -1220,6 +1220,9 @@ int main()
 	double c = 0.0;
 	int total = 0;
 
+	int peak_items = 0;
+	unsigned int peak_alloc = 0;
+
 	while (!glfwWindowShouldClose(window))
 	{
 		double mx, my;
@@ -1242,6 +1245,8 @@ int main()
 		nvgBeginFrame(_vg, winWidth, winHeight, pxRatio);
 
         draw(_vg, winWidth, winHeight);
+        peak_items = (peak_items > uiGetItemCount())?peak_items:uiGetItemCount();
+        peak_alloc = (peak_alloc > uiGetAllocSize())?peak_alloc:uiGetAllocSize();
 
 		nvgEndFrame(_vg);
         double t2 = glfwGetTime();
@@ -1256,6 +1261,8 @@ int main()
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+	printf("Peak item count: %i (%u bytes)\nPeak allocated handles: %u bytes\n",
+	        peak_items, peak_items * sizeof(UIitem), peak_alloc);
 
     uiDestroyContext(uictx);
 
