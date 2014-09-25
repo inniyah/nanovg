@@ -780,7 +780,7 @@ void draw_demostuff(NVGcontext *vg, int x, int y, float w, float h) {
 
 void build_democontent(int parent) {
     // some persistent variables for demonstration
-    static int enum1 = 0;
+    static int enum1 = -1;
     static float progress1 = 0.25f;
     static float progress2 = 0.75f;
     static int option1 = 1;
@@ -794,12 +794,14 @@ void build_democontent(int parent) {
     
     
     column_append(col, button(BND_ICON_GHOST, "Item 1", demohandler));
-    column_append(col, button(BND_ICON_GHOST, "Item 2", demohandler));
+    if (option3)
+        column_append(col, button(BND_ICON_GHOST, "Item 2", demohandler));
 
     {
         int h = column_append(col, hbox());
         hgroup_append(h, radio(BND_ICON_GHOST, "Item 3.0", &enum1));
-        uiSetMargins(hgroup_append_fixed(h, radio(BND_ICON_REC, NULL, &enum1)), -1,0,0,0);
+        if (option2)
+            uiSetMargins(hgroup_append_fixed(h, radio(BND_ICON_REC, NULL, &enum1)), -1,0,0,0);
         uiSetMargins(hgroup_append_fixed(h, radio(BND_ICON_PLAY, NULL, &enum1)), -1,0,0,0);
         uiSetMargins(hgroup_append(h, radio(BND_ICON_GHOST, "Item 3.3", &enum1)), -1,0,0,0);
     }
@@ -1101,6 +1103,17 @@ void draw(NVGcontext *vg, float w, float h) {
     uiLayout();
     drawUI(vg, 0, BND_CORNER_NONE);
     
+    for (int i = 0; i < uiGetLastItemCount(); ++i) {
+        if (uiRecoverItem(i) == -1) {
+            UIitem *pitem = uiLastItemPtr(i);
+            nvgBeginPath(vg);
+            nvgRect(vg,pitem->margins[0],pitem->margins[1],pitem->size[0],pitem->size[1]);
+            nvgStrokeWidth(vg, 2);
+            nvgStrokeColor(vg, nvgRGBAf(1.0f,0.0f,0.0f,0.5f));
+            nvgStroke(vg);
+        }
+    }
+
     if (choice == opt_blendish_demo) {
         UIvec2 cursor = uiGetCursor();
         cursor.x -= w/2;
@@ -1261,7 +1274,7 @@ int main()
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-	printf("Peak item count: %i (%u bytes)\nPeak allocated handles: %u bytes\n",
+	printf("Peak item count: %i (%lu bytes)\nPeak allocated handles: %u bytes\n",
 	        peak_items, peak_items * sizeof(UIitem), peak_alloc);
 
     uiDestroyContext(uictx);
