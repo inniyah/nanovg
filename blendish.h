@@ -1689,7 +1689,9 @@ void bndColoredNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
         x0 + delta, y0,
         x1 - delta, y1,
         x1, y1);
-    nvgStrokeColor(ctx, bnd_theme.nodeTheme.wiresColor);
+    NVGcolor colorw = bnd_theme.nodeTheme.wiresColor;
+    colorw.a = (color0.a<color1.a)?color0.a:color1.a;
+    nvgStrokeColor(ctx, colorw);
     nvgStrokeWidth(ctx, BND_NODE_WIRE_OUTLINE_WIDTH);
     nvgStroke(ctx);
     nvgStrokePaint(ctx, nvgLinearGradient(ctx, 
