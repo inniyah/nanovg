@@ -910,6 +910,11 @@ BND_EXPORT void bndNodePort(NVGcontext *ctx, float x, float y, BNDwidgetState st
 BND_EXPORT void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
     BNDwidgetState state0, BNDwidgetState state1);
 
+// Draw a node wire originating at (x0,y0) and floating to (x1,y1), with
+// a colored gradient based on the two colors color0 and color1
+BND_EXPORT void bndColoredNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
+    NVGcolor color0, NVGcolor color1);
+
 // Draw a node background with its upper left origin at (x,y) and size of (w,h)
 // where titleColor provides the base color for the title bar
 BND_EXPORT void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h,
@@ -1674,8 +1679,8 @@ void bndNodePort(NVGcontext *ctx, float x, float y, BNDwidgetState state,
     nvgFill(ctx);
 }
 
-void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1, 
-    BNDwidgetState state0, BNDwidgetState state1) {
+void bndColoredNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
+    NVGcolor color0, NVGcolor color1) {
     float delta = fabsf(x1 - x0)*(float)bnd_theme.nodeTheme.noodleCurving/10.0f;
     
     nvgBeginPath(ctx);
@@ -1689,10 +1694,17 @@ void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
     nvgStroke(ctx);
     nvgStrokePaint(ctx, nvgLinearGradient(ctx, 
         x0, y0, x1, y1, 
-        bndNodeWireColor(&bnd_theme.nodeTheme, state0),
-        bndNodeWireColor(&bnd_theme.nodeTheme, state1)));
+        color0,
+        color1));
     nvgStrokeWidth(ctx,BND_NODE_WIRE_WIDTH);
     nvgStroke(ctx);
+}
+
+void bndNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
+    BNDwidgetState state0, BNDwidgetState state1) {
+    bndColoredNodeWire(ctx, x0, y0, x1, y1,
+        bndNodeWireColor(&bnd_theme.nodeTheme, state0),
+        bndNodeWireColor(&bnd_theme.nodeTheme, state1));
 }
 
 void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h,
