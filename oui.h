@@ -474,13 +474,14 @@ OUI_EXPORT UIvec2 uiGetCursorStartDelta();
 // sets a mouse or gamepad button as pressed/released
 // button is in the range 0..63 and maps to an application defined input
 // source.
+// mod is an application defined set of flags for modifier keys
 // enabled is 1 for pressed, 0 for released
-OUI_EXPORT void uiSetButton(int button, int enabled);
+OUI_EXPORT void uiSetButton(unsigned int button, unsigned int mod, int enabled);
 
 // returns the current state of an application dependent input button
 // as set by uiSetButton().
 // the function returns 1 if the button has been set to pressed, 0 for released.
-OUI_EXPORT int uiGetButton(int button);
+OUI_EXPORT int uiGetButton(unsigned int button);
 
 // returns the number of chained clicks; 1 is a single click,
 // 2 is a double click, etc.
@@ -671,7 +672,7 @@ OUI_EXPORT unsigned int uiGetFlags(int item);
 
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
 OUI_EXPORT unsigned int uiGetKey();
-// when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
+// when handling a keyboard or mouse event: the active modifier keys
 OUI_EXPORT unsigned int uiGetModifier();
 
 // returns the items layout rectangle in absolute coordinates. If 
@@ -862,6 +863,7 @@ struct UIcontext {
     UIstage stage;
     unsigned int active_key;
     unsigned int active_modifier;
+    unsigned int active_button_modifier;
     int last_timestamp;
     int last_click_timestamp;
     int clicks;
@@ -944,13 +946,14 @@ OUI_EXPORT UIcontext *uiGetContext() {
     return ui_context;
 }
 
-void uiSetButton(int button, int enabled) {
+void uiSetButton(unsigned int button, unsigned int mod, int enabled) {
     assert(ui_context);
     unsigned long long mask = 1ull<<button;
     // set new bit
     ui_context->buttons = (enabled)?
             (ui_context->buttons | mask):
             (ui_context->buttons & ~mask);
+    ui_context->active_button_modifier = mod;
 }
 
 static void uiAddInputEvent(UIinputEvent event) {
@@ -1808,6 +1811,7 @@ void uiProcess(int timestamp) {
 
                 ui_context->last_click_timestamp = timestamp;
                 ui_context->last_click_item = active_item;
+                ui_context->active_modifier = ui_context->active_button_modifier;
                 uiNotifyItem(active_item, UI_BUTTON0_DOWN);
             }            
             ui_context->state = UI_STATE_CAPTURE;            
@@ -1816,6 +1820,7 @@ void uiProcess(int timestamp) {
             hot = uiFindItem(0, ui_context->cursor.x, ui_context->cursor.y,
                     UI_BUTTON2_DOWN, UI_ANY);
             if (hot >= 0) {
+                ui_context->active_modifier = ui_context->active_button_modifier;
                 uiNotifyItem(hot, UI_BUTTON2_DOWN);
             }
         } else {
@@ -1825,6 +1830,7 @@ void uiProcess(int timestamp) {
     case UI_STATE_CAPTURE: {
         if (!uiGetButton(0)) {
             if (active_item >= 0) {
+                ui_context->active_modifier = ui_context->active_button_modifier;
                 uiNotifyItem(active_item, UI_BUTTON0_UP);
                 if (active_item == hot) {
                     uiNotifyItem(active_item, UI_BUTTON0_HOT_UP);
@@ -1834,6 +1840,7 @@ void uiProcess(int timestamp) {
             ui_context->state = UI_STATE_IDLE;
         } else {
             if (active_item >= 0) {
+                ui_context->active_modifier = ui_context->active_button_modifier;
                 uiNotifyItem(active_item, UI_BUTTON0_CAPTURE);
             }            
             if (hot == active_item)
