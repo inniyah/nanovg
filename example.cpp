@@ -1140,12 +1140,11 @@ void errorcb(int error, const char* desc)
 
 static void mousebutton(GLFWwindow *window, int button, int action, int mods) {
 	NVG_NOTUSED(window);
-	NVG_NOTUSED(mods);
 	switch(button) {
 	case 1: button = 2; break;
 	case 2: button = 1; break;
 	}
-    uiSetButton(button, (action==GLFW_PRESS)?1:0);
+    uiSetButton(button, mods, (action==GLFW_PRESS)?1:0);
 }
 
 static void cursorpos(GLFWwindow *window, double x, double y) {
@@ -1166,7 +1165,6 @@ static void charevent(GLFWwindow *window, unsigned int value) {
 static void key(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	NVG_NOTUSED(scancode);
-	NVG_NOTUSED(mods);
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
     uiSetKey(key, mods, action);
