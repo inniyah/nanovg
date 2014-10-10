@@ -1681,7 +1681,8 @@ void bndNodePort(NVGcontext *ctx, float x, float y, BNDwidgetState state,
 
 void bndColoredNodeWire(NVGcontext *ctx, float x0, float y0, float x1, float y1,
     NVGcolor color0, NVGcolor color1) {
-    float delta = fabsf(x1 - x0)*(float)bnd_theme.nodeTheme.noodleCurving/10.0f;
+    float length = bnd_fmaxf(fabsf(x1 - x0),fabsf(y1 - y0));
+    float delta = length*(float)bnd_theme.nodeTheme.noodleCurving/10.0f;
     
     nvgBeginPath(ctx);
     nvgMoveTo(ctx, x0, y0);
