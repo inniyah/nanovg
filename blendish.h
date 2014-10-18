@@ -1746,9 +1746,11 @@ void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h,
     bndOutlineBox(ctx,x,y,w,h+1,
         BND_NODE_RADIUS,BND_NODE_RADIUS,BND_NODE_RADIUS,BND_NODE_RADIUS,
         bndTransparent(borderColor));
+    /*
     bndNodeArrowDown(ctx, 
         x + BND_NODE_MARGIN_SIDE, y + BND_NODE_TITLE_HEIGHT-4, 
         BND_NODE_ARROW_SIZE, arrowColor);
+    */
     bndDropShadow(ctx,x,y,w,h,BND_NODE_RADIUS,
         BND_SHADOW_FEATHER,BND_SHADOW_ALPHA);
 }
