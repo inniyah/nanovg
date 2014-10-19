@@ -598,6 +598,16 @@ OUI_EXPORT int uiInsert(int item, int child);
 // sibling is inserted after item.
 OUI_EXPORT int uiAppend(int item, int sibling);
 
+// insert child into container item like uiInsert(), but prepend
+// it to the first child item, effectively putting it in
+// the background.
+// it is efficient to call uiInsertBack() repeatedly
+// in cases where drawing or layout order doesn't matter.
+OUI_EXPORT int uiInsertBack(int item, int child);
+
+// same as uiInsert()
+OUI_EXPORT int uiInsertFront(int item, int child);
+
 // set the size of the item; a size of 0 indicates the dimension to be 
 // dynamic; if the size is set, the item can not expand beyond that size.
 OUI_EXPORT void uiSetSize(int item, int w, int h);
@@ -1178,6 +1188,21 @@ int uiInsert(int item, int child) {
     } else {
         uiAppend(uiLastChild(item), child);
     }
+    return child;
+}
+
+int uiInsertFront(int item, int child) {
+    return uiInsert(item, child);
+}
+
+int uiInsertBack(int item, int child) {
+    assert(child > 0);
+    UIitem *pparent = uiItemPtr(item);
+    UIitem *pchild = uiItemPtr(child);
+    assert(!(pchild->flags & UI_ITEM_INSERTED));
+    pchild->nextitem = pparent->firstkid;
+    pparent->firstkid = child;
+    pchild->flags |= UI_ITEM_INSERTED;
     return child;
 }
 
