@@ -802,6 +802,13 @@ BND_EXPORT void bndRadioButton(NVGcontext *ctx,
     float x, float y, float w, float h, int flags, BNDwidgetState state, 
     int iconid, const char *label);
     
+
+// Calculate the corresponding text position for given coordinates px/py
+// in a text field.
+// See bndTextField for more info.
+BND_EXPORT int bndTextFieldTextPosition(NVGcontext *ctx, float x, float y, float w, float h,
+    int iconid, const char *text, int px, int py);
+
 // Draw a text field with its lower left origin at (x,y) and size of (w,h),
 // where flags is one or multiple flags from BNDcornerFlags and state denotes
 // the widgets current UI state.
@@ -1044,6 +1051,12 @@ BND_EXPORT void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, fl
 BND_EXPORT void bndNodeIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, NVGcolor color, NVGcolor shadowColor, int align, 
     float fontsize, const char *label);
+
+// Calculate the corresponding text position for given coordinates px/py
+// in an iconLabel.
+// See bndIconLabelCaret for more info.
+BND_EXPORT int bndIconLabelTextPosition(NVGcontext *ctx, float x, float y, float w, float h,
+    int iconid, float fontsize, const char *label, int px, int py);
     
 // Draw an optional icon specified by <iconid>, an optional label and 
 // a caret with given fontsize and color within a widget box.
@@ -1446,6 +1459,12 @@ void bndRadioButton(NVGcontext *ctx,
     bndIconLabelValue(ctx,x,y,w,h,iconid,
         bndTextColor(&bnd_theme.radioTheme, state), BND_CENTER,
         BND_LABEL_FONT_SIZE, label, NULL);
+}
+
+int bndTextFieldTextPosition(NVGcontext *ctx, float x, float y, float w, float h,
+    int iconid, const char *text, int px, int py) {
+    return bndIconLabelTextPosition(ctx, x, y, w, h,
+        iconid, BND_LABEL_FONT_SIZE, text, px, py);
 }
 
 void bndTextField(NVGcontext *ctx, 
@@ -2172,6 +2191,47 @@ void bndNodeIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
     if (iconid >= 0) {
         bndIcon(ctx,x+w-BND_ICON_SHEET_RES,y+3,iconid);
     }
+}
+
+int bndIconLabelTextPosition(NVGcontext *ctx, float x, float y, float w, float h,
+    int iconid, float fontsize, const char *label, int px, int py) {
+    float bounds[4];
+    float pleft = BND_TEXT_RADIUS;
+    if (!label) return -1;
+    if (iconid >= 0)
+        pleft += BND_ICON_SHEET_RES;
+
+    if (bnd_font < 0) return -1;
+
+    x += pleft;
+    y += BND_WIDGET_HEIGHT - BND_TEXT_PAD_DOWN;
+
+    nvgFontFaceId(ctx, bnd_font);
+    nvgFontSize(ctx, fontsize);
+    nvgTextAlign(ctx, NVG_ALIGN_LEFT | NVG_ALIGN_BASELINE);
+
+    w -= BND_TEXT_RADIUS + pleft;
+
+    float asc, desc, lh;
+    static NVGtextRow rows[BND_MAX_ROWS];
+    int nrows = nvgTextBreakLines(
+        ctx, label, NULL, w, rows, BND_MAX_ROWS);
+    nvgTextBoxBounds(ctx, x, y, w, label, NULL, bounds);
+    nvgTextMetrics(ctx, &asc, &desc, &lh);
+
+    // calculate vertical position
+    int row = bnd_clamp((int)((float)(py - bounds[1]) / lh), 0, nrows - 1);
+    // search horizontal position
+    static NVGglyphPosition glyphs[BND_MAX_GLYPHS];
+    int nglyphs = nvgTextGlyphPositions(
+        ctx, x, y, rows[row].start, rows[row].end + 1, glyphs, BND_MAX_GLYPHS);
+    int col, p = 0;
+    for (col = 0; col < nglyphs && glyphs[col].x < px; ++col)
+        p = glyphs[col].str - label;
+    // see if we should move one character further
+    if (col > 0 && col < nglyphs && glyphs[col].x - px < px - glyphs[col - 1].x)
+        p = glyphs[col].str - label;
+    return p;
 }
 
 static void bndCaretPosition(NVGcontext *ctx, float x, float y,float top,
