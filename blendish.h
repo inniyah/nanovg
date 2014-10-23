@@ -2216,6 +2216,7 @@ int bndIconLabelTextPosition(NVGcontext *ctx, float x, float y, float w, float h
     static NVGtextRow rows[BND_MAX_ROWS];
     int nrows = nvgTextBreakLines(
         ctx, label, NULL, w, rows, BND_MAX_ROWS);
+    if (nrows == 0) return 0;
     nvgTextBoxBounds(ctx, x, y, w, label, NULL, bounds);
     nvgTextMetrics(ctx, &asc, &desc, &lh);
 
@@ -2234,15 +2235,17 @@ int bndIconLabelTextPosition(NVGcontext *ctx, float x, float y, float w, float h
     return p;
 }
 
-static void bndCaretPosition(NVGcontext *ctx, float x, float y,float top,
+static void bndCaretPosition(NVGcontext *ctx, float x, float y, float *bounds,
     float lineHeight, const char *caret, NVGtextRow *rows,int nrows,
     int *cr, float *cx, float *cy) {
     static NVGglyphPosition glyphs[BND_MAX_GLYPHS];
     int r,nglyphs;
     for (r=0; r < nrows && rows[r].end < caret; ++r);
     *cr = r;
+    *cx = bounds[0];
+    *cy = bounds[1] + r*lineHeight;
+    if (nrows == 0) return;
     *cx = rows[r].minx;
-    *cy = top+r*lineHeight;
     nglyphs = nvgTextGlyphPositions(
         ctx, x, y, rows[r].start, rows[r].end+1, glyphs, BND_MAX_GLYPHS);
     for (int i=0; i < nglyphs; ++i) {
@@ -2283,9 +2286,13 @@ void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
         nvgTextBoxBounds(ctx, x, y, w, label, NULL, bounds);
         nvgTextMetrics(ctx, &asc, &desc, &lh);
 
-        bndCaretPosition(ctx, x, y, bounds[1], lh, label+cbegin,
+        // hardcoded workaround for broken bounds[1] value if text is empty
+        if (bounds[1] == y)
+            bounds[1] -= 10.37f; // ?!?!
+
+        bndCaretPosition(ctx, x, y, bounds, lh, label+cbegin,
             rows, nrows, &c0r, &c0x, &c0y);
-        bndCaretPosition(ctx, x, y, bounds[1], lh, label+cend,
+        bndCaretPosition(ctx, x, y, bounds, lh, label+cend,
             rows, nrows, &c1r, &c1x, &c1y);
         
         nvgBeginPath(ctx);
