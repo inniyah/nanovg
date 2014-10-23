@@ -2235,15 +2235,15 @@ int bndIconLabelTextPosition(NVGcontext *ctx, float x, float y, float w, float h
     return p;
 }
 
-static void bndCaretPosition(NVGcontext *ctx, float x, float y, float *bounds,
-    float lineHeight, const char *caret, NVGtextRow *rows,int nrows,
+static void bndCaretPosition(NVGcontext *ctx, float x, float y,
+    float desc, float lineHeight, const char *caret, NVGtextRow *rows,int nrows,
     int *cr, float *cx, float *cy) {
     static NVGglyphPosition glyphs[BND_MAX_GLYPHS];
     int r,nglyphs;
     for (r=0; r < nrows && rows[r].end < caret; ++r);
     *cr = r;
-    *cx = bounds[0];
-    *cy = bounds[1] + r*lineHeight;
+    *cx = x;
+    *cy = y-lineHeight-desc + r*lineHeight;
     if (nrows == 0) return;
     *cx = rows[r].minx;
     nglyphs = nvgTextGlyphPositions(
@@ -2257,7 +2257,6 @@ static void bndCaretPosition(NVGcontext *ctx, float x, float y, float *bounds,
 void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, NVGcolor color, float fontsize, const char *label, 
     NVGcolor caretcolor, int cbegin, int cend) {
-    float bounds[4];
     float pleft = BND_TEXT_RADIUS;
     if (!label) return;
     if (iconid >= 0) {
@@ -2279,20 +2278,15 @@ void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
     if (cend >= cbegin) {
         int c0r,c1r;
         float c0x,c0y,c1x,c1y;
-        float asc,desc,lh;
+        float desc,lh;
         static NVGtextRow rows[BND_MAX_ROWS];
         int nrows = nvgTextBreakLines(
             ctx, label, label+cend+1, w, rows, BND_MAX_ROWS);
-        nvgTextBoxBounds(ctx, x, y, w, label, NULL, bounds);
-        nvgTextMetrics(ctx, &asc, &desc, &lh);
+        nvgTextMetrics(ctx, NULL, &desc, &lh);
 
-        // hardcoded workaround for broken bounds[1] value if text is empty
-        if (bounds[1] == y)
-            bounds[1] -= 10.37f; // ?!?!
-
-        bndCaretPosition(ctx, x, y, bounds, lh, label+cbegin,
+        bndCaretPosition(ctx, x, y, desc, lh, label+cbegin,
             rows, nrows, &c0r, &c0x, &c0y);
-        bndCaretPosition(ctx, x, y, bounds, lh, label+cend,
+        bndCaretPosition(ctx, x, y, desc, lh, label+cend,
             rows, nrows, &c1r, &c1x, &c1y);
         
         nvgBeginPath(ctx);
@@ -2305,13 +2299,11 @@ void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
                 nvgRect(ctx, c0x-1, c0y, c1x-c0x+1, lh+1);
             } else {
                 int blk=c1r-c0r-1;
-                nvgRect(ctx, c0x-1, c0y, bounds[2]-c0x+1, lh+1);
-                nvgRect(ctx, bounds[0], c1y, c1x-bounds[0]+1, lh+1);
+                nvgRect(ctx, c0x-1, c0y, x+w-c0x+1, lh+1);
+                nvgRect(ctx, x, c1y, c1x-x+1, lh+1);
 
-                if (blk) {
-                    nvgRect(ctx, bounds[0], c0y+lh,
-                        bounds[2]-bounds[0], blk*lh+1);
-                }
+                if (blk)
+                    nvgRect(ctx, x, c0y+lh, w, blk*lh+1);
             }
         }
         nvgFill(ctx);
