@@ -2153,17 +2153,17 @@ void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, float h,
                     + nvgTextBounds(ctx, 1, 1, value, NULL, NULL);
                 x += ((w-BND_PAD_RIGHT-pleft)-width)*0.5f;
             }
-            y += h-BND_TEXT_PAD_DOWN;
+            y += BND_WIDGET_HEIGHT-BND_TEXT_PAD_DOWN;
             nvgText(ctx, x, y, label, NULL);
             x += label_width;
             nvgText(ctx, x, y, BND_LABEL_SEPARATOR, NULL);
             x += sep_width;
-            nvgText(ctx, x, y, value, NULL);            
+            nvgText(ctx, x, y, value, NULL);
         } else {
             nvgTextAlign(ctx, 
                 (align==BND_LEFT)?(NVG_ALIGN_LEFT|NVG_ALIGN_BASELINE):
                 (NVG_ALIGN_CENTER|NVG_ALIGN_BASELINE));
-            nvgTextBox(ctx,x+pleft,y+h-BND_TEXT_PAD_DOWN,
+            nvgTextBox(ctx,x+pleft,y+BND_WIDGET_HEIGHT-BND_TEXT_PAD_DOWN,
                 w-BND_PAD_RIGHT-pleft,label, NULL);
         }
     } else if (iconid >= 0) {
