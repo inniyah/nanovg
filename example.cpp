@@ -952,16 +952,20 @@ void fill_wrap_row_box(int box) {
         switch(rand()%4) {
         default: break;
         case 0: {
-            u = demorect(box, "Layout( UI_TOP )", hue, 0, UI_TOP, width, T, M, M, M, M);
+            u = demorect(box, "Layout( UI_TOP )",
+                    hue, 0, UI_TOP, width, T, M, M, M, M);
         } break;
         case 1: {
-            u = demorect(box, "Layout( UI_VCENTER )", hue, 0, UI_VCENTER, width, T/2, M, M, M, M);
+            u = demorect(box, "Layout( UI_VCENTER )",
+                    hue, 0, UI_VCENTER, width, T/2, M, M, M, M);
         } break;
         case 2: {
-            u = demorect(box, "Layout( UI_VFILL )", hue, 0, UI_VFILL, width, T, M, M, M, M);
+            u = demorect(box, "Layout( UI_VFILL )",
+                    hue, 0, UI_VFILL, width, T, M, M, M, M);
         } break;
         case 3: {
-            u = demorect(box, "Layout( UI_DOWN )", hue, 0, UI_DOWN, width, T/2, M, M, M, M);
+            u = demorect(box, "Layout( UI_DOWN )",
+                    hue, 0, UI_DOWN, width, T/2, M, M, M, M);
         } break;
         }
 
@@ -986,16 +990,20 @@ void fill_wrap_column_box(int box) {
         switch(rand()%4) {
         default: break;
         case 0: {
-            u = demorect(box, "Layout( UI_LEFT )", hue, 0, UI_LEFT, T, height, M, M, M, M);
+            u = demorect(box, "Layout( UI_LEFT )",
+                    hue, 0, UI_LEFT, T, height, M, M, M, M);
         } break;
         case 1: {
-            u = demorect(box, "Layout( UI_HCENTER )", hue, 0, UI_HCENTER, T/2, height, M, M, M, M);
+            u = demorect(box, "Layout( UI_HCENTER )",
+                    hue, 0, UI_HCENTER, T/2, height, M, M, M, M);
         } break;
         case 2: {
-            u = demorect(box, "Layout( UI_HFILL )", hue, 0, UI_HFILL, T, height, M, M, M, M);
+            u = demorect(box, "Layout( UI_HFILL )",
+                    hue, 0, UI_HFILL, T, height, M, M, M, M);
         } break;
         case 3: {
-            u = demorect(box, "Layout( UI_RIGHT )", hue, 0, UI_RIGHT, T/2, height, M, M, M, M);
+            u = demorect(box, "Layout( UI_RIGHT )",
+                    hue, 0, UI_RIGHT, T/2, height, M, M, M, M);
         } break;
         }
 
@@ -1016,19 +1024,24 @@ void build_wrapdemo(int parent) {
     const int T = 50;
 
     int box;
-    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_START )\nLayout( UI_HFILL | UI_TOP )", 0.6f, UI_ROW | UI_WRAP | UI_START, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
+    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_START )\nLayout( UI_HFILL | UI_TOP )",
+            0.6f, UI_ROW | UI_WRAP | UI_START, UI_TOP, 0, 0, M, M, M, M);
     fill_wrap_row_box(box);
 
-    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_MIDDLE )\nLayout( UI_HFILL | UI_TOP )", 0.6f, UI_ROW | UI_WRAP, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
+    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_MIDDLE )\nLayout( UI_HFILL | UI_TOP )",
+            0.6f, UI_ROW | UI_WRAP, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
     fill_wrap_row_box(box);
 
-    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_END )\nLayout( UI_HFILL | UI_TOP )", 0.6f, UI_ROW | UI_WRAP | UI_END, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
+    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_END )\nLayout( UI_HFILL | UI_TOP )",
+            0.6f, UI_ROW | UI_WRAP | UI_END, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
     fill_wrap_row_box(box);
 
-    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_JUSTIFY )\nLayout( UI_HFILL | UI_TOP )", 0.6f, UI_ROW | UI_WRAP | UI_JUSTIFY, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
+    box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_JUSTIFY )\nLayout( UI_HFILL | UI_TOP )",
+            0.6f, UI_ROW | UI_WRAP | UI_JUSTIFY, UI_HFILL | UI_TOP, 0, 0, M, M, M, M);
     fill_wrap_row_box(box);
 
-    box = demorect(col, "Box( UI_COLUMN | UI_WRAP | UI_START )\nLayout( UI_LEFT | UI_VFILL )", 0.6f, UI_COLUMN | UI_WRAP | UI_START, UI_LEFT | UI_VFILL, 0, 0, M, M, M, M);
+    box = demorect(col, "Box( UI_COLUMN | UI_WRAP | UI_START )\nLayout( UI_LEFT | UI_VFILL )",
+            0.6f, UI_COLUMN | UI_WRAP | UI_START, UI_LEFT | UI_VFILL, 0, 0, M, M, M, M);
     fill_wrap_column_box(box);
 }
 
