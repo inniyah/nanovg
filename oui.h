@@ -1406,6 +1406,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
     int wdim = dim+2;
 
     short space = pitem->size[dim];
+    float max_x2 = (float)pitem->margins[dim] + (float)space;
 
     int start_kid = pitem->firstkid;
     while (start_kid >= 0) {
@@ -1471,8 +1472,8 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                 } break;
                 }
             }
-        } else if (extra_space < 0) {
-            eater = (float)extra_space / (float)fixed_count;
+        } else if (!wrap && (extra_space < 0)) {
+           eater = (float)extra_space / (float)fixed_count;
         }
 
         // distribute width among items
@@ -1492,7 +1493,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                 x1 = x+ui_maxf(0.0f,(float)pkid->size[dim]+eater);
             }
             ix0 = (short)x;
-            ix1 = (short)x1;
+            ix1 = (short)ui_minf(max_x2-(float)pkid->margins[wdim], x1);
             pkid->margins[dim] = ix0;
             pkid->size[dim] = ix1-ix0;
             x = x1 + (float)pkid->margins[wdim];
