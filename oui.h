@@ -898,6 +898,14 @@ UI_INLINE int ui_min(int a, int b) {
     return (a<b)?a:b;
 }
 
+UI_INLINE float ui_maxf(float a, float b) {
+    return (a>b)?a:b;
+}
+
+UI_INLINE float ui_minf(float a, float b) {
+    return (a<b)?a:b;
+}
+
 static UIcontext *ui_context = NULL;
 
 void uiClear() {
@@ -1403,7 +1411,8 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
     while (start_kid >= 0) {
         short used = 0;
 
-        int count = 0;
+        int count = 0; // count of fillers
+        int fixed_count = 0; // count of fixed elements
         int total = 0;
         bool hardbreak = false;
         // first pass: count items that need to be expanded,
@@ -1418,6 +1427,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                 count++;
                 extend += pkid->margins[dim] + pkid->margins[wdim];
             } else {
+                fixed_count++;
                 extend += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
             }
             // wrap on end of line or manual flag
@@ -1434,12 +1444,13 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
             total++;
         }
 
-        int extra_space = ui_max(space - used,0);
+        int extra_space = space - used;
         float filler = 0.0f;
         float spacer = 0.0f;
         float extra_margin = 0.0f;
+        float eater = 0.0f;
 
-        if (extra_space) {
+        if (extra_space > 0) {
             if (count) {
                 filler = (float)extra_space / (float)count;
             } else if (total) {
@@ -1460,6 +1471,8 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                 } break;
                 }
             }
+        } else if (extra_space < 0) {
+            eater = (float)extra_space / (float)fixed_count;
         }
 
         // distribute width among items
@@ -1476,7 +1489,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
             if ((flags & UI_HFILL) == UI_HFILL) { // grow
                 x1 = x+filler;
             } else {
-                x1 = x+(float)pkid->size[dim];
+                x1 = x+ui_maxf(0.0f,(float)pkid->size[dim]+eater);
             }
             ix0 = (short)x;
             ix1 = (short)x1;
