@@ -1302,6 +1302,30 @@ UI_INLINE void uiComputeStackedSize(UIitem *pitem, int dim) {
     pitem->size[dim] = need_size;
 }
 
+// compute bounding box of all items stacked, repeating when breaking
+UI_INLINE void uiComputeWrappedStackedSize(UIitem *pitem, int dim) {
+    int wdim = dim+2;
+
+    short need_size = 0;
+    short need_size2 = 0;
+    int kid = pitem->firstkid;
+    while (kid >= 0) {
+        UIitem *pkid = uiItemPtr(kid);
+
+        // if next position moved back, we assume a new line
+        if (pkid->flags & UI_BREAK) {
+            need_size2 = ui_max(need_size2, need_size);
+            // newline
+            need_size = 0;
+        }
+
+        // width = start margin + calculated width + end margin
+        need_size += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
+        kid = uiNextSibling(kid);
+    }
+    pitem->size[dim] = ui_max(need_size2, need_size);
+}
+
 // compute bounding box of all items stacked + wrapped
 UI_INLINE void uiComputeWrappedSize(UIitem *pitem, int dim) {
     int wdim = dim+2;
@@ -1350,7 +1374,7 @@ static void uiComputeSize(int item, int dim) {
     case UI_ROW|UI_WRAP: {
         // flex model
         if (!dim) // direction
-            uiComputeStackedSize(pitem, 0);
+            uiComputeWrappedStackedSize(pitem, 0);
         else
             uiComputeWrappedSize(pitem, 1);
     } break;
@@ -1501,8 +1525,47 @@ UI_INLINE void uiArrangeImposed(UIitem *pitem, int dim) {
     uiArrangeImposedRange(pitem, dim, pitem->firstkid, -1, pitem->margins[dim], pitem->size[dim]);
 }
 
+// superimpose all items according to their alignment,
+// squeeze items that expand the available space
+UI_INLINE void uiArrangeImposedSqueezedRange(UIitem *pitem, int dim,
+        int start_kid, int end_kid, short offset, short space) {
+    int wdim = dim+2;
+
+    int kid = start_kid;
+    while (kid != end_kid) {
+        UIitem *pkid = uiItemPtr(kid);
+
+        int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
+
+        short min_size = ui_max(0,space-pkid->margins[dim]-pkid->margins[wdim]);
+        switch(flags & UI_HFILL) {
+        default: {
+            pkid->size[dim] = ui_min(pkid->size[dim], min_size);
+        } break;
+        case UI_HCENTER: {
+            pkid->size[dim] = ui_min(pkid->size[dim], min_size);
+            pkid->margins[dim] += (space-pkid->size[dim])/2 - pkid->margins[wdim];
+        } break;
+        case UI_RIGHT: {
+            pkid->size[dim] = ui_min(pkid->size[dim], min_size);
+            pkid->margins[dim] = space-pkid->size[dim]-pkid->margins[wdim];
+        } break;
+        case UI_HFILL: {
+            pkid->size[dim] = min_size;
+        } break;
+        }
+        pkid->margins[dim] += offset;
+
+        kid = uiNextSibling(kid);
+    }
+}
+
+UI_INLINE void uiArrangeImposedSqueezed(UIitem *pitem, int dim) {
+    uiArrangeImposedSqueezedRange(pitem, dim, pitem->firstkid, -1, pitem->margins[dim], pitem->size[dim]);
+}
+
 // superimpose all items according to their alignment
-UI_INLINE short uiArrangeWrappedImposed(UIitem *pitem, int dim) {
+UI_INLINE short uiArrangeWrappedImposedSqueezed(UIitem *pitem, int dim) {
     int wdim = dim+2;
 
     short offset = pitem->margins[dim];
@@ -1514,7 +1577,7 @@ UI_INLINE short uiArrangeWrappedImposed(UIitem *pitem, int dim) {
         UIitem *pkid = uiItemPtr(kid);
 
         if (pkid->flags & UI_BREAK) {
-            uiArrangeImposedRange(pitem, dim, start_kid, kid, offset, need_size);
+            uiArrangeImposedSqueezedRange(pitem, dim, start_kid, kid, offset, need_size);
             offset += need_size;
             start_kid = kid;
             // newline
@@ -1527,7 +1590,7 @@ UI_INLINE short uiArrangeWrappedImposed(UIitem *pitem, int dim) {
         kid = uiNextSibling(kid);
     }
 
-    uiArrangeImposedRange(pitem, dim, start_kid, -1, offset, need_size);
+    uiArrangeImposedSqueezedRange(pitem, dim, start_kid, -1, offset, need_size);
     offset += need_size;
     return offset;
 }
@@ -1541,7 +1604,7 @@ static void uiArrange(int item, int dim) {
         if (dim) { // direction
             uiArrangeStacked(pitem, 1, true);
             // this retroactive resize will not effect parent widths
-            short offset = uiArrangeWrappedImposed(pitem, 0);
+            short offset = uiArrangeWrappedImposedSqueezed(pitem, 0);
             pitem->size[0] = offset - pitem->margins[0];
         }
     } break;
@@ -1550,7 +1613,7 @@ static void uiArrange(int item, int dim) {
         if (!dim) { // direction
             uiArrangeStacked(pitem, 0, true);
         } else {
-            uiArrangeWrappedImposed(pitem, 1);
+            uiArrangeWrappedImposedSqueezed(pitem, 1);
         }
     } break;
     case UI_COLUMN:
@@ -1559,7 +1622,7 @@ static void uiArrange(int item, int dim) {
         if ((pitem->flags & 1) == (unsigned int)dim) // direction
             uiArrangeStacked(pitem, dim, false);
         else
-            uiArrangeImposed(pitem, dim);
+            uiArrangeImposedSqueezed(pitem, dim);
     } break;
     default: {
         // layout model
