@@ -1413,7 +1413,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
         short used = 0;
 
         int count = 0; // count of fillers
-        int fixed_count = 0; // count of fixed elements
+        int fixed_count = 0; // count of wrapping elements
         int total = 0;
         bool hardbreak = false;
         // first pass: count items that need to be expanded,
@@ -1473,7 +1473,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                 }
             }
         } else if (!wrap && (extra_space < 0)) {
-           eater = (float)extra_space / (float)fixed_count;
+           //eater = (float)extra_space / (float)fixed_count;
         }
 
         // distribute width among items
@@ -1493,7 +1493,10 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                 x1 = x+ui_maxf(0.0f,(float)pkid->size[dim]+eater);
             }
             ix0 = (short)x;
-            ix1 = (short)ui_minf(max_x2-(float)pkid->margins[wdim], x1);
+            if (wrap)
+                ix1 = (short)ui_minf(max_x2-(float)pkid->margins[wdim], x1);
+            else
+                ix1 = (short)x1;
             pkid->margins[dim] = ix0;
             pkid->size[dim] = ix1-ix0;
             x = x1 + (float)pkid->margins[wdim];
