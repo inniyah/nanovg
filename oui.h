@@ -356,8 +356,7 @@ typedef enum UIlayoutFlags {
     // when wrapping, put this element on a new line
     // wrapping layout code auto-inserts UI_BREAK flags,
     // drawing routines can read them with uiGetLayout()
-    UI_BREAK = 0x200,
-
+    UI_BREAK = 0x200
 } UIlayoutFlags;
 
 // event flags
@@ -792,6 +791,12 @@ enum {
     UI_ITEM_DATA	    = 0x100000,
     // item has been inserted (bit 21)
     UI_ITEM_INSERTED	= 0x200000,
+    // horizontal size has been explicitly set (bit 22)
+    UI_ITEM_HFIXED      = 0x400000,
+    // vertical size has been explicitly set (bit 23)
+    UI_ITEM_VFIXED      = 0x800000,
+    // bit 22-23
+    UI_ITEM_FIXED_MASK  = 0xC00000,
 
     // which flag bits will be compared
     UI_ITEM_COMPARE_MASK = UI_ITEM_BOX_MODEL_MASK
@@ -1226,6 +1231,14 @@ void uiSetSize(int item, int w, int h) {
     UIitem *pitem = uiItemPtr(item);
     pitem->size[0] = w;
     pitem->size[1] = h;
+    if (!w)
+        pitem->flags &= ~UI_ITEM_HFIXED;
+    else
+        pitem->flags |= UI_ITEM_HFIXED;
+    if (!h)
+        pitem->flags &= ~UI_ITEM_VFIXED;
+    else
+        pitem->flags |= UI_ITEM_VFIXED;
 }
 
 int uiGetWidth(int item) {
@@ -1413,7 +1426,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
         short used = 0;
 
         int count = 0; // count of fillers
-        int fixed_count = 0; // count of wrapping elements
+        int squeezed_count = 0; // count of squeezable elements
         int total = 0;
         bool hardbreak = false;
         // first pass: count items that need to be expanded,
@@ -1423,12 +1436,14 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
         while (kid >= 0) {
             UIitem *pkid = uiItemPtr(kid);
             int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
+            int fflags = (pkid->flags & UI_ITEM_FIXED_MASK) >> dim;
             short extend = used;
             if ((flags & UI_HFILL) == UI_HFILL) { // grow
                 count++;
                 extend += pkid->margins[dim] + pkid->margins[wdim];
             } else {
-                fixed_count++;
+                if ((fflags & UI_ITEM_HFIXED) != UI_ITEM_HFIXED)
+                    squeezed_count++;
                 extend += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
             }
             // wrap on end of line or manual flag
@@ -1473,7 +1488,7 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                 }
             }
         } else if (!wrap && (extra_space < 0)) {
-           //eater = (float)extra_space / (float)fixed_count;
+           eater = (float)extra_space / (float)squeezed_count;
         }
 
         // distribute width among items
@@ -1485,18 +1500,22 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
             short ix0,ix1;
             UIitem *pkid = uiItemPtr(kid);
             int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
+            int fflags = (pkid->flags & UI_ITEM_FIXED_MASK) >> dim;
 
             x += (float)pkid->margins[dim] + extra_margin;
             if ((flags & UI_HFILL) == UI_HFILL) { // grow
                 x1 = x+filler;
+            } else if ((fflags & UI_ITEM_HFIXED) == UI_ITEM_HFIXED) {
+                x1 = x+(float)pkid->size[dim];
             } else {
+                // squeeze
                 x1 = x+ui_maxf(0.0f,(float)pkid->size[dim]+eater);
             }
             ix0 = (short)x;
-            //if (wrap)
+            if (wrap)
                 ix1 = (short)ui_minf(max_x2-(float)pkid->margins[wdim], x1);
-            //else
-            //  ix1 = (short)x1;
+            else
+                ix1 = (short)x1;
             pkid->margins[dim] = ix0;
             pkid->size[dim] = ix1-ix0;
             x = x1 + (float)pkid->margins[wdim];
