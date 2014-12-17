@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 /*
-Revision 3 (2014-09-23)
+Revision 4 (2014-12-17)
 
 OUI (short for "Open UI", spoken like the french "oui" for "yes") is a
 platform agnostic single-header C library for layouting GUI elements and
@@ -1493,10 +1493,10 @@ UI_INLINE void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                 x1 = x+ui_maxf(0.0f,(float)pkid->size[dim]+eater);
             }
             ix0 = (short)x;
-            if (wrap)
+            //if (wrap)
                 ix1 = (short)ui_minf(max_x2-(float)pkid->margins[wdim], x1);
-            else
-                ix1 = (short)x1;
+            //else
+            //  ix1 = (short)x1;
             pkid->margins[dim] = ix0;
             pkid->size[dim] = ix1-ix0;
             x = x1 + (float)pkid->margins[wdim];
