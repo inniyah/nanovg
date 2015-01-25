@@ -34,7 +34,7 @@ Revision 4 (2014-12-17)
 
 OUI (short for "Open UI", spoken like the french "oui" for "yes") is a
 platform agnostic single-header C library for layouting GUI elements and
-handling related user input. Together with a set of widget drawing and logic 
+handling related user input. Together with a set of widget drawing and logic
 routines it can be used to build complex user interfaces.
 
 OUI is a semi-immediate GUI. Widget declarations are persistent for the duration
@@ -138,7 +138,7 @@ void app_checkbox_handler(int item, UIevent event) {
 int checkbox(const char *label, bool *checked) {
 
     // create new ui item
-    int item = uiItem(); 
+    int item = uiItem();
 
     // set minimum size of wiget; horizontal size is dynamic, vertical is fixed
     uiSetSize(item, 0, APP_WIDGET_HEIGHT);
@@ -372,7 +372,7 @@ typedef enum UIevent {
     // when the cursor is hovering the items rectangle; this is the
     // behavior expected for buttons.
     UI_BUTTON0_HOT_UP = 0x1000,
-    // item is being captured (button 0 constantly pressed); 
+    // item is being captured (button 0 constantly pressed);
     // when this event has a handler, uiGetState() will return UI_ACTIVE as
     // long as button 0 is down.
     UI_BUTTON0_CAPTURE = 0x2000,
@@ -438,7 +438,7 @@ OUI_EXPORT UIcontext *uiCreateContext(
         unsigned int item_capacity,
         unsigned int buffer_capacity);
 
-// select an UI context as the current context; a context must always be 
+// select an UI context as the current context; a context must always be
 // selected before using any of the other UI functions
 OUI_EXPORT void uiMakeCurrent(UIcontext *ctx);
 
@@ -456,7 +456,7 @@ OUI_EXPORT UIcontext *uiGetContext();
 // screen coordinates at (x,y)
 OUI_EXPORT void uiSetCursor(int x, int y);
 
-// returns the current cursor position in screen coordinates as set by 
+// returns the current cursor position in screen coordinates as set by
 // uiSetCursor()
 OUI_EXPORT UIvec2 uiGetCursor();
 
@@ -512,7 +512,7 @@ OUI_EXPORT UIvec2 uiGetScroll();
 // ------
 
 // clear the item buffer; uiBeginLayout() should be called before the first
-// UI declaration for this frame to avoid concatenation of the same UI multiple 
+// UI declaration for this frame to avoid concatenation of the same UI multiple
 // times.
 // After the call, all previously declared item IDs are invalid, and all
 // application dependent context data has been freed.
@@ -530,7 +530,7 @@ OUI_EXPORT void uiEndLayout();
 // for more than one frame and uiEndLayout() is not called
 OUI_EXPORT void uiUpdateHotItem();
 
-// update the internal state according to the current cursor position and 
+// update the internal state according to the current cursor position and
 // button states, and call all registered handlers.
 // timestamp is the time in milliseconds relative to the last call to uiProcess()
 // and is used to estimate the threshold for double-clicks
@@ -576,8 +576,8 @@ OUI_EXPORT void *uiAllocHandle(int item, unsigned int size);
 // uiSetEvents.
 OUI_EXPORT void uiSetHandler(UIhandler handler);
 
-// flags is a combination of UI_EVENT_* and designates for which events the 
-// handler should be called. 
+// flags is a combination of UI_EVENT_* and designates for which events the
+// handler should be called.
 OUI_EXPORT void uiSetEvents(int item, unsigned int flags);
 
 // flags is a user-defined set of flags defined by UI_USERMASK.
@@ -607,7 +607,7 @@ OUI_EXPORT int uiInsertBack(int item, int child);
 // same as uiInsert()
 OUI_EXPORT int uiInsertFront(int item, int child);
 
-// set the size of the item; a size of 0 indicates the dimension to be 
+// set the size of the item; a size of 0 indicates the dimension to be
 // dynamic; if the size is set, the item can not expand beyond that size.
 OUI_EXPORT void uiSetSize(int item, int w, int h);
 
@@ -684,7 +684,7 @@ OUI_EXPORT unsigned int uiGetKey();
 // when handling a keyboard or mouse event: the active modifier keys
 OUI_EXPORT unsigned int uiGetModifier();
 
-// returns the items layout rectangle in absolute coordinates. If 
+// returns the items layout rectangle in absolute coordinates. If
 // uiGetRect() is called before uiEndLayout(), the values of the returned
 // rectangle are undefined.
 OUI_EXPORT UIrect uiGetRect(int item);
@@ -887,7 +887,7 @@ struct UIcontext {
     int last_click_timestamp;
     int clicks;
 
-    int count;    
+    int count;
     int last_count;
     int eventcount;
     unsigned int datasize;
@@ -1897,7 +1897,7 @@ void uiProcess(int timestamp) {
         for (int i = 0; i < ui_context->eventcount; ++i) {
             ui_context->active_key = ui_context->events[i].key;
             ui_context->active_modifier = ui_context->events[i].mod;
-            uiNotifyItem(focus_item, 
+            uiNotifyItem(focus_item,
                     ui_context->events[i].event);
         }
     } else {
@@ -1941,8 +1941,8 @@ void uiProcess(int timestamp) {
                 ui_context->last_click_item = active_item;
                 ui_context->active_modifier = ui_context->active_button_modifier;
                 uiNotifyItem(active_item, UI_BUTTON0_DOWN);
-            }            
-            ui_context->state = UI_STATE_CAPTURE;            
+            }
+            ui_context->state = UI_STATE_CAPTURE;
         } else if (uiGetButton(2) && !uiGetLastButton(2)) {
             hot_item = -1;
             hot = uiFindItem(0, ui_context->cursor.x, ui_context->cursor.y,
@@ -1970,7 +1970,7 @@ void uiProcess(int timestamp) {
             if (active_item >= 0) {
                 ui_context->active_modifier = ui_context->active_button_modifier;
                 uiNotifyItem(active_item, UI_BUTTON0_CAPTURE);
-            }            
+            }
             if (hot == active_item)
                 hot_item = hot;
             else
