@@ -752,7 +752,11 @@ OUI_EXPORT int uiGetLastItemCount();
     #define UI_INLINE
     #endif
 #else
+    #ifdef __clang__
+    #define UI_INLINE static inline
+    #else
     #define UI_INLINE inline
+    #endif
 #endif
 
 #define UI_MAX_KIND 16
