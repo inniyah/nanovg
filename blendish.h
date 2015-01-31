@@ -1889,7 +1889,8 @@ void bndJoinAreaOverlay(NVGcontext *ctx, float x, float y, float w, float h,
     nvgBeginPath(ctx);
     int count = sizeof(points) / (sizeof(float)*2);
     nvgMoveTo(ctx,x+points[0][vertical&1],y+points[0][(vertical&1)^1]);
-    for (int i = 1; i < count; ++i) {
+    int i;
+    for (i = 1; i < count; ++i) {
         nvgLineTo(ctx,x+points[i][vertical&1],y+points[i][(vertical&1)^1]);
     }
 
@@ -2239,7 +2240,7 @@ static void bndCaretPosition(NVGcontext *ctx, float x, float y,
     float desc, float lineHeight, const char *caret, NVGtextRow *rows,int nrows,
     int *cr, float *cx, float *cy) {
     static NVGglyphPosition glyphs[BND_MAX_GLYPHS];
-    int r,nglyphs;
+    int i,r,nglyphs;
     for (r=0; r < nrows && rows[r].end < caret; ++r);
     *cr = r;
     *cx = x;
@@ -2248,7 +2249,7 @@ static void bndCaretPosition(NVGcontext *ctx, float x, float y,
     *cx = rows[r].minx;
     nglyphs = nvgTextGlyphPositions(
         ctx, x, y, rows[r].start, rows[r].end+1, glyphs, BND_MAX_GLYPHS);
-    for (int i=0; i < nglyphs; ++i) {
+    for (i=0; i < nglyphs; ++i) {
         *cx=glyphs[i].x;
         if (glyphs[i].str == caret) break;
     }

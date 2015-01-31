@@ -915,6 +915,7 @@ UI_INLINE float ui_minf(float a, float b) {
 }
 
 void uiClear(UIcontext *ui_context) {
+    int i;
     ui_context->last_count = ui_context->count;
     ui_context->count = 0;
     ui_context->datasize = 0;
@@ -923,7 +924,7 @@ void uiClear(UIcontext *ui_context) {
     UIitem *items = ui_context->items;
     ui_context->items = ui_context->last_items;
     ui_context->last_items = items;
-    for (int i = 0; i < ui_context->last_count; ++i) {
+    for (i = 0; i < ui_context->last_count; ++i) {
         ui_context->item_map[i] = -1;
     }
 }
@@ -1896,7 +1897,8 @@ void uiProcess(UIcontext *ui_context, int timestamp) {
 
     // send all keyboard events
     if (focus_item >= 0) {
-        for (int i = 0; i < ui_context->eventcount; ++i) {
+        int i;
+        for (i = 0; i < ui_context->eventcount; ++i) {
             ui_context->active_key = ui_context->events[i].key;
             ui_context->active_modifier = ui_context->events[i].mod;
             uiNotifyItem(ui_context, focus_item, ui_context->events[i].event);
