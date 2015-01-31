@@ -8,8 +8,8 @@ solution "blendish"
 
 	project "example"
 		kind "ConsoleApp"
-		language "C++"
-		files { "example.cpp", "nanovg/src/nanovg.c" }
+		language "C"
+		files { "example.c", "nanovg/src/nanovg.c" }
 		includedirs { "nanovg/src" }
 		targetdir("build")
 
@@ -28,9 +28,9 @@ solution "blendish"
 
 		configuration "Debug"
 			defines { "DEBUG" }
-			flags { "Symbols", "ExtraWarnings"}
+			flags { "Symbols", "ExtraWarnings", "FatalWarnings" }
 
 		configuration "Release"
 			defines { "NDEBUG" }
-			flags { "Optimize", "ExtraWarnings"}
+			flags { "Optimize", "ExtraWarnings", "FatalWarnings" }
 
