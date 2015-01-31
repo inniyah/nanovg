@@ -472,7 +472,7 @@ OUI_EXPORT UIvec2 uiGetCursorStartDelta(UIcontext *ui_context);
 // source.
 // mod is an application defined set of flags for modifier keys
 // enabled is 1 for pressed, 0 for released
-OUI_EXPORT void uiSetButton(UIcontext *ui_context, unsigned int button, unsigned int mod, int enabled);
+OUI_EXPORT void uiSetButton(UIcontext *ui_context, unsigned int button, unsigned int mod, bool enabled);
 
 // returns the current state of an application dependent input button
 // as set by uiSetButton().
@@ -487,7 +487,7 @@ OUI_EXPORT int uiGetClicks(UIcontext *ui_context);
 // mod is an application defined set of flags for modifier keys
 // enabled is 1 for key down, 0 for key up
 // all key events are being buffered until the next call to uiProcess()
-OUI_EXPORT void uiSetKey(UIcontext *ui_context, unsigned int key, unsigned int mod, int enabled);
+OUI_EXPORT void uiSetKey(UIcontext *ui_context, unsigned int key, unsigned int mod, bool enabled);
 
 // sends a single character for text input; the character is usually in the
 // unicode range, but can be application defined.
@@ -555,7 +555,7 @@ OUI_EXPORT int uiItem(UIcontext *ui_context);
 // UI_COLD for child items. Upon encountering a frozen item, the drawing
 // routine needs to handle rendering of child items appropriately.
 // see example.cpp for a demonstration.
-OUI_EXPORT void uiSetFrozen(UIcontext *ui_context, int item, int enable);
+OUI_EXPORT void uiSetFrozen(UIcontext *ui_context, int item, bool enable);
 
 // set the application-dependent handle of an item.
 // handle is an application defined 64-bit handle. If handle is NULL, the item
@@ -975,7 +975,7 @@ void *uiGetContextCursor(UIcontext *ui_context) {
 }
 
 
-void uiSetButton(UIcontext *ui_context, unsigned int button, unsigned int mod, int enabled) {
+void uiSetButton(UIcontext *ui_context, unsigned int button, unsigned int mod, bool enabled) {
     assert(ui_context);
     unsigned long long mask = 1ull<<button;
     // set new bit
@@ -998,7 +998,7 @@ static void uiClearInputEvents(UIcontext *ui_context) {
     ui_context->scroll.y = 0;
 }
 
-void uiSetKey(UIcontext *ui_context, unsigned int key, unsigned int mod, int enabled) {
+void uiSetKey(UIcontext *ui_context, unsigned int key, unsigned int mod, bool enabled) {
     assert(ui_context);
     UIinputEvent event = { key, mod, enabled?UI_KEY_DOWN:UI_KEY_UP };
     uiAddInputEvent(ui_context, event);
@@ -1225,7 +1225,7 @@ int uiInsertBack(UIcontext *ui_context, int item, int child) {
     return child;
 }
 
-void uiSetFrozen(UIcontext *ui_context, int item, int enable) {
+void uiSetFrozen(UIcontext *ui_context, int item, bool enable) {
     UIitem *pitem = uiItemPtr(ui_context, item);
     if (enable)
         pitem->flags |= UI_ITEM_FROZEN;
