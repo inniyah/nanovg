@@ -444,7 +444,7 @@ OUI_EXPORT void uiDestroyContext(UIcontext *ctx);
 
 // User Data
 OUI_EXPORT void uiSetContextHandle(UIcontext *ui_context, void *handle);
-OUI_EXPORT void *uiGetContextCursor(UIcontext *ui_context);
+OUI_EXPORT void *uiGetContextHandle(UIcontext *ui_context);
 
 // Input Control
 // -------------
@@ -970,7 +970,7 @@ void uiSetContextHandle(UIcontext *ui_context, void *handle) {
     ui_context->handle = handle;
 }
 
-void *uiGetContextCursor(UIcontext *ui_context) {
+void *uiGetContextHandle(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->handle;
 }
