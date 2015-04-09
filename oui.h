@@ -251,6 +251,13 @@ void layout_window(int w, int h) {
 #define OUI_EXPORT
 #endif
 
+// some language bindings (e.g. terra) have no good support
+// for unions or unnamed structs; 
+// #define OUI_USE_UNION_VECTORS 0 to disable.
+#ifndef OUI_USE_UNION_VECTORS
+#define OUI_USE_UNION_VECTORS 1
+#endif
+
 // limits
 
 enum {
@@ -407,18 +414,26 @@ typedef void (*UIhandler)(int item, UIevent event);
 
 // for cursor positions, mainly
 typedef struct UIvec2 {
+#if OUI_USE_UNION_VECTORS || defined(OUI_IMPLEMENTATION)
     union {
         int v[2];
         struct { int x, y; };
     };
+#else
+    int x, y;
+#endif    
 } UIvec2;
 
 // layout rectangle
 typedef struct UIrect {
+#if OUI_USE_UNION_VECTORS || defined(OUI_IMPLEMENTATION)    
     union {
         int v[4];
         struct { int x, y, w, h; };
     };
+#else
+    int x, y, w, h;
+#endif
 } UIrect;
 
 // unless declared otherwise, all operations have the complexity O(1).
