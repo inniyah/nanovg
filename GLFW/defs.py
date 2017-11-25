@@ -1,53 +1,53 @@
-from ctypes import *
+import ctypes
 
 ################################################################################
 
-GLFWerrorfun           = CFUNCTYPE(None, c_int, c_char_p)
-GLFWwindowposfun       = CFUNCTYPE(None, c_void_p, c_int, c_int)
-GLFWwindowsizefun      = CFUNCTYPE(None, c_void_p, c_int, c_int)
-GLFWwindowclosefun     = CFUNCTYPE(None, c_void_p)
-GLFWwindowrefreshfun   = CFUNCTYPE(None, c_void_p)
-GLFWwindowfocusfun     = CFUNCTYPE(None, c_void_p, c_int)
-GLFWwindowiconifyfun   = CFUNCTYPE(None, c_void_p, c_int)
-GLFWwindowmaximizefun  = CFUNCTYPE(None, c_void_p, c_int)
-GLFWframebuffersizefun = CFUNCTYPE(None, c_void_p, c_int, c_int)
-GLFWmousebuttonfun     = CFUNCTYPE(None, c_void_p, c_int, c_int, c_int)
-GLFWcursorposfun       = CFUNCTYPE(None, c_void_p, c_double, c_double)
-GLFWcursorenterfun     = CFUNCTYPE(None, c_void_p, c_int)
-GLFWscrollfun          = CFUNCTYPE(None, c_void_p, c_double, c_double)
-GLFWkeyfun             = CFUNCTYPE(None, c_void_p, c_int, c_int, c_int, c_int)
-GLFWcharfun            = CFUNCTYPE(None, c_void_p, c_uint)
-GLFWcharmodsfun        = CFUNCTYPE(None, c_void_p, c_uint, c_int)            # Available since GLFW 3.1
-GLFWdropfun            = CFUNCTYPE(None, c_void_p, c_int,POINTER(c_char_p))  # Available since GLFW 3.1
-GLFWmonitorfun         = CFUNCTYPE(None, c_void_p, c_int)                    # Available since GLFW 3.0
-GLFWjoystickfun        = CFUNCTYPE(None, c_int, c_int)                       # Available since GLFW 3.2
+GLFWerrorfun           = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_char_p)
+GLFWwindowposfun       = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
+GLFWwindowsizefun      = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
+GLFWwindowclosefun     = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
+GLFWwindowrefreshfun   = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
+GLFWwindowfocusfun     = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
+GLFWwindowiconifyfun   = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
+GLFWwindowmaximizefun  = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
+GLFWframebuffersizefun = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
+GLFWmousebuttonfun     = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int)
+GLFWcursorposfun       = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_double, ctypes.c_double)
+GLFWcursorenterfun     = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
+GLFWscrollfun          = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_double, ctypes.c_double)
+GLFWkeyfun             = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int)
+GLFWcharfun            = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint)
+GLFWcharmodsfun        = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint, ctypes.c_int)            # Available since GLFW 3.1
+GLFWdropfun            = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p))  # Available since GLFW 3.1
+GLFWmonitorfun         = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)                    # Available since GLFW 3.0
+GLFWjoystickfun        = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_int)                       # Available since GLFW 3.2
 
 ################################################################################
 
-class GLFWvidmode(Structure):
-    _fields_ = [("width", c_int),
-                ("height", c_int),
-                ("redBits", c_int),
-                ("greenBits", c_int),
-                ("blueBits", c_int),
-                ("refreshRate", c_int)]
+class GLFWvidmode(ctypes.Structure):
+    _fields_ = [("width", ctypes.c_int),
+                ("height", ctypes.c_int),
+                ("redBits", ctypes.c_int),
+                ("greenBits", ctypes.c_int),
+                ("blueBits", ctypes.c_int),
+                ("refreshRate", ctypes.c_int)]
 
-class GLFWgammaramp(Structure):
-    _fields_ = [("red", POINTER(c_ushort)),
-                ("green", POINTER(c_ushort)),
-                ("blue", POINTER(c_ushort)),
-                ("size", c_int)]
+class GLFWgammaramp(ctypes.Structure):
+    _fields_ = [("red", ctypes.POINTER(ctypes.c_ushort)),
+                ("green", ctypes.POINTER(ctypes.c_ushort)),
+                ("blue", ctypes.POINTER(ctypes.c_ushort)),
+                ("size", ctypes.c_int)]
 
 # Available since GLFW 3.1
-class GLFWimage(Structure):
-    _fields_ = [("width", c_int),
-                ("height", c_int),
-                ("pixels", POINTER(c_ubyte))]
+class GLFWimage(ctypes.Structure):
+    _fields_ = [("width", ctypes.c_int),
+                ("height", ctypes.c_int),
+                ("pixels", ctypes.POINTER(ctypes.c_ubyte))]
 
 # Available since GLFW 3.3
-class GLFWgamepadstate(Structure):
-    _fields_ = [("buttons", c_ubyte * 15),
-                ("axes", c_float * 6)]
+class GLFWgamepadstate(ctypes.Structure):
+    _fields_ = [("buttons", ctypes.c_ubyte * 15),
+                ("axes", ctypes.c_float * 6)]
 
 ################################################################################
 

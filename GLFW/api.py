@@ -1,4 +1,4 @@
-from ctypes import *
+import ctypes
 import GLFW
 
 def glfwInit():

@@ -1,3 +1,7 @@
+2017-11-26  vaiorabbit  <http://twitter.com/vaiorabbit>
+
+	* fixed wildcard import.
+
 2017-11-25  vaiorabbit  <http://twitter.com/vaiorabbit>
 
 	* removed unused variables.
