@@ -12,6 +12,12 @@
     import GLFW
     from GLFW import *
 
+## Setup ##
+
+    $ pip install git+https://github.com/vaiorabbit/python-glfw.git
+    $ pip install -U git+https://github.com/vaiorabbit/python-glfw.git
+    $ pip uninstall GLFW
+
 ## License ##
 
 The zlib/libpng License ( http://opensource.org/licenses/Zlib ).
