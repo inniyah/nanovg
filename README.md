@@ -2,20 +2,30 @@
 
 # Yet another GLFW wrapper for Python #
 
-...and wrapper code generator.
-
 *   Created : 2017-11-25
 *   Last modified : 2017-12-03
 
 ## Usage ##
 
+Get GLFW ( http://www.glfw.org/download.html ) shared library or build your own one. And:
+
     import GLFW
-    from GLFW import *
+    GLFW.load_glfw_library('libglfw.dylib') # macOS
+
+See https://github.com/vaiorabbit/python-glfw/blob/master/simple.py .
 
 ## Setup ##
 
+Installation:
+
     $ pip install git+https://github.com/vaiorabbit/python-glfw.git
+
+Upgrade:
+
     $ pip install -U git+https://github.com/vaiorabbit/python-glfw.git
+
+Uninstallation:
+
     $ pip uninstall GLFW
 
 ## License ##
