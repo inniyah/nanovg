@@ -4,6 +4,10 @@ from GLFW.defs import *
 from GLFW.library import *
 from GLFW.api import *
 
+__author__  = 'vaiorabbit'
+__version__ = '1.0.0'
+__license__ = 'zlib'
+
 # Python-GLFW : Yet another GLFW wrapper for Python
 # Copyright (c) 2017 vaiorabbit <http://twitter.com/vaiorabbit>
 #
