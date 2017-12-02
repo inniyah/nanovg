@@ -3,6 +3,10 @@ from NanoVG.defs import *
 from NanoVG.library import *
 from NanoVG.api import *
 
+__author__  = 'vaiorabbit'
+__version__ = '1.0.0'
+__license__ = 'zlib'
+
 # Python-NanoVG : A Python bindings of NanoVG
 # Copyright (c) 2017 vaiorabbit
 #

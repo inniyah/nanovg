@@ -3,14 +3,28 @@
 Provides NanoVG ( https://github.com/memononen/nanovg ) interfaces for python (CPython).
 
 *   Created : 2017-11-26
-*   Last modified : 2017-12-02
+*   Last modified : 2017-12-03
 
 ## Prerequisites ##
 
 *   OpenGL context provider
 	*   ex.) GLUT (PyOpenGL http://pyopengl.sourceforge.net ) or GLFW (Python-GLFW https://github.com/vaiorabbit/python-glfw/ )
 
-## How to Use ##
+## Setup ##
+
+Installation:
+
+    $ pip install git+https://github.com/vaiorabbit/python-nanovg.git
+
+Upgrade:
+
+    $ pip install -U git+https://github.com/vaiorabbit/python-nanovg.git
+
+Uninstallation:
+
+    $ pip uninstall NanoVG
+
+## Usage ##
 
 1. Build NanoVG shared library
 	*   See nanovg_dll
@@ -25,7 +39,7 @@ Provides NanoVG ( https://github.com/memononen/nanovg ) interfaces for python (C
 4. Setup OpenGL
 	*   nvgSetupGL2() / nvgSetupGL3()
 
-See demo/example.py for details.
+See demo/example.py ( https://github.com/vaiorabbit/python-nanovg/blob/master/demo/example.py ) for details.
 
 ## License ##
 
