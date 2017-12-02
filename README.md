@@ -3,7 +3,7 @@
 Provides NanoVG ( https://github.com/memononen/nanovg ) interfaces for python (CPython).
 
 *   Created : 2017-11-26
-*   Last modified : 2017-11-26
+*   Last modified : 2017-12-02
 
 ## Prerequisites ##
 
