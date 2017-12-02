@@ -25,30 +25,12 @@ def nvgRGB(r, g, b):
 
 def nvgRGBf(r, g, b):
     return NanoVG.library.__NANOVG_LOADER.nvgRGBf(r, g, b)
-    # return nvgRGBAf(r, g, b, 1.0)
 
 def nvgRGBA(r, g, b, a):
-    color = NanoVG.library.__NANOVG_LOADER.nvgRGBA(r, g, b, a)
-    # print(color.rgba)
-    # print(type(color.rgba))
-    # print(color.rgba[0])
-    # print(type(color.rgba[0]))
-    return color
-    # color = NVGcolor()
-    # color.rgba[0] = r / 255.0
-    # color.rgba[1] = g / 255.0
-    # color.rgba[2] = b / 255.0
-    # color.rgba[3] = a / 255.0
-    # return color
+    return NanoVG.library.__NANOVG_LOADER.nvgRGBA(r, g, b, a)
 
 def nvgRGBAf(r, g, b, a):
     return NanoVG.library.__NANOVG_LOADER.nvgRGBAf(r, g, b, a)
-    # color = NVGcolor()
-    # color.rgba[0] = r
-    # color.rgba[1] = g
-    # color.rgba[2] = b
-    # color.rgba[3] = a
-    # return color
 
 def nvgLerpRGBA(c0, c1, u):
     return NanoVG.library.__NANOVG_LOADER.nvgLerpRGBA(c0, c1, u)

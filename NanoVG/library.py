@@ -223,7 +223,7 @@ def load_nanovg_library(lib, render_backend = 'gl2', output_error = False):
     __NANOVG_API_RETVAL_MAP['nvgUpdateImage'] = None
 
     __NANOVG_API_NAMES.append('nvgImageSize')
-    __NANOVG_API_ARGS_MAP['nvgImageSize'] = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_void_p, ctypes.c_void_p]
+    __NANOVG_API_ARGS_MAP['nvgImageSize'] = [ctypes.c_void_p, ctypes.c_int32, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
     __NANOVG_API_RETVAL_MAP['nvgImageSize'] = None
 
     __NANOVG_API_NAMES.append('nvgDeleteImage')
@@ -391,11 +391,11 @@ def load_nanovg_library(lib, render_backend = 'gl2', output_error = False):
     __NANOVG_API_RETVAL_MAP['nvgTextGlyphPositions'] = ctypes.c_int32
 
     __NANOVG_API_NAMES.append('nvgTextMetrics')
-    __NANOVG_API_ARGS_MAP['nvgTextMetrics'] = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+    __NANOVG_API_ARGS_MAP['nvgTextMetrics'] = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_float)]
     __NANOVG_API_RETVAL_MAP['nvgTextMetrics'] = None
 
     __NANOVG_API_NAMES.append('nvgTextBreakLines')
-    __NANOVG_API_ARGS_MAP['nvgTextBreakLines'] = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_float, ctypes.c_void_p, ctypes.c_int32]
+    __NANOVG_API_ARGS_MAP['nvgTextBreakLines'] = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p, ctypes.c_float, ctypes.POINTER(NVGtextRow), ctypes.c_int32]
     __NANOVG_API_RETVAL_MAP['nvgTextBreakLines'] = ctypes.c_int32
 
     __NANOVG_API_NAMES.append('nvgCreateGL2')
