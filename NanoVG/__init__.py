@@ -1,4 +1,3 @@
-from NanoVG.version import *
 from NanoVG.defs import *
 from NanoVG.library import *
 from NanoVG.api import *
