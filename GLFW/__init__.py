@@ -1,5 +1,4 @@
 """ctypes-based GLFW wrapper"""
-from GLFW.version import *
 from GLFW.defs import *
 from GLFW.library import *
 from GLFW.api import *
