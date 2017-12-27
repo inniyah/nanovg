@@ -1,10 +1,5 @@
 import ctypes
 
-GLFWkeyfun = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int)
-
-GLFW_PRESS    = 1
-GLFW_KEY_ESCAPE         = 256
-
 __GLFW_LOADER = None
 
 __GLFW_API_NAMES = []

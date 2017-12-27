@@ -1,3 +1,7 @@
+2017-12-27  vaiorabbit  <http://twitter.com/vaiorabbit>
+
+	* Removed unused variables.
+
 2017-12-03  vaiorabbit  <http://twitter.com/vaiorabbit>
 
 	* Added setup.py.
