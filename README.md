@@ -5,6 +5,8 @@ Provides NanoVG ( https://github.com/memononen/nanovg ) interfaces for python (C
 *   Created : 2017-11-26
 *   Last modified : 2017-12-03
 
+<img src="https://raw.githubusercontent.com/vaiorabbit/python-nanovg/master/doc/example_py.png" width="500">
+
 ## Prerequisites ##
 
 *   OpenGL context provider
@@ -39,14 +41,15 @@ Uninstallation:
 4. Setup OpenGL
 	*   nvgSetupGL2() / nvgSetupGL3()
 
-See demo/example.py ( https://github.com/vaiorabbit/python-nanovg/blob/master/demo/example.py ) for details.
+See demo/example.py ( https://github.com/vaiorabbit/python-nanovg/blob/master/demo/example.py ) for details ($ python example.py).
+
 
 ## License ##
 
 All source codes are available under the terms of the zlib/libpng license.
 
 	Python-NanoVG : A Python bindings of NanoVG
-	Copyright (c) 2017 vaiorabbit
+	Copyright (c) 2017-2018 vaiorabbit
 	
 	This software is provided 'as-is', without any express or implied
 	warranty. In no event will the authors be held liable for any damages
