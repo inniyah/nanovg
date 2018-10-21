@@ -15,7 +15,7 @@ def load_nanovg_library(lib, render_backend = 'gl2', output_error = False):
     # API
 
     __NANOVG_API_NAMES.append('nvgBeginFrame')
-    __NANOVG_API_ARGS_MAP['nvgBeginFrame'] = [ctypes.c_void_p, ctypes.c_int32, ctypes.c_int32, ctypes.c_float]
+    __NANOVG_API_ARGS_MAP['nvgBeginFrame'] = [ctypes.c_void_p, ctypes.c_float, ctypes.c_float, ctypes.c_float]
     __NANOVG_API_RETVAL_MAP['nvgBeginFrame'] = None
 
     __NANOVG_API_NAMES.append('nvgCancelFrame')
@@ -383,7 +383,7 @@ def load_nanovg_library(lib, render_backend = 'gl2', output_error = False):
     __NANOVG_API_RETVAL_MAP['nvgTextBounds'] = ctypes.c_float
 
     __NANOVG_API_NAMES.append('nvgTextBoxBounds')
-    __NANOVG_API_ARGS_MAP['nvgTextBoxBounds'] = [ctypes.c_void_p, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+    __NANOVG_API_ARGS_MAP['nvgTextBoxBounds'] = [ctypes.c_void_p, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_float)]
     __NANOVG_API_RETVAL_MAP['nvgTextBoxBounds'] = None
 
     __NANOVG_API_NAMES.append('nvgTextGlyphPositions')
@@ -433,8 +433,9 @@ def load_nanovg_library(lib, render_backend = 'gl2', output_error = False):
         finally:
             pass
 
+
 # Python-NanoVG : A Python bindings of NanoVG
-# Copyright (c) 2017 vaiorabbit
+# Copyright (c) 2017-2018 vaiorabbit
 #
 # This software is provided 'as-is', without any express or implied
 # warranty. In no event will the authors be held liable for any damages

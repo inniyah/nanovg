@@ -3,11 +3,11 @@ from NanoVG.library import *
 from NanoVG.api import *
 
 __author__  = 'vaiorabbit'
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 __license__ = 'zlib'
 
 # Python-NanoVG : A Python bindings of NanoVG
-# Copyright (c) 2017 vaiorabbit
+# Copyright (c) 2017-2018 vaiorabbit
 #
 # This software is provided 'as-is', without any express or implied
 # warranty. In no event will the authors be held liable for any damages

@@ -1,10 +1,13 @@
-import sys, os
-sys.path.append(os.pardir)
-sys.path.append('../../python-glfw_private')
+# For local/library development:
+# import sys, os
+# sys.path.append(os.pardir)
+# sys.path.append('../../python-glfw_private')
 
 import ctypes
 
 import OpenGL.GL
+
+# https://github.com/vaiorabbit/python-glfw
 import GLFW
 from GLFW import *
 
@@ -64,7 +67,7 @@ def main():
             OpenGL.GL.glClearColor(0.3, 0.3, 0.32, 1.0)
             OpenGL.GL.glClear(OpenGL.GL.GL_COLOR_BUFFER_BIT)
 
-            nvgBeginFrame(vg, fb_width.value, fb_height.value, ratio)
+            nvgBeginFrame(vg, float(fb_width.value), float(fb_height.value), ratio)
             data.render(vg, mx.value, my.value, fb_width.value, fb_height.value, t, False)
             fps.render(vg, 5, 5)
             nvgEndFrame(vg)
