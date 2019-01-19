@@ -37,8 +37,17 @@ def glfwGetMonitorPos(monitor, xpos, ypos):
 def glfwGetMonitorPhysicalSize(monitor, widthMM, heightMM):
     return GLFW.library.__GLFW_LOADER.glfwGetMonitorPhysicalSize(monitor, widthMM, heightMM)
 
+def glfwGetMonitorContentScale(monitor, xscale, yscale):
+    return GLFW.library.__GLFW_LOADER.glfwGetMonitorContentScale(monitor, xscale, yscale)
+
 def glfwGetMonitorName(monitor):
     return GLFW.library.__GLFW_LOADER.glfwGetMonitorName(monitor)
+
+def glfwSetMonitorUserPointer(monitor, pointer):
+    return GLFW.library.__GLFW_LOADER.glfwSetMonitorUserPointer(monitor, pointer)
+
+def glfwGetMonitorUserPointer(monitor):
+    return GLFW.library.__GLFW_LOADER.glfwGetMonitorUserPointer(monitor)
 
 def glfwSetMonitorCallback(cbfun):
     return GLFW.library.__GLFW_LOADER.glfwSetMonitorCallback(cbfun)
@@ -63,6 +72,9 @@ def glfwDefaultWindowHints():
 
 def glfwWindowHint(hint, value):
     return GLFW.library.__GLFW_LOADER.glfwWindowHint(hint, value)
+
+def glfwWindowHintString(hint, value):
+    return GLFW.library.__GLFW_LOADER.glfwWindowHintString(hint, value)
 
 def glfwCreateWindow(width, height, title, monitor, share):
     return GLFW.library.__GLFW_LOADER.glfwCreateWindow(width, height, title, monitor, share)
@@ -105,6 +117,15 @@ def glfwGetFramebufferSize(window, width, height):
 
 def glfwGetWindowFrameSize(window, left, top, right, bottom):
     return GLFW.library.__GLFW_LOADER.glfwGetWindowFrameSize(window, left, top, right, bottom)
+
+def glfwGetWindowContentScale(window, xscale, yscale):
+    return GLFW.library.__GLFW_LOADER.glfwGetWindowContentScale(window, xscale, yscale)
+
+def glfwGetWindowOpacity(window):
+    return GLFW.library.__GLFW_LOADER.glfwGetWindowOpacity(window)
+
+def glfwSetWindowOpacity(window, opacity):
+    return GLFW.library.__GLFW_LOADER.glfwSetWindowOpacity(window, opacity)
 
 def glfwIconifyWindow(window):
     return GLFW.library.__GLFW_LOADER.glfwIconifyWindow(window)
@@ -168,6 +189,9 @@ def glfwSetWindowMaximizeCallback(window, cbfun):
 
 def glfwSetFramebufferSizeCallback(window, cbfun):
     return GLFW.library.__GLFW_LOADER.glfwSetFramebufferSizeCallback(window, cbfun)
+
+def glfwSetWindowContentScaleCallback(window, cbfun):
+    return GLFW.library.__GLFW_LOADER.glfwSetWindowContentScaleCallback(window, cbfun)
 
 def glfwPollEvents():
     return GLFW.library.__GLFW_LOADER.glfwPollEvents()
@@ -317,7 +341,7 @@ def glfwGetRequiredInstanceExtensions(count):
     return GLFW.library.__GLFW_LOADER.glfwGetRequiredInstanceExtensions(count)
 
 # Python-GLFW : Yet another GLFW wrapper for Python
-# Copyright (c) 2017 vaiorabbit <http://twitter.com/vaiorabbit>
+# Copyright (c) 2017-2019 vaiorabbit <http://twitter.com/vaiorabbit>
 #
 # This software is provided 'as-is', without any express or implied
 # warranty. In no event will the authors be held liable for any damages

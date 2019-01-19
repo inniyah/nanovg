@@ -33,7 +33,7 @@ def load_glfw_library(lib, output_error = False):
     __GLFW_API_ARGS_MAP['glfwGetVersion'] = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
     __GLFW_API_RETVAL_MAP['glfwGetVersion'] = None
 
-    __GLFW_API_NAMES.append('glfwGetVersionString') # Available since GLFW 3.3
+    __GLFW_API_NAMES.append('glfwGetVersionString')
     __GLFW_API_ARGS_MAP['glfwGetVersionString'] = None
     __GLFW_API_RETVAL_MAP['glfwGetVersionString'] = ctypes.c_char_p
 
@@ -61,9 +61,21 @@ def load_glfw_library(lib, output_error = False):
     __GLFW_API_ARGS_MAP['glfwGetMonitorPhysicalSize'] = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
     __GLFW_API_RETVAL_MAP['glfwGetMonitorPhysicalSize'] = None
 
+    __GLFW_API_NAMES.append('glfwGetMonitorContentScale') # Available since GLFW 3.3
+    __GLFW_API_ARGS_MAP['glfwGetMonitorContentScale'] = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+    __GLFW_API_RETVAL_MAP['glfwGetMonitorContentScale'] = None
+
     __GLFW_API_NAMES.append('glfwGetMonitorName')
     __GLFW_API_ARGS_MAP['glfwGetMonitorName'] = [ctypes.c_void_p]
     __GLFW_API_RETVAL_MAP['glfwGetMonitorName'] = ctypes.c_char_p
+
+    __GLFW_API_NAMES.append('glfwSetMonitorUserPointer') # Available since GLFW 3.3
+    __GLFW_API_ARGS_MAP['glfwSetMonitorUserPointer'] = [ctypes.c_void_p, ctypes.c_void_p]
+    __GLFW_API_RETVAL_MAP['glfwSetMonitorUserPointer'] = None
+
+    __GLFW_API_NAMES.append('glfwGetMonitorUserPointer') # Available since GLFW 3.3
+    __GLFW_API_ARGS_MAP['glfwGetMonitorUserPointer'] = [ctypes.c_void_p]
+    __GLFW_API_RETVAL_MAP['glfwGetMonitorUserPointer'] = ctypes.c_void_p
 
     __GLFW_API_NAMES.append('glfwSetMonitorCallback')
     __GLFW_API_ARGS_MAP['glfwSetMonitorCallback'] = [ctypes.c_void_p]
@@ -96,6 +108,10 @@ def load_glfw_library(lib, output_error = False):
     __GLFW_API_NAMES.append('glfwWindowHint')
     __GLFW_API_ARGS_MAP['glfwWindowHint'] = [ctypes.c_int, ctypes.c_int]
     __GLFW_API_RETVAL_MAP['glfwWindowHint'] = None
+
+    __GLFW_API_NAMES.append('glfwWindowHintString') # Available since GLFW 3.3
+    __GLFW_API_ARGS_MAP['glfwWindowHintString'] = [ctypes.c_int, ctypes.c_char_p]
+    __GLFW_API_RETVAL_MAP['glfwWindowHintString'] = None
 
     __GLFW_API_NAMES.append('glfwCreateWindow')
     __GLFW_API_ARGS_MAP['glfwCreateWindow'] = [ctypes.c_int, ctypes.c_int, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_void_p]
@@ -152,6 +168,18 @@ def load_glfw_library(lib, output_error = False):
     __GLFW_API_NAMES.append('glfwGetWindowFrameSize')
     __GLFW_API_ARGS_MAP['glfwGetWindowFrameSize'] = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
     __GLFW_API_RETVAL_MAP['glfwGetWindowFrameSize'] = None
+
+    __GLFW_API_NAMES.append('glfwGetWindowContentScale') # Available since GLFW 3.3
+    __GLFW_API_ARGS_MAP['glfwGetWindowContentScale'] = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+    __GLFW_API_RETVAL_MAP['glfwGetWindowContentScale'] = None
+
+    __GLFW_API_NAMES.append('glfwGetWindowOpacity') # Available since GLFW 3.3
+    __GLFW_API_ARGS_MAP['glfwGetWindowOpacity'] = [ctypes.c_void_p]
+    __GLFW_API_RETVAL_MAP['glfwGetWindowOpacity'] = ctypes.c_float
+
+    __GLFW_API_NAMES.append('glfwSetWindowOpacity') # Available since GLFW 3.3
+    __GLFW_API_ARGS_MAP['glfwSetWindowOpacity'] = [ctypes.c_void_p, ctypes.c_float]
+    __GLFW_API_RETVAL_MAP['glfwSetWindowOpacity'] = ctypes.c_void_p
 
     __GLFW_API_NAMES.append('glfwIconifyWindow')
     __GLFW_API_ARGS_MAP['glfwIconifyWindow'] = [ctypes.c_void_p]
@@ -236,6 +264,10 @@ def load_glfw_library(lib, output_error = False):
     __GLFW_API_NAMES.append('glfwSetFramebufferSizeCallback')
     __GLFW_API_ARGS_MAP['glfwSetFramebufferSizeCallback'] = [ctypes.c_void_p, ctypes.c_void_p]
     __GLFW_API_RETVAL_MAP['glfwSetFramebufferSizeCallback'] = ctypes.c_void_p
+
+    __GLFW_API_NAMES.append('glfwSetWindowContentScaleCallback') # Available since GLFW 3.3
+    __GLFW_API_ARGS_MAP['glfwSetWindowContentScaleCallback'] = [ctypes.c_void_p, ctypes.c_void_p]
+    __GLFW_API_RETVAL_MAP['glfwSetWindowContentScaleCallback'] = ctypes.c_void_p
 
     __GLFW_API_NAMES.append('glfwPollEvents')
     __GLFW_API_ARGS_MAP['glfwPollEvents'] = None
@@ -445,7 +477,7 @@ def load_glfw_library(lib, output_error = False):
             pass
 
 # Python-GLFW : Yet another GLFW wrapper for Python
-# Copyright (c) 2017 vaiorabbit <http://twitter.com/vaiorabbit>
+# Copyright (c) 2017-2019 vaiorabbit <http://twitter.com/vaiorabbit>
 #
 # This software is provided 'as-is', without any express or implied
 # warranty. In no event will the authors be held liable for any damages

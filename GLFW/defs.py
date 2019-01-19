@@ -2,25 +2,26 @@ import ctypes
 
 ################################################################################
 
-GLFWerrorfun           = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_char_p)
-GLFWwindowposfun       = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
-GLFWwindowsizefun      = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
-GLFWwindowclosefun     = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
-GLFWwindowrefreshfun   = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
-GLFWwindowfocusfun     = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
-GLFWwindowiconifyfun   = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
-GLFWwindowmaximizefun  = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
-GLFWframebuffersizefun = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
-GLFWmousebuttonfun     = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int)
-GLFWcursorposfun       = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_double, ctypes.c_double)
-GLFWcursorenterfun     = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
-GLFWscrollfun          = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_double, ctypes.c_double)
-GLFWkeyfun             = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int)
-GLFWcharfun            = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint)
-GLFWcharmodsfun        = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint, ctypes.c_int)            # Available since GLFW 3.1
-GLFWdropfun            = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p))  # Available since GLFW 3.1
-GLFWmonitorfun         = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)                    # Available since GLFW 3.0
-GLFWjoystickfun        = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_int)                       # Available since GLFW 3.2
+GLFWerrorfun              = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_char_p)
+GLFWwindowposfun          = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
+GLFWwindowsizefun         = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
+GLFWwindowclosefun        = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
+GLFWwindowrefreshfun      = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
+GLFWwindowfocusfun        = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
+GLFWwindowiconifyfun      = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
+GLFWwindowmaximizefun     = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
+GLFWframebuffersizefun    = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
+GLFWwindowcontentscalefun = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_float, ctypes.c_float) # Available since GLFW 3.3
+GLFWmousebuttonfun        = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int)
+GLFWcursorposfun          = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_double, ctypes.c_double)
+GLFWcursorenterfun        = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)
+GLFWscrollfun             = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_double, ctypes.c_double)
+GLFWkeyfun                = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int)
+GLFWcharfun               = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint)
+GLFWcharmodsfun           = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_uint, ctypes.c_int)            # Available since GLFW 3.1
+GLFWdropfun               = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p))  # Available since GLFW 3.1
+GLFWmonitorfun            = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_int)                    # Available since GLFW 3.0
+GLFWjoystickfun           = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_int)                       # Available since GLFW 3.2
 
 ################################################################################
 
@@ -193,10 +194,12 @@ GLFW_KEY_RIGHT_SUPER    = 347
 GLFW_KEY_MENU           = 348
 GLFW_KEY_LAST           = GLFW_KEY_MENU
 
-GLFW_MOD_SHIFT    = 0x0001
-GLFW_MOD_CONTROL  = 0x0002
-GLFW_MOD_ALT      = 0x0004
-GLFW_MOD_SUPER    = 0x0008
+GLFW_MOD_SHIFT     = 0x0001
+GLFW_MOD_CONTROL   = 0x0002
+GLFW_MOD_ALT       = 0x0004
+GLFW_MOD_SUPER     = 0x0008
+GLFW_MOD_CAPS_LOCK = 0x0010 # Available since GLFW 3.3
+GLFW_MOD_NUM_LOCK  = 0x0020 # Available since GLFW 3.3
 
 GLFW_MOUSE_BUTTON_1       = 0
 GLFW_MOUSE_BUTTON_2       = 1
@@ -271,14 +274,18 @@ GLFW_PLATFORM_ERROR       = 0x00010008
 GLFW_FORMAT_UNAVAILABLE   = 0x00010009
 GLFW_NO_WINDOW_CONTEXT    = 0x0001000A # Available since GLFW 3.2
 
-GLFW_FOCUSED       = 0x00020001
-GLFW_ICONIFIED     = 0x00020002
-GLFW_RESIZABLE     = 0x00020003
-GLFW_VISIBLE       = 0x00020004
-GLFW_DECORATED     = 0x00020005
-GLFW_AUTO_ICONIFY  = 0x00020006 # Available since GLFW 3.1
-GLFW_FLOATING      = 0x00020007 # Available since GLFW 3.1
-GLFW_MAXIMIZED     = 0x00020008 # Available since GLFW 3.2
+GLFW_FOCUSED                 = 0x00020001
+GLFW_ICONIFIED               = 0x00020002
+GLFW_RESIZABLE               = 0x00020003
+GLFW_VISIBLE                 = 0x00020004
+GLFW_DECORATED               = 0x00020005
+GLFW_AUTO_ICONIFY            = 0x00020006 # Available since GLFW 3.1
+GLFW_FLOATING                = 0x00020007 # Available since GLFW 3.1
+GLFW_MAXIMIZED               = 0x00020008 # Available since GLFW 3.2
+GLFW_CENTER_CURSOR           = 0x00020009 # Available since GLFW 3.3
+GLFW_TRANSPARENT_FRAMEBUFFER = 0x0002000A # Available since GLFW 3.3
+GLFW_HOVERED                 = 0x0002000B # Available since GLFW 3.3
+GLFW_FOCUS_ON_SHOW           = 0x0002000C # Available since GLFW 3.3
 
 GLFW_RED_BITS          = 0x00021001
 GLFW_GREEN_BITS        = 0x00021002
@@ -308,6 +315,7 @@ GLFW_OPENGL_PROFILE            = 0x00022008
 GLFW_CONTEXT_RELEASE_BEHAVIOR  = 0x00022009
 GLFW_CONTEXT_NO_ERROR          = 0x0002200A
 GLFW_CONTEXT_CREATION_API      = 0x0002200B # Available since GLFW 3.2
+GLFW_SCALE_TO_MONITOR          = 0x0002200C # Available since GLFW 3.3
 
 GLFW_COCOA_RETINA_FRAMEBUFFER = 0x00023001 # Available since GLFW 3.3
 GLFW_COCOA_FRAME_AUTOSAVE     = 0x00023002 # Available since GLFW 3.3
@@ -362,7 +370,7 @@ GLFW_X11_WM_CLASS_CLASS     = 0x00052002 # Available since GLFW 3.3
 GLFW_DONT_CARE = -1
 
 # Python-GLFW : Yet another GLFW wrapper for Python
-# Copyright (c) 2017 vaiorabbit <http://twitter.com/vaiorabbit>
+# Copyright (c) 2017-2019 vaiorabbit <http://twitter.com/vaiorabbit>
 #
 # This software is provided 'as-is', without any express or implied
 # warranty. In no event will the authors be held liable for any damages

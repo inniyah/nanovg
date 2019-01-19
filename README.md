@@ -3,7 +3,7 @@
 # Yet another GLFW wrapper for Python #
 
 *   Created : 2017-11-25
-*   Last modified : 2017-12-27
+*   Last modified : 2019-01-19
 
 ## Usage ##
 
@@ -33,7 +33,7 @@ Uninstallation:
 The zlib/libpng License ( http://opensource.org/licenses/Zlib ).
 
 Python-GLFW : Yet another GLFW wrapper for Python
-Copyright (c) 2017 vaiorabbit <http://twitter.com/vaiorabbit>
+Copyright (c) 2017-2019 vaiorabbit <http://twitter.com/vaiorabbit>
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages

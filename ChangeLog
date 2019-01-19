@@ -1,3 +1,7 @@
+2019-01-19  vaiorabbit  <http://twitter.com/vaiorabbit>
+
+	* Added GLFW 3.3 features.
+
 2018-12-23  vaiorabbit  <http://twitter.com/vaiorabbit>
 
 	* glfwmaster_build_dylib.sh: Added.
