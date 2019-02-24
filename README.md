@@ -3,7 +3,7 @@
 # Yet another GLFW wrapper for Python #
 
 *   Created : 2017-11-25
-*   Last modified : 2019-01-19
+*   Last modified : 2019-02-24
 
 ## Usage ##
 

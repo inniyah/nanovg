@@ -10,9 +10,6 @@ def glfwTerminate():
 def glfwInitHint(hint, value):
     return GLFW.library.__GLFW_LOADER.glfwInitHint(hint, value)
 
-def glfwInitHintString(hint, value):
-    return GLFW.library.__GLFW_LOADER.glfwInitHintString(hint, value)
-
 def glfwGetVersion(major, minor, rev):
     return GLFW.library.__GLFW_LOADER.glfwGetVersion(major, minor, rev)
 
@@ -210,6 +207,9 @@ def glfwGetInputMode(window, mode):
 
 def glfwSetInputMode(window, mode, value):
     return GLFW.library.__GLFW_LOADER.glfwSetInputMode(window, mode, value)
+
+def glfwRawMouseMotionSupported():
+    return GLFW.library.__GLFW_LOADER.glfwRawMouseMotionSupported()
 
 def glfwGetKeyName(key, scancode):
     return GLFW.library.__GLFW_LOADER.glfwGetKeyName(key, scancode)

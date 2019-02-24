@@ -25,10 +25,6 @@ def load_glfw_library(lib, output_error = False):
     __GLFW_API_ARGS_MAP['glfwInitHint'] = [ctypes.c_int, ctypes.c_int]
     __GLFW_API_RETVAL_MAP['glfwInitHint'] = None
 
-    __GLFW_API_NAMES.append('glfwInitHintString') # Available since GLFW 3.3
-    __GLFW_API_ARGS_MAP['glfwInitHintString'] = [ctypes.c_int, ctypes.c_char_p]
-    __GLFW_API_RETVAL_MAP['glfwInitHintString'] = None
-
     __GLFW_API_NAMES.append('glfwGetVersion')
     __GLFW_API_ARGS_MAP['glfwGetVersion'] = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
     __GLFW_API_RETVAL_MAP['glfwGetVersion'] = None
@@ -293,6 +289,10 @@ def load_glfw_library(lib, output_error = False):
     __GLFW_API_ARGS_MAP['glfwSetInputMode'] = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
     __GLFW_API_RETVAL_MAP['glfwSetInputMode'] = None
 
+    __GLFW_API_NAMES.append('glfwRawMouseMotionSupported') # Available since GLFW 3.3
+    __GLFW_API_ARGS_MAP['glfwRawMouseMotionSupported'] = None
+    __GLFW_API_RETVAL_MAP['glfwRawMouseMotionSupported'] = ctypes.c_int
+
     __GLFW_API_NAMES.append('glfwGetKeyName')
     __GLFW_API_ARGS_MAP['glfwGetKeyName'] = [ctypes.c_int, ctypes.c_int]
     __GLFW_API_RETVAL_MAP['glfwGetKeyName'] = ctypes.c_char_p
@@ -341,7 +341,7 @@ def load_glfw_library(lib, output_error = False):
     __GLFW_API_ARGS_MAP['glfwSetCharCallback'] = [ctypes.c_void_p, ctypes.c_void_p]
     __GLFW_API_RETVAL_MAP['glfwSetCharCallback'] = ctypes.c_void_p
 
-    __GLFW_API_NAMES.append('glfwSetCharModsCallback')
+    __GLFW_API_NAMES.append('glfwSetCharModsCallback') # Available since GLFW 3.1 / Scheduled for removal in version 4.0.
     __GLFW_API_ARGS_MAP['glfwSetCharModsCallback'] = [ctypes.c_void_p, ctypes.c_void_p]
     __GLFW_API_RETVAL_MAP['glfwSetCharModsCallback'] = ctypes.c_void_p
 
