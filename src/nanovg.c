@@ -2068,14 +2068,14 @@ void nvgPathWinding(NVGcontext* ctx, int dir)
 	nvg__appendCommands(ctx, vals, NVG_COUNTOF(vals));
 }
 
-void nvgArc(NVGcontext* ctx, float cx, float cy, float r, float a0, float a1, int dir)
+void nvgBarc(NVGcontext* ctx, float cx, float cy, float r, float a0, float a1, int dir, int join)
 {
 	float a = 0, da = 0, hda = 0, kappa = 0;
 	float dx = 0, dy = 0, x = 0, y = 0, tanx = 0, tany = 0;
 	float px = 0, py = 0, ptanx = 0, ptany = 0;
 	float vals[3 + 5*7 + 100];
 	int i, ndivs, nvals;
-	int move = ctx->ncommands > 0 ? NVG_LINETO : NVG_MOVETO;
+	int move = join && ctx->ncommands > 0 ? NVG_LINETO : NVG_MOVETO;
 
 	// Clamp angles
 	da = a1 - a0;
@@ -2131,6 +2131,11 @@ void nvgArc(NVGcontext* ctx, float cx, float cy, float r, float a0, float a1, in
 	}
 
 	nvg__appendCommands(ctx, vals, nvals);
+}
+
+void nvgArc(NVGcontext* ctx, float cx, float cy, float r, float a0, float a1, int dir)
+{
+	nvgBarc(ctx, cx, cy, r, a0, a1, dir, 1);
 }
 
 void nvgRect(NVGcontext* ctx, float x, float y, float w, float h)

@@ -487,6 +487,8 @@ void nvgPathWinding(NVGcontext* ctx, int dir);
 // Angles are specified in radians.
 void nvgArc(NVGcontext* ctx, float cx, float cy, float r, float a0, float a1, int dir);
 
+void nvgBarc(NVGcontext* ctx, float cx, float cy, float r, float a0, float a1, int dir, int join);
+
 // Creates new rectangle shaped sub-path.
 void nvgRect(NVGcontext* ctx, float x, float y, float w, float h);
 
