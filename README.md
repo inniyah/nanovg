@@ -1,4 +1,4 @@
-*This project is not actively maintained.*
+*This project is not actively maintained by its original author and this repository is a fork.*
 
 NanoVG
 ==========
