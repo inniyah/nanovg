@@ -17,9 +17,9 @@
 //
 
 #ifdef NANOVG_GLEW
-#define GL_GLEXT_PROTOTYPES
-#include <GL/glew.h>
+#  include <GL/glew.h>
 #endif
+
 #include <GL/gl.h>
 
 #include "nanovg_gl.h"
@@ -28,6 +28,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+
+#if defined NANOVG_GL2
+#  define NANOVG_GL2 1
+#elif defined NANOVG_GL3
+#  define NANOVG_GL3 1
+#  define NANOVG_GL_USE_UNIFORMBUFFER 1
+#elif defined NANOVG_GLES2
+#  define NANOVG_GLES2 1
+#elif defined NANOVG_GLES3
+#  define NANOVG_GLES3 1
+#endif
+
+#define NANOVG_GL_USE_STATE_FILTER (1)
 
 enum GLNVGuniformLoc {
 	GLNVG_LOC_VIEWSIZE,

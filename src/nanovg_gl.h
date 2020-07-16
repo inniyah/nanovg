@@ -22,6 +22,10 @@
 #include "nanovg.h"
 #include <GL/gl.h>
 
+#if defined(NANOVG_GL2) + defined(NANOVG_GL3) + defined(NANOVG_GLES2) + defined(NANOVG_GLES3) != 1
+#error Define exactly one of NANOVG_GL2, NANOVG_GL3, NANOVG_GLES2, NANOVG_GLES3
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,25 +42,7 @@ enum NVGcreateFlags {
 	NVG_DEBUG = 1<<2,
 };
 
-#if defined NANOVG_GL2_IMPLEMENTATION
-#  define NANOVG_GL2 1
-#  define NANOVG_GL_IMPLEMENTATION 1
-#elif defined NANOVG_GL3_IMPLEMENTATION
-#  define NANOVG_GL3 1
-#  define NANOVG_GL_IMPLEMENTATION 1
-#  define NANOVG_GL_USE_UNIFORMBUFFER 1
-#elif defined NANOVG_GLES2_IMPLEMENTATION
-#  define NANOVG_GLES2 1
-#  define NANOVG_GL_IMPLEMENTATION 1
-#elif defined NANOVG_GLES3_IMPLEMENTATION
-#  define NANOVG_GLES3 1
-#  define NANOVG_GL_IMPLEMENTATION 1
-#endif
-
-#define NANOVG_GL_USE_STATE_FILTER (1)
-
 // Creates NanoVG contexts for different OpenGL (ES) versions.
-// Flags should be combination of the create flags above.
 
 #if defined NANOVG_GL2
 

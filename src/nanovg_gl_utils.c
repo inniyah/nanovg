@@ -17,9 +17,9 @@
 //
 
 #ifdef NANOVG_GLEW
-#define GL_GLEXT_PROTOTYPES
-#include <GL/glew.h>
+#  include <GL/glew.h>
 #endif
+
 #include <GL/gl.h>
 
 #include "nanovg_gl_utils.h"
@@ -42,7 +42,15 @@
 
 static GLint defaultFBO = -1;
 
-NVGLUframebuffer* nvgluCreateFramebuffer(NVGcontext* ctx, int w, int h, int imageFlags)
+#if defined NANOVG_GL2
+NVGLUframebuffer* nvgluCreateFramebufferGL2(NVGcontext* ctx, int w, int h, int imageFlags)
+#elif defined NANOVG_GL3
+NVGLUframebuffer* nvgluCreateFramebufferGL3(NVGcontext* ctx, int w, int h, int imageFlags)
+#elif defined NANOVG_GLES2
+NVGLUframebuffer* nvgluCreateFramebufferGLES2(NVGcontext* ctx, int w, int h, int imageFlags)
+#elif defined NANOVG_GLES3
+NVGLUframebuffer* nvgluCreateFramebufferGLES3(NVGcontext* ctx, int w, int h, int imageFlags)
+#endif
 {
 #ifdef NANOVG_FBO_VALID
 	GLint defaultFBO;
@@ -102,7 +110,17 @@ NVGLUframebuffer* nvgluCreateFramebuffer(NVGcontext* ctx, int w, int h, int imag
 error:
 	glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
 	glBindRenderbuffer(GL_RENDERBUFFER, defaultRBO);
-	nvgluDeleteFramebuffer(fb);
+
+#if defined NANOVG_GL2
+	nvgluDeleteFramebufferGL2(fb);
+#elif defined NANOVG_GL3
+	nvgluDeleteFramebufferGL3(fb);
+#elif defined NANOVG_GLES2
+	nvgluDeleteFramebufferGLES2(fb);
+#elif defined NANOVG_GLES3
+	nvgluDeleteFramebufferGLES3(fb);
+#endif
+
 	return NULL;
 #else
 	NVG_NOTUSED(ctx);
@@ -113,7 +131,15 @@ error:
 #endif
 }
 
-void nvgluBindFramebuffer(NVGLUframebuffer* fb)
+#if defined NANOVG_GL2
+void nvgluBindFramebufferGL2(NVGLUframebuffer* fb)
+#elif defined NANOVG_GL3
+void nvgluBindFramebufferGL3(NVGLUframebuffer* fb)
+#elif defined NANOVG_GLES2
+void nvgluBindFramebufferGLES2(NVGLUframebuffer* fb)
+#elif defined NANOVG_GLES3
+void nvgluBindFramebufferGLES3(NVGLUframebuffer* fb)
+#endif
 {
 #ifdef NANOVG_FBO_VALID
 	if (defaultFBO == -1) glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFBO);
@@ -123,7 +149,16 @@ void nvgluBindFramebuffer(NVGLUframebuffer* fb)
 #endif
 }
 
-void nvgluDeleteFramebuffer(NVGLUframebuffer* fb)
+
+#if defined NANOVG_GL2
+void nvgluDeleteFramebufferGL2(NVGLUframebuffer* fb)
+#elif defined NANOVG_GL3
+void nvgluDeleteFramebufferGL3(NVGLUframebuffer* fb)
+#elif defined NANOVG_GLES2
+void nvgluDeleteFramebufferGLES2(NVGLUframebuffer* fb)
+#elif defined NANOVG_GLES3
+void nvgluDeleteFramebufferGLES3(NVGLUframebuffer* fb)
+#endif
 {
 #ifdef NANOVG_FBO_VALID
 	if (fb == NULL) return;

@@ -17,15 +17,20 @@
 //
 
 #include <stdio.h>
+#include <math.h>
+
 #ifdef NANOVG_GLEW
-#	include <GL/glew.h>
+# include <GL/glew.h>
 #endif
+
 #ifdef __APPLE__
-#	define GLFW_INCLUDE_GLCOREARB
+#  define GLFW_INCLUDE_GLCOREARB
 #endif
+
 #include <GLFW/glfw3.h>
+
 #include "nanovg.h"
-#define NANOVG_GL3_IMPLEMENTATION
+#define NANOVG_GL3
 #include "nanovg_gl.h"
 #include "nanovg_gl_utils.h"
 #include "perf.h"
@@ -46,7 +51,7 @@ void renderPattern(NVGcontext* vg, NVGLUframebuffer* fb, float t, float pxRatio)
 	winHeight = (int)(fboHeight / pxRatio);
 
 	// Draw some stuff to an FBO as a test
-	nvgluBindFramebuffer(fb);
+	nvgluBindFramebufferGL3(fb);
 	glViewport(0, 0, fboWidth, fboHeight);
 	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
@@ -67,7 +72,7 @@ void renderPattern(NVGcontext* vg, NVGLUframebuffer* fb, float t, float pxRatio)
 	nvgFill(vg);
 
 	nvgEndFrame(vg);
-	nvgluBindFramebuffer(NULL);
+	nvgluBindFramebufferGL3(NULL);
 }
 
 int loadFonts(NVGcontext* vg)
@@ -169,7 +174,7 @@ int main()
 	pxRatio = (float)fbWidth / (float)winWidth;
 
 	// The image pattern is tiled, set repeat on x and y.
-	fb = nvgluCreateFramebuffer(vg, (int)(100*pxRatio), (int)(100*pxRatio), NVG_IMAGE_REPEATX | NVG_IMAGE_REPEATY);
+	fb = nvgluCreateFramebufferGL3(vg, (int)(100*pxRatio), (int)(100*pxRatio), NVG_IMAGE_REPEATX | NVG_IMAGE_REPEATY);
 	if (fb == NULL) {
 		printf("Could not create FBO.\n");
 		return -1;
@@ -259,7 +264,7 @@ int main()
 		glfwPollEvents();
 	}
 
-	nvgluDeleteFramebuffer(fb);
+	nvgluDeleteFramebufferGL3(fb);
 
 	nvgDeleteGL3(vg);
 

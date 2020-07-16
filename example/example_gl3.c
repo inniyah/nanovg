@@ -17,16 +17,20 @@
 //
 
 #include <stdio.h>
+
 #ifdef NANOVG_GLEW
-#	include <GL/glew.h>
+#  include <GL/glew.h>
 #endif
+
 #ifdef __APPLE__
-#	define GLFW_INCLUDE_GLCOREARB
+#  define GLFW_INCLUDE_GLCOREARB
 #endif
+
 #define GLFW_INCLUDE_GLEXT
 #include <GLFW/glfw3.h>
+
 #include "nanovg.h"
-#define NANOVG_GL3_IMPLEMENTATION
+#define NANOVG_GL3
 #include "nanovg_gl.h"
 #include "demo.h"
 #include "perf.h"

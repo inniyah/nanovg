@@ -1,11 +1,16 @@
 #include "perf.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+
 #ifdef NANOVG_GLEW
 #  include <GL/glew.h>
 #endif
+
 #include <GLFW/glfw3.h>
+#include <GL/gl.h>
+
 #include "nanovg.h"
 
 #ifdef _MSC_VER

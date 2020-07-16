@@ -17,11 +17,13 @@
 //
 
 #include <stdio.h>
+
 #define GLFW_INCLUDE_ES3
 #define GLFW_INCLUDE_GLEXT
 #include <GLFW/glfw3.h>
+
 #include "nanovg.h"
-#define NANOVG_GLES3_IMPLEMENTATION
+#define NANOVG_GLES3
 #include "nanovg_gl.h"
 #include "nanovg_gl_utils.h"
 #include "demo.h"

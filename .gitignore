@@ -29,3 +29,6 @@ example/_*
 
 ## xcode specific
 *xcuserdata*
+
+## cmake specific
+build
