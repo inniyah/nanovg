@@ -1,0 +1,37 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.13 FATAL_ERROR)
+PROJECT("nanovg-examples")
+
+FIND_PACKAGE(PkgConfig REQUIRED)
+
+PKG_CHECK_MODULES(NANOVG_PKG REQUIRED IMPORTED_TARGET nanovg)
+PKG_CHECK_MODULES(GLFW3_PKG REQUIRED IMPORTED_TARGET glfw3)
+
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
+ADD_COMPILE_OPTIONS(-Wall -Werror -Wno-unused-but-set-variable -Wno-unused-variable)
+ADD_LINK_OPTIONS(LINKER:--as-needed LINKER:--no-undefined LINKER:--no-allow-shlib-undefined)
+
+ADD_EXECUTABLE(example_gl2 ./example_gl2.c ./demo.c ./perf.c)
+TARGET_LINK_LIBRARIES(example_gl2 PUBLIC PkgConfig::NANOVG_PKG PkgConfig::GLFW3_PKG)
+TARGET_COMPILE_DEFINITIONS(example_gl2 PRIVATE NANOVG_GLEW NANOVG_GL2)
+
+ADD_EXECUTABLE(example_gl3 ./example_gl3.c ./demo.c ./perf.c)
+TARGET_LINK_LIBRARIES(example_gl3 PUBLIC PkgConfig::NANOVG_PKG PkgConfig::GLFW3_PKG)
+TARGET_COMPILE_DEFINITIONS(example_gl3 PRIVATE NANOVG_GLEW NANOVG_GL3)
+
+ADD_EXECUTABLE(example_gles2 ./example_gles2.c ./demo.c ./perf.c)
+TARGET_LINK_LIBRARIES(example_gles2 PUBLIC PkgConfig::NANOVG_PKG PkgConfig::GLFW3_PKG)
+TARGET_COMPILE_DEFINITIONS(example_gles2 PRIVATE NANOVG_GLES2)
+
+ADD_EXECUTABLE(example_gles3 ./example_gles3.c ./demo.c ./perf.c)
+TARGET_LINK_LIBRARIES(example_gles3 PUBLIC PkgConfig::NANOVG_PKG PkgConfig::GLFW3_PKG)
+TARGET_COMPILE_DEFINITIONS(example_gles3 PRIVATE NANOVG_GLES3)
+
+ADD_EXECUTABLE(example_fbo ./example_fbo.c ./demo.c ./perf.c)
+TARGET_LINK_LIBRARIES(example_fbo PUBLIC PkgConfig::NANOVG_PKG PkgConfig::GLFW3_PKG)
+TARGET_COMPILE_DEFINITIONS(example_fbo PRIVATE NANOVG_GLEW NANOVG_GL3)
+
+ADD_EXECUTABLE(example_svg1 ./example_svg1.c)
+TARGET_LINK_LIBRARIES(example_svg1 PUBLIC PkgConfig::NANOVG_PKG PkgConfig::GLFW3_PKG)
+
+ADD_EXECUTABLE(example_svg2 ./example_svg2.c)
+TARGET_LINK_LIBRARIES(example_svg2 PUBLIC PkgConfig::NANOVG_PKG)
