@@ -1,0 +1,37 @@
+Source: nanovg
+Section: libs
+Priority: optional
+Maintainer: Miriam Ruiz <miriam@debian.org>
+Build-Depends:
+ debhelper-compat (= 12),
+ quilt,
+ cmake,
+ libgl-dev,,
+ libgles-dev,
+ libegl-dev,
+ libglfw3-dev,
+ libglew-dev
+Standards-Version: 4.5.0.0
+Homepage: https://github.com/memononen/nanovg
+Rules-Requires-Root: no
+
+Package: libnanovg-dev
+Section: libdevel
+Architecture: any
+Depends: libnanovg0 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: antialiased vector graphics rendering library for OpenGL - devel
+ NanoVG is small antialiased vector graphics rendering library for OpenGL.
+ It has lean API modeled after HTML5 canvas API. It is aimed to be a practical
+ and fun toolset for building scalable user interfaces and visualizations.
+ .
+ This package contains the development libraries and headers.
+
+Package: libnanovg0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Suggests: libnanovg-dev (= ${binary:Version})
+Description: antialiased vector graphics rendering library for OpenGL
+ NanoVG is small antialiased vector graphics rendering library for OpenGL.
+ It has lean API modeled after HTML5 canvas API. It is aimed to be a practical
+ and fun toolset for building scalable user interfaces and visualizations.

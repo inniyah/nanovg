@@ -32,3 +32,15 @@ example/_*
 
 ## cmake specific
 build
+build-tree
+
+## Debian specific
+config-stamp
+build-stamp
+debian/.pc
+debian/.debhelper
+debian/tmp
+debian/libnanovg0
+debian/libnanovg-dev
+debian/*.substvars
+debian/files
