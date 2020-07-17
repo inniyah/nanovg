@@ -1,5 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.13 FATAL_ERROR)
 PROJECT("nanovg")
+SET(VERSION 0.0)
+
+INCLUDE(GNUInstallDirs)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src)
 ADD_COMPILE_OPTIONS(-Wall -Werror -Wno-unused-but-set-variable -Wno-unused-variable)
@@ -42,15 +45,20 @@ ADD_LIBRARY(nanovg_a STATIC $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl2
 SET_TARGET_PROPERTIES(nanovg_a PROPERTIES OUTPUT_NAME nanovg)
 TARGET_LINK_LIBRARIES(nanovg_a nanovg nanovg_gl2 nanovg_gl3 nanovg_gles2 nanovg_gles3 GLEW EGL GL m)
 
+CONFIGURE_FILE(pkgconfig/nanovg.pc.in nanovg.pc @ONLY)
+
 INSTALL(TARGETS nanovg_so nanovg_a
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION bin)
 
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/src/
-        DESTINATION include/nanovg
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nanovg
         FILES_MATCHING PATTERN "nano*.h*")
 
+# Install pkg-config files
+INSTALL(FILES ${CMAKE_BINARY_DIR}/nanovg.pc
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 # Build Examples
 
