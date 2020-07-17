@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@/nanovg
+
+Name: nanovg
+Description: Antialiased 2D vector drawing library on top of OpenGL for UI and visualizations
+Version: @VERSION@
+Requires: glew egl
+Libs: -L${libdir} -lnanovg -lGLU -lGL -lm
+Cflags: -I${includedir}
