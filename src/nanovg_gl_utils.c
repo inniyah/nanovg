@@ -20,6 +20,15 @@
 #  include <GL/glew.h>
 #endif
 
+#ifdef NANOVG_GLES2
+#  include <GLES2/gl2.h>
+#  include <GLES2/gl2ext.h>
+#endif
+
+#ifdef NANOVG_GLES3
+#  include <GLES3/gl3.h>
+#endif
+
 #include <GL/gl.h>
 
 #include "nanovg_gl_utils.h"

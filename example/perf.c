@@ -8,6 +8,20 @@
 #  include <GL/glew.h>
 #endif
 
+#ifdef NANOVG_GLES2
+#  define GL_GLEXT_PROTOTYPES
+#  include <GLES2/gl2.h>
+#  include <GLES2/gl2ext.h>
+#  define glBeginQuery glBeginQueryEXT
+#  define glEndQuery glEndQueryEXT
+#  define glGetQueryObjectiv glGetQueryObjectivEXT
+#endif
+
+#ifdef NANOVG_GLES3
+#  include <GLES3/gl3.h>
+#  define glGetQueryObjectiv(id,pname,params) glGetQueryObjectuiv((id),(pname),(unsigned int *)(params))
+#endif
+
 #include <GLFW/glfw3.h>
 #include <GL/gl.h>
 

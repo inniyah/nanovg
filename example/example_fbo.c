@@ -19,6 +19,10 @@
 #include <stdio.h>
 #include <math.h>
 
+#ifndef NANOVG_GL3
+#  define NANOVG_GL3
+#endif
+
 #ifdef NANOVG_GLEW
 # include <GL/glew.h>
 #endif
@@ -30,7 +34,6 @@
 #include <GLFW/glfw3.h>
 
 #include "nanovg.h"
-#define NANOVG_GL3
 #include "nanovg_gl.h"
 #include "nanovg_gl_utils.h"
 #include "perf.h"
