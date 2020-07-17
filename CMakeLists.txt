@@ -42,14 +42,14 @@ ADD_LIBRARY(nanovg_a STATIC $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl2
 SET_TARGET_PROPERTIES(nanovg_a PROPERTIES OUTPUT_NAME nanovg)
 TARGET_LINK_LIBRARIES(nanovg_a nanovg nanovg_gl2 nanovg_gl3 nanovg_gles2 nanovg_gles3 GLEW EGL GL m)
 
-INSTALL(TARGETS nanovg_so
+INSTALL(TARGETS nanovg_so nanovg_a
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
         RUNTIME DESTINATION bin)
 
 INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/src/
         DESTINATION include/nanovg
-        FILES_MATCHING PATTERN "*.h*")
+        FILES_MATCHING PATTERN "nano*.h*")
 
 
 # Build Examples
