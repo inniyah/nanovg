@@ -4,7 +4,9 @@ import ctypes
 from OpenGL.GLUT import *
 from OpenGL.GL import *
 
+from glew import *
 from NanoVG import *
+
 from demo_data import DemoData
 from perf import PerfGraph
 
@@ -62,8 +64,10 @@ def main():
     glutInitWindowSize(1000, 600)
     glutCreateWindow(b"Python NanoVG/GLFW")
 
-    NanoVG.load_nanovg_library('libnanovg_gl2.dylib', render_backend = 'gl2', output_error = True)
-    nvgSetupGL2()
+    glew.load_glew_library('libGLEW.so.2.1')
+    glewInit()
+
+    NanoVG.load_nanovg_library('libnanovg.so.0', output_error = True)
     app.vg = nvgCreateGL2(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG)
     if app.vg == None:
         print("Could not init nanovg.")

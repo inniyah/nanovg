@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 # For local/library development:
 # import sys, os
 # sys.path.append(os.pardir)
@@ -10,6 +13,7 @@ import OpenGL.GL
 # https://github.com/vaiorabbit/python-glfw
 import GLFW
 from GLFW import *
+from glew import *
 
 from NanoVG import *
 from demo_data import DemoData
@@ -23,14 +27,17 @@ key_callback = GLFWkeyfun(key_callback_fn)
 
 
 def main():
-    GLFW.load_glfw_library('libglfw.dylib')
+    GLFW.load_glfw_library('libglfw.so.3')
     glfwInit()
 
     win = glfwCreateWindow(1000, 600, b"Python NanoVG/GLFW", None, None)
     glfwMakeContextCurrent(win)
 
-    NanoVG.load_nanovg_library('libnanovg_gl2.dylib', render_backend = 'gl2', output_error = True)
-    nvgSetupGL2()
+    glew.load_glew_library('libGLEW.so.2.1')
+    glewInit()
+
+    NanoVG.load_nanovg_library('libnanovg.so.0', output_error = True)
+
     vg = nvgCreateGL2(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG)
     if vg == None:
         print("Could not init nanovg.")
