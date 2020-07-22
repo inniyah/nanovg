@@ -22,10 +22,6 @@
 #include "nanovg.h"
 #include <GL/gl.h>
 
-#if defined(NANOVG_GL2) + defined(NANOVG_GL3) + defined(NANOVG_GLES2) + defined(NANOVG_GLES3) != 1
-#error Define exactly one of NANOVG_GL2, NANOVG_GL3, NANOVG_GLES2, NANOVG_GLES3
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -44,17 +40,11 @@ enum NVGcreateFlags {
 
 // Creates NanoVG contexts for different OpenGL (ES) versions.
 
-#if defined NANOVG_GL2
-
 NVGcontext* nvgCreateGL2(int flags);
 void nvgDeleteGL2(NVGcontext* ctx);
 
 int nvglCreateImageFromHandleGL2(NVGcontext* ctx, GLuint textureId, int w, int h, int flags);
 GLuint nvglImageHandleGL2(NVGcontext* ctx, int image);
-
-#endif
-
-#if defined NANOVG_GL3
 
 NVGcontext* nvgCreateGL3(int flags);
 void nvgDeleteGL3(NVGcontext* ctx);
@@ -62,27 +52,17 @@ void nvgDeleteGL3(NVGcontext* ctx);
 int nvglCreateImageFromHandleGL3(NVGcontext* ctx, GLuint textureId, int w, int h, int flags);
 GLuint nvglImageHandleGL3(NVGcontext* ctx, int image);
 
-#endif
-
-#if defined NANOVG_GLES2
-
 NVGcontext* nvgCreateGLES2(int flags);
 void nvgDeleteGLES2(NVGcontext* ctx);
 
 int nvglCreateImageFromHandleGLES2(NVGcontext* ctx, GLuint textureId, int w, int h, int flags);
 GLuint nvglImageHandleGLES2(NVGcontext* ctx, int image);
 
-#endif
-
-#if defined NANOVG_GLES3
-
 NVGcontext* nvgCreateGLES3(int flags);
 void nvgDeleteGLES3(NVGcontext* ctx);
 
 int nvglCreateImageFromHandleGLES3(NVGcontext* ctx, GLuint textureId, int w, int h, int flags);
 GLuint nvglImageHandleGLES3(NVGcontext* ctx, int image);
-
-#endif
 
 // These are additional flags on top of NVGimageFlags.
 enum NVGimageFlagsGL {

@@ -16,6 +16,10 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
+#if defined(NANOVG_GL2) + defined(NANOVG_GL3) + defined(NANOVG_GLES2) + defined(NANOVG_GLES3) != 1
+#error Define exactly one of NANOVG_GL2, NANOVG_GL3, NANOVG_GLES2, NANOVG_GLES3
+#endif
+
 #ifdef NANOVG_GLEW
 #  include <GL/glew.h>
 #endif
