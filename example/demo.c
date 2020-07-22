@@ -8,7 +8,7 @@
 #include <GLFW/glfw3.h>
 #include "nanovg.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include <stb/stb_image_write.h>
 
 
 #ifdef _MSC_VER
