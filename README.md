@@ -1,5 +1,14 @@
 *This project is not actively maintained by its original author and this repository is a fork.*
 
+Main changes
+============
+
+- Replaced custom build system by cmake
+- Build both shared and static libraries, including all the backends
+- Support pkg-config for compiling and linking software that depends on nanovg
+- Added examples of its usage in Python, via ctypes
+- Integrated nanosvg code into the main library
+
 NanoVG
 ==========
 
