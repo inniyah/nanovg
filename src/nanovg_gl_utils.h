@@ -36,37 +36,21 @@ typedef struct NVGLUframebuffer NVGLUframebuffer;
 
 // Helper function to create GL frame buffers for different OpenGL (ES) versions.
 
-#if defined NANOVG_GL2
-
 void nvgluBindFramebufferGL2(NVGLUframebuffer* fb);
 NVGLUframebuffer* nvgluCreateFramebufferGL2(NVGcontext* ctx, int w, int h, int imageFlags);
 void nvgluDeleteFramebufferGL2(NVGLUframebuffer* fb);
-
-#endif
-
-#if defined NANOVG_GL3
 
 void nvgluBindFramebufferGL3(NVGLUframebuffer* fb);
 NVGLUframebuffer* nvgluCreateFramebufferGL3(NVGcontext* ctx, int w, int h, int imageFlags);
 void nvgluDeleteFramebufferGL3(NVGLUframebuffer* fb);
 
-#endif
-
-#if defined NANOVG_GLES2
-
 void nvgluBindFramebufferGLES2(NVGLUframebuffer* fb);
 NVGLUframebuffer* nvgluCreateFramebufferGLES2(NVGcontext* ctx, int w, int h, int imageFlags);
 void nvgluDeleteFramebufferGLES2(NVGLUframebuffer* fb);
 
-#endif
-
-#if defined NANOVG_GLES3
-
 void nvgluBindFramebufferGLES3(NVGLUframebuffer* fb);
 NVGLUframebuffer* nvgluCreateFramebufferGLES3(NVGcontext* ctx, int w, int h, int imageFlags);
 void nvgluDeleteFramebufferGLES3(NVGLUframebuffer* fb);
-
-#endif
 
 #ifdef __cplusplus
 }
