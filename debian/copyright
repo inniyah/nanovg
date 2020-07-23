@@ -1,7 +1,8 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: nanovg
 Upstream-Contact: Mikko Mononen <memononen@gmail.com>
-Source: https://github.com/memononen/nanovg
+Source: https://github.com/inniyah/nanovg/
+        https://github.com/memononen/nanovg
 Debianized-By: Miriam Ruiz <miriam@debian.org>
 Debianized-Date: Wed, 15 Jul 2020 13:07:49 +0200
 
@@ -14,7 +15,7 @@ Copyright: 2015, Google Inc.
 License: Apache-2.0
 
 Files: debian/*
-Copyright: Copyright (c) 2020, Miriam Ruiz <miriam@miriam-laptop>
+Copyright: Copyright (c) 2020, Miriam Ruiz <miriam@debian.org>
 License: Zlib
 
 License: Zlib
