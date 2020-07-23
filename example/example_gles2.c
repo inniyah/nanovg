@@ -18,10 +18,6 @@
 
 #include <stdio.h>
 
-#ifndef NANOVG_GLES2
-#  define NANOVG_GLES2
-#endif
-
 #define GLFW_INCLUDE_ES2
 #define GLFW_INCLUDE_GLEXT
 #include <GLFW/glfw3.h>

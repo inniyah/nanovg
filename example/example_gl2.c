@@ -18,10 +18,6 @@
 
 #include <stdio.h>
 
-#ifndef NANOVG_GL2
-#  define NANOVG_GL2
-#endif
-
 #ifdef NANOVG_USE_GLEW
 #  include <GL/glew.h>
 #endif
@@ -96,6 +92,8 @@ int main()
 		printf("Could not init glew.\n");
 		return -1;
 	}
+	// GLEW generates GL error because it calls glGetString(GL_EXTENSIONS), we'll consume it here.
+	glGetError();
 #endif
 
 #ifdef DEMO_MSAA

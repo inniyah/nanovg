@@ -8,6 +8,10 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src)
 ADD_COMPILE_OPTIONS(-Wall -Werror -Wno-unused-but-set-variable -Wno-unused-variable)
 ADD_LINK_OPTIONS(LINKER:--as-needed LINKER:--no-undefined LINKER:--no-allow-shlib-undefined)
 
+SET(NANOVG_DEFINES "")
+SET(NANOVG_GL_DEFINES "")
+
+LIST(APPEND NANOVG_GL_DEFINES NANOVG_USE_GLEW)
 
 # Build Library
 
@@ -18,12 +22,12 @@ SET_PROPERTY(TARGET nanovg PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 ADD_LIBRARY(nanovg_gl2 OBJECT src/nanovg_gl.c src/nanovg_gl_utils.c)
 TARGET_INCLUDE_DIRECTORIES(nanovg_gl2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-TARGET_COMPILE_DEFINITIONS(nanovg_gl2 PRIVATE NANOVG_USE_GLEW NANOVG_GL2)
+TARGET_COMPILE_DEFINITIONS(nanovg_gl2 PRIVATE ${NANOVG_GL_DEFINES} NANOVG_GL2)
 SET_PROPERTY(TARGET nanovg_gl2 PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 ADD_LIBRARY(nanovg_gl3 OBJECT src/nanovg_gl.c src/nanovg_gl_utils.c)
 TARGET_INCLUDE_DIRECTORIES(nanovg_gl3 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-TARGET_COMPILE_DEFINITIONS(nanovg_gl3 PRIVATE NANOVG_USE_GLEW NANOVG_GL3)
+TARGET_COMPILE_DEFINITIONS(nanovg_gl3 PRIVATE ${NANOVG_GL_DEFINES} NANOVG_GL3)
 SET_PROPERTY(TARGET nanovg_gl3 PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 ADD_LIBRARY(nanovg_gles2 OBJECT src/nanovg_gl.c src/nanovg_gl_utils.c)
@@ -64,11 +68,15 @@ INSTALL(FILES ${CMAKE_BINARY_DIR}/nanovg.pc
 
 ADD_EXECUTABLE(example_gl2 example/example_gl2.c example/demo.c example/perf.c $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl2>)
 TARGET_LINK_LIBRARIES(example_gl2 nanovg nanovg_gl2 GLEW EGL GL glfw m)
-TARGET_COMPILE_DEFINITIONS(example_gl2 PRIVATE NANOVG_USE_GLEW NANOVG_GL2)
+TARGET_COMPILE_DEFINITIONS(example_gl2 PRIVATE ${NANOVG_GL_DEFINES} NANOVG_GL2)
 
 ADD_EXECUTABLE(example_gl3 example/example_gl3.c example/demo.c example/perf.c $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl3>)
 TARGET_LINK_LIBRARIES(example_gl3 nanovg nanovg_gl3 GLEW EGL GL glfw m)
-TARGET_COMPILE_DEFINITIONS(example_gl3 PRIVATE NANOVG_USE_GLEW NANOVG_GL3)
+TARGET_COMPILE_DEFINITIONS(example_gl3 PRIVATE ${NANOVG_GL_DEFINES} NANOVG_GL3)
+
+ADD_EXECUTABLE(example_fbo example/example_fbo.c example/demo.c example/perf.c $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl3>)
+TARGET_LINK_LIBRARIES(example_fbo nanovg_gl3 GLEW EGL GL glfw m)
+TARGET_COMPILE_DEFINITIONS(example_fbo PRIVATE ${NANOVG_GL_DEFINES} NANOVG_GL3)
 
 ADD_EXECUTABLE(example_gles2 example/example_gles2.c example/demo.c example/perf.c $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gles2>)
 TARGET_LINK_LIBRARIES(example_gles2 GLEW EGL GL glfw m)
@@ -77,10 +85,6 @@ TARGET_COMPILE_DEFINITIONS(example_gles2 PRIVATE NANOVG_GLES2)
 ADD_EXECUTABLE(example_gles3 example/example_gles3.c example/demo.c example/perf.c $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gles3>)
 TARGET_LINK_LIBRARIES(example_gles3 GLEW EGL GL glfw m)
 TARGET_COMPILE_DEFINITIONS(example_gles3 PRIVATE NANOVG_GLES3)
-
-ADD_EXECUTABLE(example_fbo example/example_fbo.c example/demo.c example/perf.c $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl3>)
-TARGET_LINK_LIBRARIES(example_fbo nanovg_gl3 GLEW EGL GL glfw m)
-TARGET_COMPILE_DEFINITIONS(example_fbo PRIVATE NANOVG_USE_GLEW NANOVG_GL3)
 
 ADD_EXECUTABLE(example_svg1 example/example_svg1.c $<TARGET_OBJECTS:nanovg>)
 TARGET_LINK_LIBRARIES(example_svg1 GLEW EGL GL glfw m)
