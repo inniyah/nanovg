@@ -18,14 +18,6 @@
 
 #include <stdio.h>
 
-#ifndef NANOVG_GL2
-#  define NANOVG_GL2
-#endif
-
-#ifdef NANOVG_GLEW
-#  include <GL/glew.h>
-#endif
-
 #define GLFW_INCLUDE_GLEXT
 #include <GLFW/glfw3.h>
 
@@ -91,12 +83,6 @@ int main()
 	glfwSetKeyCallback(window, key);
 
 	glfwMakeContextCurrent(window);
-#ifdef NANOVG_GLEW
-    if(glewInit() != GLEW_OK) {
-		printf("Could not init glew.\n");
-		return -1;
-	}
-#endif
 
 #ifdef DEMO_MSAA
 	vg = nvgCreateGL2(NVG_STENCIL_STROKES | NVG_DEBUG);

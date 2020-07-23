@@ -19,10 +19,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <float.h>
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
+
 #define NANOSVG_IMPLEMENTATION
 #include "nanosvg.h"
+
 #define NANOSVGRAST_IMPLEMENTATION
 #include "nanosvgrast.h"
 

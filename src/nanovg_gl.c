@@ -20,8 +20,9 @@
 #error Define exactly one of NANOVG_GL2, NANOVG_GL3, NANOVG_GLES2, NANOVG_GLES3
 #endif
 
-#ifdef NANOVG_GLEW
+#ifdef NANOVG_USE_GLEW
 #  include <GL/glew.h>
+static int glew_initialized = 0;
 #endif
 
 #ifdef NANOVG_GLES2
@@ -1512,6 +1513,18 @@ NVGcontext* nvgCreateGLES2(int flags)
 NVGcontext* nvgCreateGLES3(int flags)
 #endif
 {
+	#ifdef NANOVG_USE_GLEW
+	if (!glew_initialized) {
+		if (glewInit() == GLEW_OK) {
+			glew_initialized = 1;
+		} else {
+			printf("Failed to initialize GLEW");
+			// GLEW generates GL error because it calls glGetString(GL_EXTENSIONS), we'll consume it here.
+			glGetError();
+		}
+	}
+	#endif
+
 	NVGparams params;
 	NVGcontext* ctx = NULL;
 	GLNVGcontext* gl = (GLNVGcontext*)malloc(sizeof(GLNVGcontext));
