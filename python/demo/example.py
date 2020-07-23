@@ -13,7 +13,6 @@ import OpenGL.GL
 # https://github.com/vaiorabbit/python-glfw
 import GLFW
 from GLFW import *
-from glew import *
 
 from NanoVG import *
 from demo_data import DemoData
@@ -32,9 +31,6 @@ def main():
 
     win = glfwCreateWindow(1000, 600, b"Python NanoVG/GLFW", None, None)
     glfwMakeContextCurrent(win)
-
-    glew.load_glew_library('libGLEW.so.2.1')
-    glewInit()
 
     NanoVG.load_nanovg_library('libnanovg.so.0', output_error = True)
 
