@@ -22,7 +22,7 @@
 #  define NANOVG_GL2
 #endif
 
-#ifdef NANOVG_GLEW
+#ifdef NANOVG_USE_GLEW
 #  include <GL/glew.h>
 #endif
 
@@ -91,7 +91,7 @@ int main()
 	glfwSetKeyCallback(window, key);
 
 	glfwMakeContextCurrent(window);
-#ifdef NANOVG_GLEW
+#ifdef NANOVG_USE_GLEW
     if(glewInit() != GLEW_OK) {
 		printf("Could not init glew.\n");
 		return -1;

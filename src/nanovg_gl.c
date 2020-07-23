@@ -20,7 +20,7 @@
 #error Define exactly one of NANOVG_GL2, NANOVG_GL3, NANOVG_GLES2, NANOVG_GLES3
 #endif
 
-#ifdef NANOVG_GLEW
+#ifdef NANOVG_USE_GLEW
 #  include <GL/glew.h>
 #endif
 

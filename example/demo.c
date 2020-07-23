@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#ifdef NANOVG_GLEW
+#ifdef NANOVG_USE_GLEW
 #  include <GL/glew.h>
 #endif
 #include <GLFW/glfw3.h>
