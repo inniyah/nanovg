@@ -16,8 +16,8 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef NANOVG_GL_H
-#define NANOVG_GL_H
+#ifndef NANOVG_GL_H_F380EF20_CDA3_11EA_AF55_D3B6DB88CFCC
+#define NANOVG_GL_H_F380EF20_CDA3_11EA_AF55_D3B6DB88CFCC
 
 #include "nanovg.h"
 #include <GL/gl.h>
@@ -73,4 +73,4 @@ enum NVGimageFlagsGL {
 }
 #endif
 
-#endif /* NANOVG_GL_H */
+#endif // NANOVG_GL_H_F380EF20_CDA3_11EA_AF55_D3B6DB88CFCC

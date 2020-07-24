@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef NANOSVG_H
-#define NANOSVG_H
+#ifndef NANOSVG_H_F380EFB6_CDA3_11EA_AF56_AF372EEE82E3
+#define NANOSVG_H_F380EFB6_CDA3_11EA_AF56_AF372EEE82E3
 
 #ifndef NANOSVG_CPLUSPLUS
 #ifdef __cplusplus
@@ -181,7 +181,7 @@ void nsvgDelete(NSVGimage* image);
 #endif
 #endif
 
-#endif // NANOSVG_H
+#endif // NANOSVG_H_F380EFB6_CDA3_11EA_AF56_AF372EEE82E3
 
 #ifdef NANOSVG_IMPLEMENTATION
 
@@ -2972,4 +2972,4 @@ void nsvgDelete(NSVGimage* image)
 	free(image);
 }
 
-#endif
+#endif // NANOSVG_IMPLEMENTATION

@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef NANOSVGRAST_H
-#define NANOSVGRAST_H
+#ifndef NANOSVGRAST_H_F380F088_CDA3_11EA_AF57_E347C0638F98
+#define NANOSVGRAST_H_F380F088_CDA3_11EA_AF57_E347C0638F98
 
 #ifndef NANOSVGRAST_CPLUSPLUS
 #ifdef __cplusplus
@@ -72,7 +72,7 @@ void nsvgDeleteRasterizer(NSVGrasterizer*);
 #endif
 #endif
 
-#endif // NANOSVGRAST_H
+#endif // NANOSVGRAST_H_F380F088_CDA3_11EA_AF57_E347C0638F98
 
 #ifdef NANOSVGRAST_IMPLEMENTATION
 
@@ -1449,4 +1449,4 @@ void nsvgRasterize(NSVGrasterizer* r,
 	r->stride = 0;
 }
 
-#endif
+#endif // NANOSVGRAST_IMPLEMENTATION

@@ -18,8 +18,8 @@
 
 #include "nanovg_gl.h"
 
-#ifndef NANOVG_GL_UTILS_H
-#define NANOVG_GL_UTILS_H
+#ifndef NANOVG_GL_UTILS_H_F380EE76_CDA3_11EA_AF54_FB2296181D7D
+#define NANOVG_GL_UTILS_H_F380EE76_CDA3_11EA_AF54_FB2296181D7D
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,4 +56,4 @@ void nvgluDeleteFramebufferGLES3(NVGLUframebuffer* fb);
 }
 #endif
 
-#endif // NANOVG_GL_UTILS_H
+#endif // NANOVG_GL_UTILS_H_F380EE76_CDA3_11EA_AF54_FB2296181D7D

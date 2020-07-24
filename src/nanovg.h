@@ -16,8 +16,8 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef NANOVG_H
-#define NANOVG_H
+#ifndef NANOVG_H_F380EB38_CDA3_11EA_AF53_BBD96082A0CB
+#define NANOVG_H_F380EB38_CDA3_11EA_AF53_BBD96082A0CB
 
 #ifdef __cplusplus
 extern "C" {
@@ -694,4 +694,4 @@ void nvgDebugDumpPathCache(NVGcontext* ctx);
 }
 #endif
 
-#endif // NANOVG_H
+#endif // NANOVG_H_F380EB38_CDA3_11EA_AF53_BBD96082A0CB
