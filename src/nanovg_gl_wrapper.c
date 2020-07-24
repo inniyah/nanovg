@@ -15,17 +15,48 @@
 //
 
 #include "nanovg_gl.h"
+#include "nanovg_gl_wrapper.h"
 
-#ifndef NANOVG_GL_WRAPPER_H_F380F2D6_CDA3_11EA_AF59_B71CDC8E1A6A
-#define NANOVG_GL_WRAPPER_H_F380F2D6_CDA3_11EA_AF59_B71CDC8E1A6A
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+static const NanoVG_GL_Functions_VTable NanoVG_GL2_Functions_VTable = {
+	.name = "GL2",
+	.createContext = &nvgCreateGL2,
+	.deleteContext = &nvgDeleteGL2,
+	.createImageFromHandle = &nvglCreateImageFromHandleGL2,
+	.getImageHandle = &nvglImageHandleGL2,
+};
 
+static const NanoVG_GL_Functions_VTable NanoVG_GL3_Functions_VTable = {
+	.name = "GL3",
+	.createContext = &nvgCreateGL3,
+	.deleteContext = &nvgDeleteGL3,
+	.createImageFromHandle = &nvglCreateImageFromHandleGL3,
+	.getImageHandle = &nvglImageHandleGL3,
+};
 
-#ifdef __cplusplus
-}
-#endif
+static const NanoVG_GL_Functions_VTable NanoVG_GLES2_Functions_VTable = {
+	.name = "GLES2",
+	.createContext = &nvgCreateGLES2,
+	.deleteContext = &nvgDeleteGLES2,
+	.createImageFromHandle = &nvglCreateImageFromHandleGLES2,
+	.getImageHandle = &nvglImageHandleGLES2,
+};
 
-#endif // NANOVG_GL_WRAPPER_H_F380F2D6_CDA3_11EA_AF59_B71CDC8E1A6A
+static const NanoVG_GL_Functions_VTable NanoVG_GLES3_Functions_VTable = {
+	.name = "GLES2",
+	.createContext = &nvgCreateGLES3,
+	.deleteContext = &nvgDeleteGLES3,
+	.createImageFromHandle = &nvglCreateImageFromHandleGLES3,
+	.getImageHandle = &nvglImageHandleGLES3,
+};
+
+const NanoVG_GL_Functions_VTable NanoVG_GL_Functions[] = {
+	NanoVG_GL2_Functions_VTable,
+	NanoVG_GL3_Functions_VTable,
+	NanoVG_GLES2_Functions_VTable,
+	NanoVG_GLES3_Functions_VTable,
+};
