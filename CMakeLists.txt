@@ -13,6 +13,8 @@ SET(NANOVG_SOURCES "src/nanovg.c")
 SET(NANOVG_GL_DEFINES "")
 SET(NANOVG_GL_SOURCES "src/nanovg_gl.c" "src/nanovg_gl_utils.c")
 SET(NANOVG_GLES_SOURCES "src/nanovg_gl.c" "src/nanovg_gl_utils.c")
+SET(NANOVG_OUI_DEFINES "")
+SET(NANOVG_OUI_SOURCES "src/oui.c" "src/blendish.c")
 
 LIST(APPEND NANOVG_GL_DEFINES NANOVG_USE_GLEW)
 
@@ -43,13 +45,35 @@ TARGET_INCLUDE_DIRECTORIES(nanovg_gles3 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 TARGET_COMPILE_DEFINITIONS(nanovg_gles3 PRIVATE NANOVG_GLES3)
 SET_PROPERTY(TARGET nanovg_gles3 PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-ADD_LIBRARY(nanovg_so SHARED $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl2> $<TARGET_OBJECTS:nanovg_gl3> $<TARGET_OBJECTS:nanovg_gles2> $<TARGET_OBJECTS:nanovg_gles3>)
+ADD_LIBRARY(nanovg_oui OBJECT ${NANOVG_OUI_SOURCES})
+TARGET_INCLUDE_DIRECTORIES(nanovg_oui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+TARGET_COMPILE_DEFINITIONS(nanovg_oui PRIVATE ${NANOVG_OUI_DEFINES})
+SET_PROPERTY(TARGET nanovg_oui PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+
+ADD_LIBRARY(nanovg_so SHARED
+	$<TARGET_OBJECTS:nanovg>
+	$<TARGET_OBJECTS:nanovg_gl2>
+	$<TARGET_OBJECTS:nanovg_gl3>
+	$<TARGET_OBJECTS:nanovg_gles2>
+	$<TARGET_OBJECTS:nanovg_gles3>
+	$<TARGET_OBJECTS:nanovg_oui>
+)
+
 SET_TARGET_PROPERTIES(nanovg_so PROPERTIES VERSION ${VERSION} SOVERSION 0)
 SET_TARGET_PROPERTIES(nanovg_so PROPERTIES OUTPUT_NAME nanovg)
 TARGET_LINK_LIBRARIES(nanovg_so PUBLIC nanovg nanovg_gl2 nanovg_gl3 nanovg_gles2 nanovg_gles3)
 TARGET_LINK_LIBRARIES(nanovg_so PRIVATE GLEW EGL GL m)
 
-ADD_LIBRARY(nanovg_a STATIC $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl2> $<TARGET_OBJECTS:nanovg_gl3> $<TARGET_OBJECTS:nanovg_gles2> $<TARGET_OBJECTS:nanovg_gles3>)
+ADD_LIBRARY(nanovg_a STATIC
+	$<TARGET_OBJECTS:nanovg>
+	$<TARGET_OBJECTS:nanovg_gl2>
+	$<TARGET_OBJECTS:nanovg_gl3>
+	$<TARGET_OBJECTS:nanovg_gles2>
+	$<TARGET_OBJECTS:nanovg_gles3>
+	$<TARGET_OBJECTS:nanovg_oui>
+)
+
 SET_TARGET_PROPERTIES(nanovg_a PROPERTIES OUTPUT_NAME nanovg)
 TARGET_LINK_LIBRARIES(nanovg_a PUBLIC nanovg nanovg_gl2 nanovg_gl3 nanovg_gles2 nanovg_gles3)
 TARGET_LINK_LIBRARIES(nanovg_a PRIVATE GLEW EGL GL m)
@@ -71,11 +95,15 @@ INSTALL(FILES ${CMAKE_BINARY_DIR}/nanovg.pc
 
 # Build Examples
 
-ADD_EXECUTABLE(example_gl2 example/example_gl2.c example/demo.c example/perf.c $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl2>)
+ADD_EXECUTABLE(example_gl2
+	example/example_gl2.c example/demo.c example/perf.c
+	$<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl2>)
 TARGET_LINK_LIBRARIES(example_gl2 PRIVATE nanovg nanovg_gl2 GLEW EGL GL glfw m)
 TARGET_COMPILE_DEFINITIONS(example_gl2 PRIVATE ${NANOVG_GL_DEFINES} NANOVG_GL2)
 
-ADD_EXECUTABLE(example_gl3 example/example_gl3.c example/demo.c example/perf.c $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl3>)
+ADD_EXECUTABLE(example_gl3
+	example/example_gl3.c example/demo.c example/perf.c
+	$<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl3>)
 TARGET_LINK_LIBRARIES(example_gl3 PRIVATE nanovg nanovg_gl3 GLEW EGL GL glfw m)
 TARGET_COMPILE_DEFINITIONS(example_gl3 PRIVATE ${NANOVG_GL_DEFINES} NANOVG_GL3)
 
@@ -83,11 +111,15 @@ ADD_EXECUTABLE(example_fbo example/example_fbo.c example/demo.c example/perf.c $
 TARGET_LINK_LIBRARIES(example_fbo PRIVATE nanovg_gl3 GLEW EGL GL glfw m)
 TARGET_COMPILE_DEFINITIONS(example_fbo PRIVATE ${NANOVG_GL_DEFINES} NANOVG_GL3)
 
-ADD_EXECUTABLE(example_gles2 example/example_gles2.c example/demo.c example/perf.c $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gles2>)
+ADD_EXECUTABLE(example_gles2
+	example/example_gles2.c example/demo.c example/perf.c
+	$<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gles2>)
 TARGET_LINK_LIBRARIES(example_gles2 PRIVATE GLEW EGL GL glfw m)
 TARGET_COMPILE_DEFINITIONS(example_gles2 PRIVATE NANOVG_GLES2)
 
-ADD_EXECUTABLE(example_gles3 example/example_gles3.c example/demo.c example/perf.c $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gles3>)
+ADD_EXECUTABLE(example_gles3
+	example/example_gles3.c example/demo.c example/perf.c
+	$<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gles3>)
 TARGET_LINK_LIBRARIES(example_gles3 PRIVATE GLEW EGL GL glfw m)
 TARGET_COMPILE_DEFINITIONS(example_gles3 PRIVATE NANOVG_GLES3)
 
@@ -96,3 +128,9 @@ TARGET_LINK_LIBRARIES(example_svg1 PRIVATE GLEW EGL GL glfw m)
 
 ADD_EXECUTABLE(example_svg2 example/example_svg2.c $<TARGET_OBJECTS:nanovg>)
 TARGET_LINK_LIBRARIES(example_svg2 PRIVATE GLEW EGL GL glfw m)
+
+ADD_EXECUTABLE(example_oui
+	example/example_oui.c
+	$<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl3> $<TARGET_OBJECTS:nanovg_oui>)
+TARGET_LINK_LIBRARIES(example_oui PRIVATE GLEW EGL GL glfw m)
+TARGET_COMPILE_DEFINITIONS(example_oui PRIVATE DATADIR="../data")
