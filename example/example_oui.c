@@ -1,10 +1,18 @@
 //
 // based on NanoVG's example code by Mikko Mononen
 
+#include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef __APPLE__
-#	define GLFW_INCLUDE_GLCOREARB
+#    define GLFW_INCLUDE_GLCOREARB
 #endif
 
 #include <GLFW/glfw3.h>
@@ -12,10 +20,7 @@
 #include <nanovg.h>
 #include <nanovg_gl.h>
 
-#define BLENDISH_IMPLEMENTATION
 #include "blendish.h"
-
-#define OUI_IMPLEMENTATION
 #include "oui.h"
 
 #ifndef DATADIR
@@ -103,10 +108,10 @@ void draw_demostuff(NVGcontext *vg, int x, int y, float w, float h);
 static struct NVGcontext* _vg = NULL;
 
 void ui_handler(int item, UIevent event) {
-	UIData *data = (UIData *)uiGetHandle(item);
-	if (data && data->handler) {
-		data->handler(item, event);
-	}
+    UIData *data = (UIData *)uiGetHandle(item);
+    if (data && data->handler) {
+        data->handler(item, event);
+    }
 }
 
 void init(NVGcontext *vg) {
@@ -575,16 +580,16 @@ void draw_noodles(NVGcontext *vg, int x, int y) {
 }
 
 static void roothandler(int parent, UIevent event) {
-	switch(event) {
-	default: break;
-	case UI_SCROLL: {
-		UIvec2 pos = uiGetScroll();
-		printf("scroll! %d %d\n", pos.x, pos.y);
-	} break;
-	case UI_BUTTON0_DOWN: {
-		printf("%d clicks\n", uiGetClicks());
-	} break;
-	}
+    switch(event) {
+    default: break;
+    case UI_SCROLL: {
+        UIvec2 pos = uiGetScroll();
+        printf("scroll! %d %d\n", pos.x, pos.y);
+    } break;
+    case UI_BUTTON0_DOWN: {
+        printf("%d clicks\n", uiGetClicks());
+    } break;
+    }
 }
 
 void draw_demostuff(NVGcontext *vg, int x, int y, float w, float h) {
@@ -693,7 +698,7 @@ void draw_demostuff(NVGcontext *vg, int x, int y, float w, float h) {
     y += 40;
     float progress_value = fmodf(glfwGetTime()/10.0,1.0);
     char progress_label[32];
-    sprintf(progress_label, "%d%%", int(progress_value*100+0.5f));
+    sprintf(progress_label, "%d%%", (int)(progress_value*100+0.5f));
     bndSlider(vg,x,y,240,BND_WIDGET_HEIGHT,BND_CORNER_NONE,BND_DEFAULT,
         progress_value,"Default",progress_label);
     y += 25;
@@ -715,7 +720,7 @@ void draw_demostuff(NVGcontext *vg, int x, int y, float w, float h) {
     
     const char edit_text[] = "The quick brown fox";
     int textlen = strlen(edit_text)+1;
-    int t = int(glfwGetTime()*2);
+    int t = (int)(glfwGetTime()*2);
     int idx1 = (t/textlen)%textlen;
     int idx2 = idx1 + (t%(textlen-idx1));
     
@@ -1151,125 +1156,125 @@ void draw(NVGcontext *vg, float w, float h) {
 
 void errorcb(int error, const char* desc)
 {
-	printf("GLFW error %d: %s\n", error, desc);
+    printf("GLFW error %d: %s\n", error, desc);
 }
 
 static void mousebutton(GLFWwindow *window, int button, int action, int mods) {
-	NVG_NOTUSED(window);
-	switch(button) {
-	case 1: button = 2; break;
-	case 2: button = 1; break;
-	}
+    NVG_NOTUSED(window);
+    switch(button) {
+    case 1: button = 2; break;
+    case 2: button = 1; break;
+    }
     uiSetButton(button, mods, (action==GLFW_PRESS)?1:0);
 }
 
 static void cursorpos(GLFWwindow *window, double x, double y) {
-	NVG_NOTUSED(window);
+    NVG_NOTUSED(window);
     uiSetCursor((int)x,(int)y);
 }
 
 static void scrollevent(GLFWwindow *window, double x, double y) {
-	NVG_NOTUSED(window);
+    NVG_NOTUSED(window);
     uiSetScroll((int)x, (int)y);
 }
 
 static void charevent(GLFWwindow *window, unsigned int value) {
-	NVG_NOTUSED(window);
+    NVG_NOTUSED(window);
     uiSetChar(value);
 }
 
 static void key(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	NVG_NOTUSED(scancode);
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, GL_TRUE);
+    NVG_NOTUSED(scancode);
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GL_TRUE);
     uiSetKey(key, mods, action);
 }
 
 int main()
 {
-	GLFWwindow* window;
+    GLFWwindow* window;
     UIcontext *uictx;
     
     uictx = uiCreateContext(4096, 1<<20);
     uiMakeCurrent(uictx);
     uiSetHandler(ui_handler);
 
-	if (!glfwInit()) {
-		printf("Failed to init GLFW.");
-		return -1;
-	}
+    if (!glfwInit()) {
+        printf("Failed to init GLFW.");
+        return -1;
+    }
 
-	glfwSetErrorCallback(errorcb);
+    glfwSetErrorCallback(errorcb);
 #ifndef _WIN32 // don't require this on win32, and works with more cards
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #endif
-	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 
-	window = glfwCreateWindow(650, 650, "OUI Blendish Demo", NULL, NULL);
-	if (!window) {
-		glfwTerminate();
-		return -1;
-	}
+    window = glfwCreateWindow(650, 650, "OUI Blendish Demo", NULL, NULL);
+    if (!window) {
+        glfwTerminate();
+        return -1;
+    }
 
-	glfwSetKeyCallback(window, key);
+    glfwSetKeyCallback(window, key);
     glfwSetCharCallback(window, charevent);
     glfwSetCursorPosCallback(window, cursorpos);
     glfwSetMouseButtonCallback(window, mousebutton);    
     glfwSetScrollCallback(window, scrollevent);
 
-	glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(window);
 
-	//_vg = nvgCreateGL3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
-	_vg = nvgCreateGL3(NVG_ANTIALIAS);
-	if (_vg == NULL) {
-		printf("Could not init nanovg.\n");
-		return -1;
-	}
-	
-	init(_vg);
+    //_vg = nvgCreateGL3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
+    _vg = nvgCreateGL3(NVG_ANTIALIAS);
+    if (_vg == NULL) {
+        printf("Could not init nanovg.\n");
+        return -1;
+    }
+    
+    init(_vg);
 
     printf("sizeof(UIitem)=%lu\n", sizeof(UIitem));
 
-	glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
-	glfwSetTime(0);
+    glfwSetTime(0);
 
-	double c = 0.0;
-	int total = 0;
+    double c = 0.0;
+    int total = 0;
 
-	int peak_items = 0;
-	unsigned int peak_alloc = 0;
+    int peak_items = 0;
+    unsigned int peak_alloc = 0;
 
-	while (!glfwWindowShouldClose(window))
-	{
-		double mx, my;
-		int winWidth, winHeight;
-		int fbWidth, fbHeight;
-		float pxRatio;
+    while (!glfwWindowShouldClose(window))
+    {
+        double mx, my;
+        int winWidth, winHeight;
+        int fbWidth, fbHeight;
+        float pxRatio;
 
-		glfwGetCursorPos(window, &mx, &my);
-		glfwGetWindowSize(window, &winWidth, &winHeight);
-		glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-		// Calculate pixel ration for hi-dpi devices.
-		pxRatio = (float)fbWidth / (float)winWidth;
+        glfwGetCursorPos(window, &mx, &my);
+        glfwGetWindowSize(window, &winWidth, &winHeight);
+        glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+        // Calculate pixel ration for hi-dpi devices.
+        pxRatio = (float)fbWidth / (float)winWidth;
 
-		// Update and render
-		glViewport(0, 0, fbWidth, fbHeight);
-		glClearColor(0,0,0,1);
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+        // Update and render
+        glViewport(0, 0, fbWidth, fbHeight);
+        glClearColor(0,0,0,1);
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 
         double t = glfwGetTime();
-		nvgBeginFrame(_vg, winWidth, winHeight, pxRatio);
+        nvgBeginFrame(_vg, winWidth, winHeight, pxRatio);
 
         draw(_vg, winWidth, winHeight);
         peak_items = (peak_items > uiGetItemCount())?peak_items:uiGetItemCount();
         peak_alloc = (peak_alloc > uiGetAllocSize())?peak_alloc:uiGetAllocSize();
 
-		nvgEndFrame(_vg);
+        nvgEndFrame(_vg);
         double t2 = glfwGetTime();
         c += (t2 - t);
         total++;
@@ -1279,16 +1284,20 @@ int main()
             c = 0.0;
         }
 
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
-	printf("Peak item count: %i (%lu bytes)\nPeak allocated handles: %u bytes\n",
-	        peak_items, peak_items * sizeof(UIitem), peak_alloc);
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+    printf("Peak item count: %i (%lu bytes)\nPeak allocated handles: %u bytes\n",
+            peak_items, peak_items * sizeof(UIitem), peak_alloc);
 
     uiDestroyContext(uictx);
 
-	nvgDeleteGL3(_vg);
+    nvgDeleteGL3(_vg);
 
-	glfwTerminate();
-	return 0;
+    glfwTerminate();
+    return 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
