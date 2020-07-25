@@ -110,7 +110,7 @@ void ui_handler(int item, UIevent event) {
 }
 
 void init(NVGcontext *vg) {
-    bndSetFont(nvgCreateFont(vg, "system", DATADIR "/DejaVuSans.ttf"));
+    bndSetFont(nvgCreateFont(vg, "system", "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf"));
     bndSetIconImage(nvgCreateImage(vg, DATADIR "/blender_icons16.png", 0));
 }
 
