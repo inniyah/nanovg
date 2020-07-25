@@ -2,22 +2,25 @@
 // based on NanoVG's example code by Mikko Mononen
 
 #include <stdio.h>
-#ifdef NANOVG_GLEW
-#	include <GL/glew.h>
-#endif
+
 #ifdef __APPLE__
 #	define GLFW_INCLUDE_GLCOREARB
 #endif
+
 #include <GLFW/glfw3.h>
-#include "nanovg.h"
-#define NANOVG_GL3_IMPLEMENTATION
-#include "nanovg_gl.h"
+
+#include <nanovg.h>
+#include <nanovg_gl.h>
 
 #define BLENDISH_IMPLEMENTATION
 #include "blendish.h"
 
 #define OUI_IMPLEMENTATION
 #include "oui.h"
+
+#ifndef DATADIR
+#  define DATADIR "."
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -107,8 +110,8 @@ void ui_handler(int item, UIevent event) {
 }
 
 void init(NVGcontext *vg) {
-    bndSetFont(nvgCreateFont(vg, "system", "../DejaVuSans.ttf"));
-    bndSetIconImage(nvgCreateImage(vg, "../blender_icons16.png", 0));
+    bndSetFont(nvgCreateFont(vg, "system", DATADIR "/DejaVuSans.ttf"));
+    bndSetIconImage(nvgCreateImage(vg, DATADIR "/blender_icons16.png", 0));
 }
 
 void testrect(NVGcontext *vg, UIrect rect) {
@@ -1219,15 +1222,6 @@ int main()
     glfwSetScrollCallback(window, scrollevent);
 
 	glfwMakeContextCurrent(window);
-#ifdef NANOVG_GLEW
-	glewExperimental = GL_TRUE;
-	if(glewInit() != GLEW_OK) {
-		printf("Could not init glew.\n");
-		return -1;
-	}
-	// GLEW generates GL error because it calls glGetString(GL_EXTENSIONS), we'll consume it here.
-	glGetError();
-#endif
 
 	//_vg = nvgCreateGL3(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
 	_vg = nvgCreateGL3(NVG_ANTIALIAS);
