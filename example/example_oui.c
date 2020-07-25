@@ -24,7 +24,7 @@ extern "C" {
 #include "oui.h"
 
 #ifndef DATADIR
-#  define DATADIR "."
+#  define DATADIR "./data"
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
