@@ -956,7 +956,7 @@ void fill_wrap_row_box(int box) {
         float hue = (float)(rand()%360)/360.0f;
         int width = 10 + (rand()%5)*10;
 
-        int u;
+        int u = -1;
         switch(rand()%4) {
         default: break;
         case 0: {
@@ -994,7 +994,7 @@ void fill_wrap_column_box(int box) {
         float hue = (float)(rand()%360)/360.0f;
         int height = 10 + (rand()%5)*10;
 
-        int u;
+        int u = -1;
         switch(rand()%4) {
         default: break;
         case 0: {
