@@ -26,8 +26,22 @@
 #include <GLFW/glfw3.h>
 
 #include "nanovg.h"
-#include "nanovg_gl_wrapper.h"
+#include "nanovg_gl.h"
 #include "demo.h"
+
+typedef enum {
+	NANOVG_GL2,
+	NANOVG_GL3,
+	NANOVG_GLES2,
+	NANOVG_GLES3
+} NanoVG_GL_API;
+
+const NanoVG_GL_Functions_VTable *NanoVG_GL_Functions[] = {
+	&NanoVG_GL2_Functions_VTable,
+	&NanoVG_GL3_Functions_VTable,
+	&NanoVG_GLES2_Functions_VTable,
+	&NanoVG_GLES3_Functions_VTable,
+};
 
 void errorcb(int error, const char* desc)
 {
@@ -57,10 +71,10 @@ int main()
 	GLFWwindow* window;
 	DemoData data;
 	NVGcontext* vg = NULL;
-	NanoVG_GL_Functions_VTable nvgl = NanoVG_GL_Functions[NANOVG_GL2];
+	const NanoVG_GL_Functions_VTable *nvgl = NanoVG_GL_Functions[NANOVG_GL2];
 	double prevt = 0;
 
-	printf("Using NanoVG API: %s\n", nvgl.name);
+	printf("Using NanoVG API: %s\n", nvgl->name);
 
 	if (!glfwInit()) {
 		printf("Failed to init GLFW.");
@@ -87,9 +101,9 @@ int main()
 	glfwMakeContextCurrent(window);
 
 #ifdef DEMO_MSAA
-	vg = nvgl.createContext(NVG_STENCIL_STROKES | NVG_DEBUG);
+	vg = nvgl->createContext(NVG_STENCIL_STROKES | NVG_DEBUG);
 #else
-	vg = nvgl.createContext(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
+	vg = nvgl->createContext(NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG);
 #endif
 	if (vg == NULL) {
 		printf("Could not init nanovg.\n");
@@ -147,7 +161,7 @@ int main()
 
 	freeDemoData(vg, &data);
 
-	nvgl.deleteContext(vg);
+	nvgl->deleteContext(vg);
 
 	glfwTerminate();
 	return 0;

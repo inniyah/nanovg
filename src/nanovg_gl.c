@@ -1611,3 +1611,37 @@ GLuint nvglImageHandleGLES3(NVGcontext* ctx, int image)
 	GLNVGtexture* tex = glnvg__findTexture(gl, image);
 	return tex->tex;
 }
+
+#if defined NANOVG_GL2
+const NanoVG_GL_Functions_VTable NanoVG_GL2_Functions_VTable = {
+	.name = "GL2",
+	.createContext = &nvgCreateGL2,
+	.deleteContext = &nvgDeleteGL2,
+	.createImageFromHandle = &nvglCreateImageFromHandleGL2,
+	.getImageHandle = &nvglImageHandleGL2,
+};
+#elif defined NANOVG_GL3
+const NanoVG_GL_Functions_VTable NanoVG_GL3_Functions_VTable = {
+	.name = "GL3",
+	.createContext = &nvgCreateGL3,
+	.deleteContext = &nvgDeleteGL3,
+	.createImageFromHandle = &nvglCreateImageFromHandleGL3,
+	.getImageHandle = &nvglImageHandleGL3,
+};
+#elif defined NANOVG_GLES2
+const NanoVG_GL_Functions_VTable NanoVG_GLES2_Functions_VTable = {
+	.name = "GLES2",
+	.createContext = &nvgCreateGLES2,
+	.deleteContext = &nvgDeleteGLES2,
+	.createImageFromHandle = &nvglCreateImageFromHandleGLES2,
+	.getImageHandle = &nvglImageHandleGLES2,
+};
+#elif defined NANOVG_GLES3
+const NanoVG_GL_Functions_VTable NanoVG_GLES3_Functions_VTable = {
+	.name = "GLES2",
+	.createContext = &nvgCreateGLES3,
+	.deleteContext = &nvgDeleteGLES3,
+	.createImageFromHandle = &nvglCreateImageFromHandleGLES3,
+	.getImageHandle = &nvglImageHandleGLES3,
+};
+#endif

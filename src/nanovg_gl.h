@@ -38,7 +38,17 @@ enum NVGcreateFlags {
 	NVG_DEBUG = 1<<2,
 };
 
-// Creates NanoVG contexts for different OpenGL (ES) versions.
+// Define VTable with pointers to the functions for a each OpenGL (ES) version.
+
+typedef struct {
+	const char *name;
+	NVGcontext* (*createContext)(int flags);
+	void (*deleteContext) (NVGcontext* ctx);
+	int (*createImageFromHandle) (NVGcontext* ctx, GLuint textureId, int w, int h, int flags);
+	GLuint (*getImageHandle) (NVGcontext* ctx, int image);
+} NanoVG_GL_Functions_VTable;
+
+// Create NanoVG contexts for different OpenGL (ES) versions.
 
 NVGcontext* nvgCreateGL2(int flags);
 void nvgDeleteGL2(NVGcontext* ctx);
@@ -68,6 +78,13 @@ GLuint nvglImageHandleGLES3(NVGcontext* ctx, int image);
 enum NVGimageFlagsGL {
 	NVG_IMAGE_NODELETE = 1<<16, // Do not delete GL texture handle.
 };
+
+// Create VTables for different OpenGL (ES) versions.
+
+extern const NanoVG_GL_Functions_VTable NanoVG_GL2_Functions_VTable;
+extern const NanoVG_GL_Functions_VTable NanoVG_GL3_Functions_VTable;
+extern const NanoVG_GL_Functions_VTable NanoVG_GLES2_Functions_VTable;
+extern const NanoVG_GL_Functions_VTable NanoVG_GLES3_Functions_VTable;
 
 #ifdef __cplusplus
 }
