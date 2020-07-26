@@ -16,8 +16,8 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef FONS_H
-#define FONS_H
+#ifndef FONTSTASH_H_F380F1FA_CDA3_11EA_AF58_0FE5E5086B14
+#define FONTSTASH_H_F380F1FA_CDA3_11EA_AF58_0FE5E5086B14
 
 #define FONS_INVALID -1
 
@@ -138,7 +138,7 @@ int fonsValidateTexture(FONScontext* s, int* dirty);
 // Draws the stash texture for debugging
 void fonsDrawDebug(FONScontext* s, float x, float y);
 
-#endif // FONTSTASH_H
+#endif // FONTSTASH_H_F380F1FA_CDA3_11EA_AF58_0FE5E5086B14
 
 
 #ifdef FONTSTASH_IMPLEMENTATION
@@ -1781,5 +1781,4 @@ int fonsResetAtlas(FONScontext* stash, int width, int height)
 	return 1;
 }
 
-
-#endif
+#endif // FONTSTASH_IMPLEMENTATION

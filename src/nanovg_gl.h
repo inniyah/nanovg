@@ -16,8 +16,8 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#ifndef NANOVG_GL_H
-#define NANOVG_GL_H
+#ifndef NANOVG_GL_H_F380EF20_CDA3_11EA_AF55_D3B6DB88CFCC
+#define NANOVG_GL_H_F380EF20_CDA3_11EA_AF55_D3B6DB88CFCC
 
 #include "nanovg.h"
 #include <GL/gl.h>
@@ -38,7 +38,17 @@ enum NVGcreateFlags {
 	NVG_DEBUG = 1<<2,
 };
 
-// Creates NanoVG contexts for different OpenGL (ES) versions.
+// Define VTable with pointers to the functions for a each OpenGL (ES) version.
+
+typedef struct {
+	const char *name;
+	NVGcontext* (*createContext)(int flags);
+	void (*deleteContext) (NVGcontext* ctx);
+	int (*createImageFromHandle) (NVGcontext* ctx, GLuint textureId, int w, int h, int flags);
+	GLuint (*getImageHandle) (NVGcontext* ctx, int image);
+} NanoVG_GL_Functions_VTable;
+
+// Create NanoVG contexts for different OpenGL (ES) versions.
 
 NVGcontext* nvgCreateGL2(int flags);
 void nvgDeleteGL2(NVGcontext* ctx);
@@ -69,8 +79,15 @@ enum NVGimageFlagsGL {
 	NVG_IMAGE_NODELETE = 1<<16, // Do not delete GL texture handle.
 };
 
+// Create VTables for different OpenGL (ES) versions.
+
+extern const NanoVG_GL_Functions_VTable NanoVG_GL2_Functions_VTable;
+extern const NanoVG_GL_Functions_VTable NanoVG_GL3_Functions_VTable;
+extern const NanoVG_GL_Functions_VTable NanoVG_GLES2_Functions_VTable;
+extern const NanoVG_GL_Functions_VTable NanoVG_GLES3_Functions_VTable;
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* NANOVG_GL_H */
+#endif // NANOVG_GL_H_F380EF20_CDA3_11EA_AF55_D3B6DB88CFCC
