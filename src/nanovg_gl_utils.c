@@ -33,7 +33,9 @@
 #  include <GLES3/gl3.h>
 #endif
 
+#if defined(NANOVG_GL2) || defined(NANOVG_GL3)
 #include <GL/gl.h>
+#endif
 
 #include "nanovg_gl_utils.h"
 
@@ -53,7 +55,9 @@
 #	endif
 #endif
 
+#ifdef NANOVG_FBO_VALID
 static GLint defaultFBO = -1;
+#endif
 
 #if defined NANOVG_GL2
 NVGLUframebuffer* nvgluCreateFramebufferGL2(NVGcontext* ctx, int w, int h, int imageFlags)

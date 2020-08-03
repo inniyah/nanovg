@@ -20,7 +20,6 @@
 #define NANOVG_GL_H_F380EF20_CDA3_11EA_AF55_D3B6DB88CFCC
 
 #include "nanovg.h"
-#include <GL/gl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,8 +43,8 @@ typedef struct {
 	const char *name;
 	NVGcontext* (*createContext)(int flags);
 	void (*deleteContext) (NVGcontext* ctx);
-	int (*createImageFromHandle) (NVGcontext* ctx, GLuint textureId, int w, int h, int flags);
-	GLuint (*getImageHandle) (NVGcontext* ctx, int image);
+	int (*createImageFromHandle) (NVGcontext* ctx, unsigned int textureId, int w, int h, int flags);
+	unsigned int (*getImageHandle) (NVGcontext* ctx, int image);
 } NanoVG_GL_Functions_VTable;
 
 // Create NanoVG contexts for different OpenGL (ES) versions.
