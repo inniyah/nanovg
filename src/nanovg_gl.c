@@ -20,6 +20,13 @@
 #error Define exactly one of NANOVG_GL2, NANOVG_GL3, NANOVG_GLES2, NANOVG_GLES3
 #endif
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+
+#include "android.h"
+
 #ifdef NANOVG_USE_GLEW
 #  include <GL/glew.h>
 static int glew_initialized = 0;
@@ -39,11 +46,6 @@ static int glew_initialized = 0;
 #endif
 
 #include "nanovg_gl.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
 
 #if defined NANOVG_GL2
 #  define NANOVG_GL2 1

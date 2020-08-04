@@ -29,6 +29,8 @@ THE SOFTWARE.
 #include <stdbool.h>
 #include <string.h>
 
+#include "android.h"
+
 #ifdef _MSC_VER
     #pragma warning (disable: 4996) // Switch off security warnings
     #pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
@@ -691,6 +693,7 @@ void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
 // superimpose all items according to their alignment
 static void uiArrangeImposedRange(UIitem *pitem, int dim,
         int start_kid, int end_kid, short offset, short space) {
+    (void)pitem; // unused
     int wdim = dim+2;
 
     int kid = start_kid;
@@ -725,6 +728,7 @@ static void uiArrangeImposed(UIitem *pitem, int dim) {
 // squeeze items that expand the available space
 static void uiArrangeImposedSqueezedRange(UIitem *pitem, int dim,
         int start_kid, int end_kid, short offset, short space) {
+    (void)pitem; // unused
     int wdim = dim+2;
 
     int kid = start_kid;

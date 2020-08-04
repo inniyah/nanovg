@@ -18,7 +18,7 @@ option(NANOVG_BUILD_GLES3 "Build OpenGL 2" ON)
 option(NANOVG_BUILD_OUI "Build OUI/Blendish" ON)
 
 SET(NANOVG_DEFINES "")
-SET(NANOVG_SOURCES "src/nanovg.c")
+SET(NANOVG_SOURCES "src/nanovg.c" "src/android.c")
 SET(NANOVG_GL_DEFINES "")
 SET(NANOVG_GL_SOURCES "src/nanovg_gl.c" "src/nanovg_gl_utils.c")
 SET(NANOVG_GLES_SOURCES "src/nanovg_gl.c" "src/nanovg_gl_utils.c")

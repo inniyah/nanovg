@@ -684,6 +684,13 @@ NVGparams* nvgInternalParams(NVGcontext* ctx);
 // Debug function to dump cached path data.
 void nvgDebugDumpPathCache(NVGcontext* ctx);
 
+#if defined(__ANDROID__)
+#include <stdio.h>
+#include <android/asset_manager.h>
+void nvgSetAndroidAssetManager(AAssetManager * manager);
+FILE * android_fopen(const char* fname, const char* mode);
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

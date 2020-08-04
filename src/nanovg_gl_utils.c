@@ -20,6 +20,13 @@
 #error Define exactly one of NANOVG_GL2, NANOVG_GL3, NANOVG_GLES2, NANOVG_GLES3
 #endif
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+
+#include "android.h"
+
 #ifdef NANOVG_USE_GLEW
 #  include <GL/glew.h>
 #endif
@@ -38,11 +45,6 @@
 #endif
 
 #include "nanovg_gl_utils.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
 
 #if defined(NANOVG_GL3) || defined(NANOVG_GLES2) || defined(NANOVG_GLES3)
 // FBO is core in OpenGL 3>.
