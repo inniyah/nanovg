@@ -25,7 +25,7 @@ THE SOFTWARE.
 #ifndef BLENDISH_H_8BF73A5E_CF37_11EA_87D1_AF92B7B29526
 #define BLENDISH_H_8BF73A5E_CF37_11EA_87D1_AF92B7B29526
 
-#include <nanovg.h>
+#include "nanovg.h"
 
 #ifdef __cplusplus
 extern "C" {
