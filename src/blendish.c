@@ -822,7 +822,9 @@ float bndLabelWidth(NVGcontext *ctx, int iconid, const char *label) {
     if (label && (bnd_font >= 0)) {
         nvgFontFaceId(ctx, bnd_font);
         nvgFontSize(ctx, BND_LABEL_FONT_SIZE);
-        w += nvgTextBounds(ctx, 1, 1, label, NULL, NULL);
+        float bounds[4];
+        nvgTextBoxBounds(ctx, 1, 1, INFINITY, label, NULL, bounds);
+        w += bounds[2];
     }
     return w;
 }
