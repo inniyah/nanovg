@@ -8,6 +8,7 @@ Main changes
 - Support pkg-config for compiling and linking software that depends on nanovg
 - Added examples of its usage in Python, via ctypes
 - Integrated nanosvg code into the main library
+- Added support for Android
 
 NanoVG
 ==========
