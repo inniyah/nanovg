@@ -73,7 +73,7 @@ static double bnd_fmax ( double a, double b ) {
 #define BND_LABEL_SEPARATOR ": "
 
 // alpha intensity of transparent items (0xa4)
-#define BND_TRANSPARENT_ALPHA 0.643
+#define BND_TRANSPARENT_ALPHA 0.9
 
 // shade intensity of beveled panels
 #define BND_BEVEL_SHADE 30
