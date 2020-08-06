@@ -1158,7 +1158,7 @@ static void bndCaretPosition(NVGcontext *ctx, float x, float y,
     int *cr, float *cx, float *cy) {
     static NVGglyphPosition glyphs[BND_MAX_GLYPHS];
     int r,nglyphs;
-    for (r=0; r < nrows && rows[r].end < caret; ++r);
+    for (r=0; r < nrows-1 && rows[r].end < caret; ++r);
     *cr = r;
     *cx = x;
     *cy = y-lineHeight-desc + r*lineHeight;
