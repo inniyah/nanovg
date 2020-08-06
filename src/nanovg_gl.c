@@ -20,6 +20,13 @@
 #error Define exactly one of NANOVG_GL2, NANOVG_GL3, NANOVG_GLES2, NANOVG_GLES3
 #endif
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+
+#include "android.h"
+
 #ifdef NANOVG_USE_GLEW
 #  include <GL/glew.h>
 static int glew_initialized = 0;
@@ -34,14 +41,11 @@ static int glew_initialized = 0;
 #  include <GLES3/gl3.h>
 #endif
 
+#if defined(NANOVG_GL2) || defined(NANOVG_GL3)
 #include <GL/gl.h>
+#endif
 
 #include "nanovg_gl.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
 
 #if defined NANOVG_GL2
 #  define NANOVG_GL2 1
@@ -1574,13 +1578,13 @@ void nvgDeleteGLES3(NVGcontext* ctx)
 }
 
 #if defined NANOVG_GL2
-int nvglCreateImageFromHandleGL2(NVGcontext* ctx, GLuint textureId, int w, int h, int imageFlags)
+int nvglCreateImageFromHandleGL2(NVGcontext* ctx, unsigned int textureId, int w, int h, int imageFlags)
 #elif defined NANOVG_GL3
-int nvglCreateImageFromHandleGL3(NVGcontext* ctx, GLuint textureId, int w, int h, int imageFlags)
+int nvglCreateImageFromHandleGL3(NVGcontext* ctx, unsigned int textureId, int w, int h, int imageFlags)
 #elif defined NANOVG_GLES2
-int nvglCreateImageFromHandleGLES2(NVGcontext* ctx, GLuint textureId, int w, int h, int imageFlags)
+int nvglCreateImageFromHandleGLES2(NVGcontext* ctx, unsigned int textureId, int w, int h, int imageFlags)
 #elif defined NANOVG_GLES3
-int nvglCreateImageFromHandleGLES3(NVGcontext* ctx, GLuint textureId, int w, int h, int imageFlags)
+int nvglCreateImageFromHandleGLES3(NVGcontext* ctx, unsigned int textureId, int w, int h, int imageFlags)
 #endif
 {
 	GLNVGcontext* gl = (GLNVGcontext*)nvgInternalParams(ctx)->userPtr;
@@ -1598,13 +1602,13 @@ int nvglCreateImageFromHandleGLES3(NVGcontext* ctx, GLuint textureId, int w, int
 }
 
 #if defined NANOVG_GL2
-GLuint nvglImageHandleGL2(NVGcontext* ctx, int image)
+unsigned int nvglImageHandleGL2(NVGcontext* ctx, int image)
 #elif defined NANOVG_GL3
-GLuint nvglImageHandleGL3(NVGcontext* ctx, int image)
+unsigned int nvglImageHandleGL3(NVGcontext* ctx, int image)
 #elif defined NANOVG_GLES2
-GLuint nvglImageHandleGLES2(NVGcontext* ctx, int image)
+unsigned int nvglImageHandleGLES2(NVGcontext* ctx, int image)
 #elif defined NANOVG_GLES3
-GLuint nvglImageHandleGLES3(NVGcontext* ctx, int image)
+unsigned int nvglImageHandleGLES3(NVGcontext* ctx, int image)
 #endif
 {
 	GLNVGcontext* gl = (GLNVGcontext*)nvgInternalParams(ctx)->userPtr;

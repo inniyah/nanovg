@@ -22,10 +22,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#ifndef BLENDISH_H
-#define BLENDISH_H
+#ifndef BLENDISH_H_8BF73A5E_CF37_11EA_87D1_AF92B7B29526
+#define BLENDISH_H_8BF73A5E_CF37_11EA_87D1_AF92B7B29526
 
-#include <nanovg.h>
+#include "nanovg.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -1092,4 +1092,4 @@ BND_EXPORT NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState s
 }
 #endif
 
-#endif // BLENDISH_H
+#endif // BLENDISH_H_8BF73A5E_CF37_11EA_87D1_AF92B7B29526

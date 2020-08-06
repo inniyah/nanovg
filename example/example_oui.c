@@ -948,7 +948,7 @@ void build_columndemo(int parent) {
 
 void fill_wrap_row_box(int box) {
     const int M = 5;
-    const int S = 100;
+    //const int S = 100;
     const int T = 50;
 
     srand(303);
@@ -986,7 +986,7 @@ void fill_wrap_row_box(int box) {
 
 void fill_wrap_column_box(int box) {
     const int M = 5;
-    const int S = 100;
+    //const int S = 100;
     const int T = 50;
 
     srand(303);
@@ -1028,8 +1028,8 @@ void build_wrapdemo(int parent) {
     uiSetLayout(col, UI_FILL);
 
     const int M = 5;
-    const int S = 100;
-    const int T = 50;
+    //const int S = 100;
+    //const int T = 50;
 
     int box;
     box = demorect(col, "Box( UI_ROW | UI_WRAP | UI_START )\nLayout( UI_HFILL | UI_TOP )",

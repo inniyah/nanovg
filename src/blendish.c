@@ -27,6 +27,8 @@ THE SOFTWARE.
 #include <memory.h>
 #include <math.h>
 
+#include "android.h"
+
 #ifdef _MSC_VER
     #pragma warning (disable: 4996) // Switch off security warnings
     #pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
@@ -71,7 +73,7 @@ static double bnd_fmax ( double a, double b ) {
 #define BND_LABEL_SEPARATOR ": "
 
 // alpha intensity of transparent items (0xa4)
-#define BND_TRANSPARENT_ALPHA 0.643
+#define BND_TRANSPARENT_ALPHA 0.9
 
 // shade intensity of beveled panels
 #define BND_BEVEL_SHADE 30
@@ -661,21 +663,21 @@ void bndNodeBackground(NVGcontext *ctx, float x, float y, float w, float h,
         iconid, bnd_theme.regularTheme.textColor, 
         bndOffsetColor(titleColor, BND_BEVEL_SHADE), 
         BND_LEFT, BND_LABEL_FONT_SIZE, label);
-    NVGcolor arrowColor;
+    //NVGcolor arrowColor;
     NVGcolor borderColor;
     switch(state) {
     default:
     case BND_DEFAULT: {
         borderColor = nvgRGBf(0,0,0);
-        arrowColor = bndOffsetColor(titleColor, -BND_BEVEL_SHADE);
+        //arrowColor = bndOffsetColor(titleColor, -BND_BEVEL_SHADE);
     } break;
     case BND_HOVER: {
         borderColor = bnd_theme.nodeTheme.nodeSelectedColor;
-        arrowColor = bnd_theme.nodeTheme.nodeSelectedColor;
+        //arrowColor = bnd_theme.nodeTheme.nodeSelectedColor;
     } break;
     case BND_ACTIVE: {
         borderColor = bnd_theme.nodeTheme.activeNodeColor;
-        arrowColor = bnd_theme.nodeTheme.nodeSelectedColor;
+        //arrowColor = bnd_theme.nodeTheme.nodeSelectedColor;
     } break;
     }
     bndOutlineBox(ctx,x,y,w,h+1,
@@ -820,7 +822,9 @@ float bndLabelWidth(NVGcontext *ctx, int iconid, const char *label) {
     if (label && (bnd_font >= 0)) {
         nvgFontFaceId(ctx, bnd_font);
         nvgFontSize(ctx, BND_LABEL_FONT_SIZE);
-        w += nvgTextBounds(ctx, 1, 1, label, NULL, NULL);
+        float bounds[4];
+        nvgTextBoxBounds(ctx, 1, 1, INFINITY, label, NULL, bounds);
+        w += bounds[2];
     }
     return w;
 }
@@ -1042,6 +1046,7 @@ NVGcolor bndTextColor(const BNDwidgetTheme *theme, BNDwidgetState state) {
 void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, NVGcolor color, int align, float fontsize, const char *label, 
     const char *value) {
+    (void)h; // unused
     float pleft = BND_PAD_LEFT;
     if (label) {
         if (iconid >= 0) {
@@ -1087,6 +1092,7 @@ void bndIconLabelValue(NVGcontext *ctx, float x, float y, float w, float h,
 void bndNodeIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, NVGcolor color, NVGcolor shadowColor, 
     int align, float fontsize, const char *label) {
+    (void)align; // unused
     if (label && (bnd_font >= 0)) {
         nvgFontFaceId(ctx, bnd_font);
         nvgFontSize(ctx, fontsize);
@@ -1108,6 +1114,7 @@ void bndNodeIconLabel(NVGcontext *ctx, float x, float y, float w, float h,
 
 int bndIconLabelTextPosition(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, float fontsize, const char *label, int px, int py) {
+    (void)h; // unused
     float bounds[4];
     float pleft = BND_TEXT_RADIUS;
     if (!label) return -1;
@@ -1153,7 +1160,7 @@ static void bndCaretPosition(NVGcontext *ctx, float x, float y,
     int *cr, float *cx, float *cy) {
     static NVGglyphPosition glyphs[BND_MAX_GLYPHS];
     int r,nglyphs;
-    for (r=0; r < nrows && rows[r].end < caret; ++r);
+    for (r=0; r < nrows-1 && rows[r].end < caret; ++r);
     *cr = r;
     *cx = x;
     *cy = y-lineHeight-desc + r*lineHeight;
@@ -1170,6 +1177,7 @@ static void bndCaretPosition(NVGcontext *ctx, float x, float y,
 void bndIconLabelCaret(NVGcontext *ctx, float x, float y, float w, float h,
     int iconid, NVGcolor color, float fontsize, const char *label, 
     NVGcolor caretcolor, int cbegin, int cend) {
+    (void)h; // unused
     float pleft = BND_TEXT_RADIUS;
     if (!label) return;
     if (iconid >= 0) {

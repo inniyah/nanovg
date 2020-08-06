@@ -72,7 +72,7 @@ int main()
 	DemoData data;
 	NVGcontext* vg = NULL;
 	const NanoVG_GL_Functions_VTable *nvgl = NanoVG_GL_Functions[NANOVG_GL2];
-	double prevt = 0;
+	//double prevt = 0;
 
 	printf("Using NanoVG API: %s\n", nvgl->name);
 
@@ -116,18 +116,18 @@ int main()
 	glfwSwapInterval(0);
 
 	glfwSetTime(0);
-	prevt = glfwGetTime();
+	//prevt = glfwGetTime();
 
 	while (!glfwWindowShouldClose(window))
 	{
-		double mx, my, t, dt;
+		double mx, my, t;
 		int winWidth, winHeight;
 		int fbWidth, fbHeight;
 		float pxRatio;
 
 		t = glfwGetTime();
-		dt = t - prevt;
-		prevt = t;
+		//double dt = t - prevt;
+		//prevt = t;
 
 		glfwGetCursorPos(window, &mx, &my);
 		glfwGetWindowSize(window, &winWidth, &winHeight);
