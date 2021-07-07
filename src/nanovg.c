@@ -24,6 +24,7 @@
 #include "android.h"
 
 #include "nanovg.h"
+
 #define FONTSTASH_IMPLEMENTATION
 #include "fontstash.h"
 

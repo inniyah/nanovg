@@ -21,8 +21,9 @@
 #include <float.h>
 #include <GLFW/glfw3.h>
 
-#define NANOSVG_IMPLEMENTATION
 #include "nanosvg.h"
+
+#define NSVG_NOTUSED(v) do { (void)(1 ? (void)0 : ( (void)(v) ) ); } while(0)
 
 NSVGimage* g_image = NULL;
 
