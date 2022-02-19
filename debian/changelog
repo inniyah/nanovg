@@ -1,10 +1,4 @@
-nanovg (0.1~rc3+0miry2) UNRELEASED; urgency=low
-
-  * Using TTF fonts from fonts-entypo and fonts-roboto-unhinted.
-
- -- Miriam Ruiz <miriam@debian.org>  Sat, 19 Feb 2022 20:16:01 +0100
-
-nanovg (0.1~rc3+0miry1) UNRELEASED; urgency=low
+nanovg (0.1~rc4+inniyah1) UNRELEASED; urgency=low
 
   * Initial release.
 
