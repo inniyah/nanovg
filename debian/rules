@@ -65,6 +65,10 @@ binary-arch: install
 	dh_installchangelogs
 	dh_installdocs
 	dh_installexamples
+	rm -v 'debian/libnanovg-dev/usr/share/doc/libnanovg-dev/examples/entypo.ttf'
+	rm -v 'debian/libnanovg-dev/usr/share/doc/libnanovg-dev/examples/Roboto-Regular.ttf'
+	rm -v 'debian/libnanovg-dev/usr/share/doc/libnanovg-dev/examples/Roboto-Light.ttf'
+	rm -v 'debian/libnanovg-dev/usr/share/doc/libnanovg-dev/examples/Roboto-Bold.ttf'
 	dh_install
 	dh_installman
 	dh_link
