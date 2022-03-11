@@ -1080,14 +1080,16 @@ static unsigned int nsvg__parseColorHex(const char* str)
 
 static unsigned int nsvg__parseColorRGB(const char* str)
 {
-	int r = -1, g = -1, b = -1;
-	char s1[32]="", s2[32]="";
-	sscanf(str + 4, "%d%[%%, \t]%d%[%%, \t]%d", &r, s1, &g, s2, &b);
-	if (strchr(s1, '%')) {
-		return NSVG_RGB((r*255)/100,(g*255)/100,(b*255)/100);
-	} else {
-		return NSVG_RGB(r,g,b);
+	unsigned int r=0, g=0, b=0;
+	if (sscanf(str, "rgb(%u, %u, %u)", &r, &g, &b) == 3)		// decimal integers
+		return NSVG_RGB(r, g, b);
+	if (sscanf(str, "rgb(%u%%, %u%%, %u%%)", &r, &g, &b) == 3) {	// decimal integer percentage
+		r = (r <= 100) ? ((r*255)/100) : 255;			// FLTK: clip percentages >100
+		g = (g <= 100) ? ((g*255)/100) : 255;
+		b = (b <= 100) ? ((b*255)/100) : 255;
+		return NSVG_RGB(r, g, b);
 	}
+	return NSVG_RGB(128, 128, 128);
 }
 
 typedef struct NSVGNamedColor {
