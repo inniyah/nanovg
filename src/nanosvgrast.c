@@ -324,10 +324,10 @@ static void nsvg__flattenCubicBez(NSVGrasterizer* r,
 	nsvg__flattenCubicBez(r, x1234,y1234, x234,y234, x34,y34, x4,y4, level, type);
 }
 
-static void nsvg__flattenShape(NSVGrasterizer* r, NSVGshape* shape, float scale)
+static void nsvg__flattenShape(NSVGrasterizer* r, const NSVGshape* shape, float scale)
 {
 	int i, j;
-	NSVGpath* path;
+	const NSVGpath* path;
 
 	for (path = shape->paths; path != NULL; path = path->next) {
 		r->npoints = 0;
@@ -688,7 +688,7 @@ static void nsvg__prepareStroke(NSVGrasterizer* r, float miterLimit, int lineJoi
 	}
 }
 
-static void nsvg__flattenShapeStroke(NSVGrasterizer* r, NSVGshape* shape, float scale)
+static void nsvg__flattenShapeStroke(NSVGrasterizer* r, const NSVGshape* shape, float scale)
 {
 	int i, j, closed;
 	NSVGpath* path;
@@ -1216,7 +1216,7 @@ static void nsvg__unpremultiplyAlpha(unsigned char* image, int w, int h, int str
 }
 
 
-static void nsvg__initPaint(NSVGcachedPaint* cache, NSVGpaint* paint, float opacity)
+static void nsvg__initPaint(NSVGcachedPaint* cache, const NSVGpaint* paint, float opacity)
 {
 	int i, j;
 	NSVGgradient* grad;
@@ -1319,7 +1319,7 @@ static void dumpEdges(NSVGrasterizer* r, const char* name)
 */
 
 void nsvgRasterize(NSVGrasterizer* r,
-				   NSVGimage* image, float tx, float ty, float scale,
+				   const NSVGimage* image, float tx, float ty, float scale,
 				   unsigned char* dst, int w, int h, int stride)
 {
 	NSVGshape *shape = NULL;
