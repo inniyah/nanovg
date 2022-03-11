@@ -227,7 +227,7 @@ IF(NANOVG_BUILD_GL3 AND NANOVG_BUILD_OUI)
 ENDIF()
 
 IF(NANOVG_BUILD_GL2 AND NANOVG_BUILD_GL3 AND NANOVG_BUILD_GLES2 AND NANOVG_BUILD_GLES3)
-  ADD_EXECUTABLE(example_gl_wrapper example/example_gl_wrapper example/demo.c $<TARGET_OBJECTS:nanovg>)
+  ADD_EXECUTABLE(example_gl_wrapper example/example_gl_wrapper.c example/demo.c $<TARGET_OBJECTS:nanovg>)
   TARGET_LINK_LIBRARIES(example_gl_wrapper PRIVATE ${NANOVG_LIB_NAMES} GLEW EGL GL glfw m)
 ENDIF()
 
