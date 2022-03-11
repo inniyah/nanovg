@@ -731,8 +731,8 @@ static NSVGgradient* nsvg__createGradient(NSVGparser* p, const char* id, const f
 		grad->xform[0] = r; grad->xform[1] = 0;
 		grad->xform[2] = 0; grad->xform[3] = r;
 		grad->xform[4] = cx; grad->xform[5] = cy;
-		grad->fx = fx / r;
-		grad->fy = fy / r;
+		grad->fx = (fx - cx) / r;
+		grad->fy = (fy - cy) / r;
 	}
 
 	nsvg__xformMultiply(grad->xform, data->xform);
@@ -2449,6 +2449,8 @@ static void nsvg__parseGradient(NSVGparser* p, const char** attr, char type)
 	}
 
 	nsvg__xformIdentity(grad->xform);
+	int setfx = 0;
+	int setfy = 0;
 
 	for (i = 0; attr[i]; i += 2) {
 		if (strcmp(attr[i], "id") == 0) {
@@ -2470,8 +2472,10 @@ static void nsvg__parseGradient(NSVGparser* p, const char** attr, char type)
 				grad->radial.r = nsvg__parseCoordinateRaw(attr[i + 1]);
 			} else if (strcmp(attr[i], "fx") == 0) {
 				grad->radial.fx = nsvg__parseCoordinateRaw(attr[i + 1]);
+				setfx = 1;
 			} else if (strcmp(attr[i], "fy") == 0) {
 				grad->radial.fy = nsvg__parseCoordinateRaw(attr[i + 1]);
+				setfy = 1;
 			} else if (strcmp(attr[i], "x1") == 0) {
 				grad->linear.x1 = nsvg__parseCoordinateRaw(attr[i + 1]);
 			} else if (strcmp(attr[i], "y1") == 0) {
@@ -2493,6 +2497,14 @@ static void nsvg__parseGradient(NSVGparser* p, const char** attr, char type)
 				grad->ref[62] = '\0';
 			}
 		}
+	}
+
+	if (grad->type == NSVG_PAINT_RADIAL_GRADIENT && setfx == 0) {
+		grad->radial.fx = grad->radial.cx;
+	}
+
+	if (grad->type == NSVG_PAINT_RADIAL_GRADIENT && setfy == 0) {
+		grad->radial.fy = grad->radial.cy;
 	}
 
 	grad->next = p->gradients;
