@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include "nanovg.h"
-#define NANOVG_RT_IMPLEMENTATION
-#define NANORT_IMPLEMENTATION
 #include "nanovg_rt.h"
 #include "demo.h"
 
@@ -9,8 +7,7 @@
 extern "C" {
 #endif
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include <stb/stb_image_write.h>
 
 #ifdef __cplusplus
 }

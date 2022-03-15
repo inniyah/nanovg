@@ -237,3 +237,20 @@ Here's a screenshot of Blendish styling a set of layouted OUI items (also contai
 Here's a shot of all available Blendish theming functions:
 
 ![blendish2.png](/doc/images/1457969701-blendish2.png)
+
+NanoRT backend for NanoVG
+===========================
+
+![](doc/images/render.png)
+
+`nanovg-nanort` is a CPU backend using software ray tracer(NanoRT) for Mikko Mononen’s awesome vector graphics renderer NanoVG(https://github.com/memononen/nanovg).
+
+`nanovg-nanort` does not require OpenGL environment, thus it can draw vector graphics in various environment(e.g. server-side, no-GPU/no-OpenGL machine, virtual machine environment, etc).
+
+In contrast to default OpenGL backend for `NanoVG`, `nanovg-nanort` requires C++(C++-98 + STL) compiler.
+
+## License
+
+`nanovg-nanort` is licensed under zlib license.
+`NanoRT` is licensed under MIT license.
+See `LICENSE.txt` for details.

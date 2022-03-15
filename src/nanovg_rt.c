@@ -37,57 +37,14 @@
 //    misrepresented as being the original software.
 // 3. This notice may not be removed or altered from any source distribution.
 //
-#ifndef NANOVG_RT_H
-#define NANOVG_RT_H
 
-#include "nanort.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// Create flags
-
-enum NVGcreateFlags {
-  // Flag indicating if geometry based anti-aliasing is used (may not be needed
-  // when using MSAA).
-  NVG_ANTIALIAS = 1 << 0,
-  // Flag indicating if strokes should be drawn using stencil buffer. The
-  // rendering will be a little
-  // slower, but path overlaps (i.e. self-intersecting or sharp turns) will be
-  // drawn just once.
-  NVG_STENCIL_STROKES = 1 << 1,
-  // Flag indicating that additional debug checks are done.
-  NVG_DEBUG = 1 << 2,
-};
-
-NVGcontext *nvgCreateRT(int flags, int w, int h);
-void nvgDeleteRT(NVGcontext *ctx);
-void nvgClearBackgroundRT(NVGcontext *ctx, float r, float g, float b, float a); // Clear background.
-unsigned char *nvgReadPixelsRT(NVGcontext *ctx); // Returns RGBA8 pixel data.
-
-// These are additional flags on top of NVGimageFlags.
-enum NVGimageFlagsRT {
-  NVG_IMAGE_NODELETE = 1 << 16, // Do not delete RT texture handle.
-};
-
-int nvrtCreateImageFromHandle(NVGcontext *ctx, unsigned int textureId, int w,
-                              int h, int flags);
-unsigned int nvrtImageHandle(NVGcontext *ctx, int image);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* NANOVG_RT_H */
-
-#ifdef NANOVG_RT_IMPLEMENTATION
+#include "nanovg_rt.h"
+#include "nanovg.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "nanovg.h"
 
 namespace {
 
@@ -637,8 +594,7 @@ static int rtnvg__deleteTexture(RTNVGcontext *rt, int id) {
   int i;
   for (i = 0; i < rt->ntextures; i++) {
     if (rt->textures[i].id == id) {
-      if (rt->textures[i].tex != 0 &&
-          (rt->textures[i].flags & NVG_IMAGE_NODELETE) == 0) {
+      if ((rt->textures[i].flags & NVG_IMAGE_NODELETE) == 0) {
         free(rt->textures[i].data);
         // glDeleteTextures(1, &rt->textures[i].tex);
       }
@@ -2506,5 +2462,3 @@ unsigned char *nvgReadPixelsRT(NVGcontext *ctx) {
   RTNVGcontext *rt = (RTNVGcontext *)nvgInternalParams(ctx)->userPtr;
   return rt->pixels;
 }
-
-#endif /* NANOVG_RT_IMPLEMENTATION */
