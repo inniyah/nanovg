@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# For local/library development:
-# import sys, os
-# sys.path.append(os.pardir)
-# sys.path.append('../../python-glfw_private')
+import os, sys
+MY_PATH = os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
+sys.path.append(os.path.abspath(os.path.join(MY_PATH, '..')))
 
 import ctypes
 
-import OpenGL.GL
-
-# https://github.com/vaiorabbit/python-glfw
-import GLFW
-from GLFW import *
+from OpenGL import GL
 
 from NanoVG import *
 from demo_data import DemoData
 from perf import PerfGraph
 
+# https://github.com/vaiorabbit/python-glfw
+import GLFW
+from GLFW import *
 
 def key_callback_fn(window_handle, key, scancode, action, mods):
     if key == GLFW_KEY_ESCAPE and action == GLFW_PRESS:
@@ -53,6 +51,7 @@ def main():
 
     glfwSwapInterval(0)
     glfwSetTime(0)
+
     prevt = glfwGetTime()
 
     try:
@@ -66,9 +65,9 @@ def main():
             glfwGetFramebufferSize(win, fb_width, fb_height)
             ratio = fb_width.value / fb_height.value
 
-            OpenGL.GL.glViewport(0, 0, fb_width.value, fb_height.value)
-            OpenGL.GL.glClearColor(0.3, 0.3, 0.32, 1.0)
-            OpenGL.GL.glClear(OpenGL.GL.GL_COLOR_BUFFER_BIT)
+            GL.glViewport(0, 0, fb_width.value, fb_height.value)
+            GL.glClearColor(0.3, 0.3, 0.32, 1.0)
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 
             nvgBeginFrame(vg, float(fb_width.value), float(fb_height.value), ratio)
             data.render(vg, mx.value, my.value, fb_width.value, fb_height.value, t, False)
@@ -80,6 +79,7 @@ def main():
     finally:
         data.free(vg)
         nvgDeleteGL2(vg)
+
         glfwDestroyWindow(win)
         glfwTerminate()
 
