@@ -1364,7 +1364,9 @@ void nsvgRasterizeXY(NSVGrasterizer* r,
 			}
 
 			// Rasterize edges
-			qsort(r->edges, r->nedges, sizeof(NSVGedge), nsvg__cmpEdge);
+			if (r->nedges != 0) {
+				qsort(r->edges, r->nedges, sizeof(NSVGedge), nsvg__cmpEdge);
+			}
 
 			// now, traverse the scanlines and find the intersections on each scanline, use non-zero rule
 			nsvg__initPaint(&cache, &shape->fill, shape->opacity);
@@ -1390,7 +1392,9 @@ void nsvgRasterizeXY(NSVGrasterizer* r,
 			}
 
 			// Rasterize edges
-			qsort(r->edges, r->nedges, sizeof(NSVGedge), nsvg__cmpEdge);
+			if (r->nedges != 0) {
+				qsort(r->edges, r->nedges, sizeof(NSVGedge), nsvg__cmpEdge);
+			}
 
 			// now, traverse the scanlines and find the intersections on each scanline, use non-zero rule
 			nsvg__initPaint(&cache, &shape->stroke, shape->opacity);
