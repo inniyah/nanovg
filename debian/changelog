@@ -1,5 +1,5 @@
-nanovg (0.1~rc4+inniyah1) UNRELEASED; urgency=low
+nanovg (0.1~rc6+inniyah1) UNRELEASED; urgency=low
 
   * Initial release.
 
- -- Miriam Ruiz <miriam@debian.org>  Wed, 15 Jul 2020 13:07:49 +0200
+ -- Miriam Ruiz <miriam@debian.org>  Fri, 28 Oct 2022 04:15:17 +0200
