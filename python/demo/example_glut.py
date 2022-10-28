@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys
+import os, sys
+MY_PATH = os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
+sys.path.append(os.path.abspath(os.path.join(MY_PATH, '..')))
+
 import ctypes
 
 from OpenGL.GLUT import *
