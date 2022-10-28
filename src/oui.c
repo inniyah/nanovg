@@ -1057,7 +1057,7 @@ void uiProcess(int timestamp) {
         for (int i = 0; i < ui_context->eventcount; ++i) {
             ui_context->active_key = ui_context->events[i].key;
             ui_context->active_modifier = ui_context->events[i].mod;
-            uiNotifyItem(focus_item, 
+            uiNotifyItem(focus_item,
                     ui_context->events[i].event);
         }
     } else {
@@ -1101,8 +1101,8 @@ void uiProcess(int timestamp) {
                 ui_context->last_click_item = active_item;
                 ui_context->active_modifier = ui_context->active_button_modifier;
                 uiNotifyItem(active_item, UI_BUTTON0_DOWN);
-            }            
-            ui_context->state = UI_STATE_CAPTURE;            
+            }
+            ui_context->state = UI_STATE_CAPTURE;
         } else if (uiGetButton(2) && !uiGetLastButton(2)) {
             hot_item = -1;
             hot = uiFindItem(0, ui_context->cursor.x, ui_context->cursor.y,
@@ -1130,7 +1130,7 @@ void uiProcess(int timestamp) {
             if (active_item >= 0) {
                 ui_context->active_modifier = ui_context->active_button_modifier;
                 uiNotifyItem(active_item, UI_BUTTON0_CAPTURE);
-            }            
+            }
             if (hot == active_item)
                 hot_item = hot;
             else
