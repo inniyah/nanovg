@@ -1251,7 +1251,7 @@ int main()
 
     init(ec.vg);
 
-    printf("sizeof(UIitem)=%lu\n", sizeof(UIitem));
+    printf("sizeof(UIitem)=%lu\n", (unsigned long)sizeof(UIitem));
 
     glfwSwapInterval(0);
 
@@ -1302,7 +1302,7 @@ int main()
         glfwPollEvents();
     }
     printf("Peak item count: %i (%lu bytes)\nPeak allocated handles: %u bytes\n",
-            peak_items, peak_items * sizeof(UIitem), peak_alloc);
+            peak_items, peak_items * (unsigned long)sizeof(UIitem), peak_alloc);
 
     uiDestroyContext(ec.uictx);
 
