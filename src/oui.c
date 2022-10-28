@@ -25,17 +25,24 @@ THE SOFTWARE.
 #include "oui.h"
 
 #include <assert.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-
-#include "android.h"
 
 #ifdef _MSC_VER
     #pragma warning (disable: 4996) // Switch off security warnings
     #pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
     #pragma warning (disable: 4244)
     #pragma warning (disable: 4305)
+
+    #ifdef __cplusplus
+    #define UI_INLINE inline
+    #else
+    #define UI_INLINE
+    #endif
+#else
+    #ifdef __clang__
+    #define UI_INLINE static inline
+    #else
+    #define UI_INLINE inline
+    #endif
 #endif
 
 #define UI_MAX_KIND 16
@@ -57,25 +64,24 @@ THE SOFTWARE.
 #define UI_ANY_INPUT (UI_ANY_MOUSE_INPUT \
         |UI_ANY_KEY_INPUT)
 
-static int ui_max(int a, int b) {
+UI_INLINE int ui_max(int a, int b) {
     return (a>b)?a:b;
 }
 
-static int ui_min(int a, int b) {
+UI_INLINE int ui_min(int a, int b) {
     return (a<b)?a:b;
 }
 
-static float ui_maxf(float a, float b) {
+UI_INLINE float ui_maxf(float a, float b) {
     return (a>b)?a:b;
 }
 
-static float ui_minf(float a, float b) {
+UI_INLINE float ui_minf(float a, float b) {
     return (a<b)?a:b;
 }
 
-static UIcontext *ui_context = NULL;
-
-void uiClear() {
+void uiClear(UIcontext *ui_context) {
+    int i;
     ui_context->last_count = ui_context->count;
     ui_context->count = 0;
     ui_context->datasize = 0;
@@ -84,16 +90,15 @@ void uiClear() {
     UIitem *items = ui_context->items;
     ui_context->items = ui_context->last_items;
     ui_context->last_items = items;
-    for (int i = 0; i < ui_context->last_count; ++i) {
+    for (i = 0; i < ui_context->last_count; ++i) {
         ui_context->item_map[i] = -1;
     }
 }
 
-UIcontext *uiCreateContext(
+static UIcontext *uiInitializeContext(
+        UIcontext *ctx,
         unsigned int item_capacity,
         unsigned int buffer_capacity) {
-    assert(item_capacity);
-    UIcontext *ctx = (UIcontext *)malloc(sizeof(UIcontext));
     memset(ctx, 0, sizeof(UIcontext));
     ctx->item_capacity = item_capacity;
     ctx->buffer_capacity = buffer_capacity;
@@ -104,22 +109,21 @@ UIcontext *uiCreateContext(
     if (buffer_capacity) {
         ctx->data = (unsigned char *)malloc(buffer_capacity);
     }
-
-    UIcontext *oldctx = ui_context;
-    uiMakeCurrent(ctx);
-    uiClear();
-    uiClearState();
-    uiMakeCurrent(oldctx);
     return ctx;
 }
 
-void uiMakeCurrent(UIcontext *ctx) {
-    ui_context = ctx;
+UIcontext *uiCreateContext(
+        unsigned int item_capacity,
+        unsigned int buffer_capacity) {
+    assert(item_capacity);
+    UIcontext *ctx = (UIcontext *)malloc(sizeof(UIcontext));
+    uiInitializeContext(ctx, item_capacity, buffer_capacity);
+    uiClear(ctx);
+    uiClearState(ctx);
+    return ctx;
 }
 
 void uiDestroyContext(UIcontext *ctx) {
-    if (ui_context == ctx)
-        uiMakeCurrent(NULL);
     free(ctx->items);
     free(ctx->last_items);
     free(ctx->item_map);
@@ -127,11 +131,18 @@ void uiDestroyContext(UIcontext *ctx) {
     free(ctx);
 }
 
-OUI_EXPORT UIcontext *uiGetContext() {
-    return ui_context;
+void uiSetContextHandle(UIcontext *ui_context, void *handle) {
+    assert(ui_context);
+    ui_context->handle = handle;
 }
 
-void uiSetButton(unsigned int button, unsigned int mod, int enabled) {
+void *uiGetContextHandle(UIcontext *ui_context) {
+    assert(ui_context);
+    return ui_context->handle;
+}
+
+
+void uiSetButton(UIcontext *ui_context, unsigned int button, unsigned int mod, bool enabled) {
     assert(ui_context);
     unsigned long long mask = 1ull<<button;
     // set new bit
@@ -141,79 +152,79 @@ void uiSetButton(unsigned int button, unsigned int mod, int enabled) {
     ui_context->active_button_modifier = mod;
 }
 
-static void uiAddInputEvent(UIinputEvent event) {
+static void uiAddInputEvent(UIcontext *ui_context, UIinputEvent event) {
     assert(ui_context);
     if (ui_context->eventcount == UI_MAX_INPUT_EVENTS) return;
     ui_context->events[ui_context->eventcount++] = event;
 }
 
-static void uiClearInputEvents() {
+static void uiClearInputEvents(UIcontext *ui_context) {
     assert(ui_context);
     ui_context->eventcount = 0;
     ui_context->scroll.x = 0;
     ui_context->scroll.y = 0;
 }
 
-void uiSetKey(unsigned int key, unsigned int mod, int enabled) {
+void uiSetKey(UIcontext *ui_context, unsigned int key, unsigned int mod, bool enabled) {
     assert(ui_context);
     UIinputEvent event = { key, mod, enabled?UI_KEY_DOWN:UI_KEY_UP };
-    uiAddInputEvent(event);
+    uiAddInputEvent(ui_context, event);
 }
 
-void uiSetChar(unsigned int value) {
+void uiSetChar(UIcontext *ui_context, unsigned int value) {
     assert(ui_context);
     UIinputEvent event = { value, 0, UI_CHAR };
-    uiAddInputEvent(event);
+    uiAddInputEvent(ui_context, event);
 }
 
-void uiSetScroll(int x, int y) {
+void uiSetScroll(UIcontext *ui_context, int x, int y) {
     assert(ui_context);
     ui_context->scroll.x += x;
     ui_context->scroll.y += y;
 }
 
-UIvec2 uiGetScroll() {
+UIvec2 uiGetScroll(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->scroll;
 }
 
-int uiGetLastButton(unsigned int button) {
+int uiGetLastButton(UIcontext *ui_context, unsigned int button) {
     assert(ui_context);
     return (ui_context->last_buttons & (1ull<<button))?1:0;
 }
 
-int uiGetButton(unsigned int button) {
+int uiGetButton(UIcontext *ui_context, unsigned int button) {
     assert(ui_context);
     return (ui_context->buttons & (1ull<<button))?1:0;
 }
 
-int uiButtonPressed(unsigned int button) {
+int uiButtonPressed(UIcontext *ui_context, unsigned int button) {
     assert(ui_context);
-    return !uiGetLastButton(button) && uiGetButton(button);
+    return !uiGetLastButton(ui_context, button) && uiGetButton(ui_context, button);
 }
 
-int uiButtonReleased(unsigned int button) {
+int uiButtonReleased(UIcontext *ui_context, unsigned int button) {
     assert(ui_context);
-    return uiGetLastButton(button) && !uiGetButton(button);
+    return uiGetLastButton(ui_context, button) && !uiGetButton(ui_context, button);
 }
 
-void uiSetCursor(int x, int y) {
+void uiSetCursor(UIcontext *ui_context, int x, int y) {
     assert(ui_context);
     ui_context->cursor.x = x;
     ui_context->cursor.y = y;
 }
 
-UIvec2 uiGetCursor() {
+UIvec2 uiGetCursor(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->cursor;
 }
 
-UIvec2 uiGetCursorStart() {
+UIvec2 uiGetCursorStart(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->start_cursor;
 }
 
-UIvec2 uiGetCursorDelta() {
+UIvec2 uiGetCursorDelta(UIcontext *ui_context) {
     assert(ui_context);
     UIvec2 result = {{{
             ui_context->cursor.x - ui_context->last_cursor.x,
@@ -222,7 +233,7 @@ UIvec2 uiGetCursorDelta() {
     return result;
 }
 
-UIvec2 uiGetCursorStartDelta() {
+UIvec2 uiGetCursorStartDelta(UIcontext *ui_context) {
     assert(ui_context);
     UIvec2 result = {{{
             ui_context->cursor.x - ui_context->start_cursor.x,
@@ -231,74 +242,74 @@ UIvec2 uiGetCursorStartDelta() {
     return result;
 }
 
-unsigned int uiGetKey() {
+unsigned int uiGetKey(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->active_key;
 }
 
-unsigned int uiGetModifier() {
+unsigned int uiGetModifier(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->active_modifier;
 }
 
-int uiGetItemCount() {
+int uiGetItemCount(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->count;
 }
 
-int uiGetLastItemCount() {
+int uiGetLastItemCount(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->last_count;
 }
 
-unsigned int uiGetAllocSize() {
+unsigned int uiGetAllocSize(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->datasize;
 }
 
-UIitem *uiItemPtr(int item) {
+UIitem *uiItemPtr(UIcontext *ui_context, int item) {
     assert(ui_context && (item >= 0) && (item < ui_context->count));
     return ui_context->items + item;
 }
 
-UIitem *uiLastItemPtr(int item) {
+UIitem *uiLastItemPtr(UIcontext *ui_context, int item) {
     assert(ui_context && (item >= 0) && (item < ui_context->last_count));
     return ui_context->last_items + item;
 }
 
-int uiGetHotItem() {
+int uiGetHotItem(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->hot_item;
 }
 
-void uiFocus(int item) {
+void uiFocus(UIcontext *ui_context, int item) {
     assert(ui_context && (item >= -1) && (item < ui_context->count));
     assert(ui_context->stage != UI_STAGE_LAYOUT);
     ui_context->focus_item = item;
 }
 
-static void uiValidateStateItems() {
+static void uiValidateStateItems(UIcontext *ui_context) {
     assert(ui_context);
-    ui_context->last_hot_item = uiRecoverItem(ui_context->last_hot_item);
-    ui_context->active_item = uiRecoverItem(ui_context->active_item);
-    ui_context->focus_item = uiRecoverItem(ui_context->focus_item);
-    ui_context->last_click_item = uiRecoverItem(ui_context->last_click_item);
+    ui_context->last_hot_item = uiRecoverItem(ui_context, ui_context->last_hot_item);
+    ui_context->active_item = uiRecoverItem(ui_context, ui_context->active_item);
+    ui_context->focus_item = uiRecoverItem(ui_context, ui_context->focus_item);
+    ui_context->last_click_item = uiRecoverItem(ui_context, ui_context->last_click_item);
 }
 
-int uiGetFocusedItem() {
+int uiGetFocusedItem(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->focus_item;
 }
 
 
-void uiBeginLayout() {
+void uiBeginLayout(UIcontext *ui_context) {
     assert(ui_context);
     assert(ui_context->stage == UI_STAGE_PROCESS); // must run uiEndLayout(), uiProcess() first
-    uiClear();
+    uiClear(ui_context);
     ui_context->stage = UI_STAGE_LAYOUT;
 }
 
-void uiClearState() {
+void uiClearState(UIcontext *ui_context) {
     assert(ui_context);
     ui_context->last_hot_item = -1;
     ui_context->active_item = -1;
@@ -306,45 +317,45 @@ void uiClearState() {
     ui_context->last_click_item = -1;
 }
 
-int uiItem() {
+int uiItem(UIcontext *ui_context) {
     assert(ui_context);
     assert(ui_context->stage == UI_STAGE_LAYOUT); // must run between uiBeginLayout() and uiEndLayout()
     assert(ui_context->count < (int)ui_context->item_capacity);
     int idx = ui_context->count++;
-    UIitem *item = uiItemPtr(idx);
+    UIitem *item = uiItemPtr(ui_context, idx);
     memset(item, 0, sizeof(UIitem));
     item->firstkid = -1;
     item->nextitem = -1;
     return idx;
 }
 
-void uiNotifyItem(int item, UIevent event) {
+void uiNotifyItem(UIcontext *ui_context, int item, UIevent event) {
     assert(ui_context);
     if (!ui_context->handler)
         return;
     assert((event & UI_ITEM_EVENT_MASK) == event);
-    UIitem *pitem = uiItemPtr(item);
+    UIitem *pitem = uiItemPtr(ui_context, item);
     if (pitem->flags & event) {
-        ui_context->handler(item, event);
+        ui_context->handler(ui_context, item, event);
     }
 }
 
-int uiLastChild(int item) {
-    item = uiFirstChild(item);
+UI_INLINE int uiLastChild(UIcontext *ui_context, int item) {
+    item = uiFirstChild(ui_context, item);
     if (item < 0)
         return -1;
     while (true) {
-        int nextitem = uiNextSibling(item);
+        int nextitem = uiNextSibling(ui_context, item);
         if (nextitem < 0)
             return item;
         item = nextitem;
     }
 }
 
-int uiAppend(int item, int sibling) {
+int uiAppend(UIcontext *ui_context, int item, int sibling) {
     assert(sibling > 0);
-    UIitem *pitem = uiItemPtr(item);
-    UIitem *psibling = uiItemPtr(sibling);
+    UIitem *pitem = uiItemPtr(ui_context, item);
+    UIitem *psibling = uiItemPtr(ui_context, sibling);
     assert(!(psibling->flags & UI_ITEM_INSERTED));
     psibling->nextitem = pitem->nextitem;
     psibling->flags |= UI_ITEM_INSERTED;
@@ -352,28 +363,28 @@ int uiAppend(int item, int sibling) {
     return sibling;
 }
 
-int uiInsert(int item, int child) {
+int uiInsert(UIcontext *ui_context, int item, int child) {
     assert(child > 0);
-    UIitem *pparent = uiItemPtr(item);
-    UIitem *pchild = uiItemPtr(child);
+    UIitem *pparent = uiItemPtr(ui_context, item);
+    UIitem *pchild = uiItemPtr(ui_context, child);
     assert(!(pchild->flags & UI_ITEM_INSERTED));
     if (pparent->firstkid < 0) {
         pparent->firstkid = child;
         pchild->flags |= UI_ITEM_INSERTED;
     } else {
-        uiAppend(uiLastChild(item), child);
+        uiAppend(ui_context, uiLastChild(ui_context, item), child);
     }
     return child;
 }
 
-int uiInsertFront(int item, int child) {
-    return uiInsert(item, child);
+int uiInsertFront(UIcontext *ui_context, int item, int child) {
+    return uiInsert(ui_context, item, child);
 }
 
-int uiInsertBack(int item, int child) {
+int uiInsertBack(UIcontext *ui_context, int item, int child) {
     assert(child > 0);
-    UIitem *pparent = uiItemPtr(item);
-    UIitem *pchild = uiItemPtr(child);
+    UIitem *pparent = uiItemPtr(ui_context, item);
+    UIitem *pchild = uiItemPtr(ui_context, child);
     assert(!(pchild->flags & UI_ITEM_INSERTED));
     pchild->nextitem = pparent->firstkid;
     pparent->firstkid = child;
@@ -381,16 +392,16 @@ int uiInsertBack(int item, int child) {
     return child;
 }
 
-void uiSetFrozen(int item, int enable) {
-    UIitem *pitem = uiItemPtr(item);
+void uiSetFrozen(UIcontext *ui_context, int item, bool enable) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     if (enable)
         pitem->flags |= UI_ITEM_FROZEN;
     else
         pitem->flags &= ~UI_ITEM_FROZEN;
 }
 
-void uiSetSize(int item, int w, int h) {
-    UIitem *pitem = uiItemPtr(item);
+void uiSetSize(UIcontext *ui_context, int item, int w, int h) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     pitem->size[0] = w;
     pitem->size[1] = h;
     if (!w)
@@ -403,97 +414,97 @@ void uiSetSize(int item, int w, int h) {
         pitem->flags |= UI_ITEM_VFIXED;
 }
 
-int uiGetWidth(int item) {
-    return uiItemPtr(item)->size[0];
+int uiGetWidth(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->size[0];
 }
 
-int uiGetHeight(int item) {
-    return uiItemPtr(item)->size[1];
+int uiGetHeight(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->size[1];
 }
 
-void uiSetLayout(int item, unsigned int flags) {
-    UIitem *pitem = uiItemPtr(item);
+void uiSetLayout(UIcontext *ui_context, int item, unsigned int flags) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     assert((flags & UI_ITEM_LAYOUT_MASK) == (unsigned int)flags);
     pitem->flags &= ~UI_ITEM_LAYOUT_MASK;
     pitem->flags |= flags & UI_ITEM_LAYOUT_MASK;
 }
 
-unsigned int uiGetLayout(int item) {
-    return uiItemPtr(item)->flags & UI_ITEM_LAYOUT_MASK;
+unsigned int uiGetLayout(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->flags & UI_ITEM_LAYOUT_MASK;
 }
 
-void uiSetBox(int item, unsigned int flags) {
-    UIitem *pitem = uiItemPtr(item);
+void uiSetBox(UIcontext *ui_context, int item, unsigned int flags) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     assert((flags & UI_ITEM_BOX_MASK) == (unsigned int)flags);
     pitem->flags &= ~UI_ITEM_BOX_MASK;
     pitem->flags |= flags & UI_ITEM_BOX_MASK;
 }
 
-unsigned int uiGetBox(int item) {
-    return uiItemPtr(item)->flags & UI_ITEM_BOX_MASK;
+unsigned int uiGetBox(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->flags & UI_ITEM_BOX_MASK;
 }
 
-void uiSetMargins(int item, short l, short t, short r, short b) {
-    UIitem *pitem = uiItemPtr(item);
+void uiSetMargins(UIcontext *ui_context, int item, short l, short t, short r, short b) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     pitem->margins[0] = l;
     pitem->margins[1] = t;
     pitem->margins[2] = r;
     pitem->margins[3] = b;
 }
 
-short uiGetMarginLeft(int item) {
-    return uiItemPtr(item)->margins[0];
+short uiGetMarginLeft(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->margins[0];
 }
-short uiGetMarginTop(int item) {
-    return uiItemPtr(item)->margins[1];
+short uiGetMarginTop(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->margins[1];
 }
-short uiGetMarginRight(int item) {
-    return uiItemPtr(item)->margins[2];
+short uiGetMarginRight(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->margins[2];
 }
-short uiGetMarginDown(int item) {
-    return uiItemPtr(item)->margins[3];
+short uiGetMarginDown(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->margins[3];
 }
 
 // compute bounding box of all items super-imposed
-void uiComputeImposedSize(UIitem *pitem, int dim) {
+UI_INLINE void uiComputeImposedSize(UIcontext *ui_context, UIitem *pitem, int dim) {
     int wdim = dim+2;
     // largest size is required size
     short need_size = 0;
     int kid = pitem->firstkid;
     while (kid >= 0) {
-        UIitem *pkid = uiItemPtr(kid);
+        UIitem *pkid = uiItemPtr(ui_context, kid);
 
         // width = start margin + calculated width + end margin
         int kidsize = pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
         need_size = ui_max(need_size, kidsize);
-        kid = uiNextSibling(kid);
+        kid = uiNextSibling(ui_context, kid);
     }
     pitem->size[dim] = need_size;
 }
 
 // compute bounding box of all items stacked
-void uiComputeStackedSize(UIitem *pitem, int dim) {
+UI_INLINE void uiComputeStackedSize(UIcontext *ui_context, UIitem *pitem, int dim) {
     int wdim = dim+2;
     short need_size = 0;
     int kid = pitem->firstkid;
     while (kid >= 0) {
-        UIitem *pkid = uiItemPtr(kid);
+        UIitem *pkid = uiItemPtr(ui_context, kid);
         // width += start margin + calculated width + end margin
         need_size += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
-        kid = uiNextSibling(kid);
+        kid = uiNextSibling(ui_context, kid);
     }
     pitem->size[dim] = need_size;
 }
 
 // compute bounding box of all items stacked, repeating when breaking
-void uiComputeWrappedStackedSize(UIitem *pitem, int dim) {
+UI_INLINE void uiComputeWrappedStackedSize(UIcontext *ui_context, UIitem *pitem, int dim) {
     int wdim = dim+2;
 
     short need_size = 0;
     short need_size2 = 0;
     int kid = pitem->firstkid;
     while (kid >= 0) {
-        UIitem *pkid = uiItemPtr(kid);
+        UIitem *pkid = uiItemPtr(ui_context, kid);
 
         // if next position moved back, we assume a new line
         if (pkid->flags & UI_BREAK) {
@@ -504,20 +515,20 @@ void uiComputeWrappedStackedSize(UIitem *pitem, int dim) {
 
         // width = start margin + calculated width + end margin
         need_size += pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
-        kid = uiNextSibling(kid);
+        kid = uiNextSibling(ui_context, kid);
     }
     pitem->size[dim] = ui_max(need_size2, need_size);
 }
 
 // compute bounding box of all items stacked + wrapped
-void uiComputeWrappedSize(UIitem *pitem, int dim) {
+UI_INLINE void uiComputeWrappedSize(UIcontext *ui_context, UIitem *pitem, int dim) {
     int wdim = dim+2;
 
     short need_size = 0;
     short need_size2 = 0;
     int kid = pitem->firstkid;
     while (kid >= 0) {
-        UIitem *pkid = uiItemPtr(kid);
+        UIitem *pkid = uiItemPtr(ui_context, kid);
 
         // if next position moved back, we assume a new line
         if (pkid->flags & UI_BREAK) {
@@ -529,19 +540,19 @@ void uiComputeWrappedSize(UIitem *pitem, int dim) {
         // width = start margin + calculated width + end margin
         int kidsize = pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
         need_size = ui_max(need_size, kidsize);
-        kid = uiNextSibling(kid);
+        kid = uiNextSibling(ui_context, kid);
     }
     pitem->size[dim] = need_size2 + need_size;
 }
 
-static void uiComputeSize(int item, int dim) {
-    UIitem *pitem = uiItemPtr(item);
+static void uiComputeSize(UIcontext *ui_context, int item, int dim) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
 
     // children expand the size
     int kid = pitem->firstkid;
     while (kid >= 0) {
-        uiComputeSize(kid, dim);
-        kid = uiNextSibling(kid);
+        uiComputeSize(ui_context, kid, dim);
+        kid = uiNextSibling(ui_context, kid);
     }
 
     if (pitem->size[dim])
@@ -550,34 +561,34 @@ static void uiComputeSize(int item, int dim) {
     case UI_COLUMN|UI_WRAP: {
         // flex model
         if (dim) // direction
-            uiComputeStackedSize(pitem, 1);
+            uiComputeStackedSize(ui_context, pitem, 1);
         else
-            uiComputeImposedSize(pitem, 0);
+            uiComputeImposedSize(ui_context, pitem, 0);
     } break;
     case UI_ROW|UI_WRAP: {
         // flex model
         if (!dim) // direction
-            uiComputeWrappedStackedSize(pitem, 0);
+            uiComputeWrappedStackedSize(ui_context, pitem, 0);
         else
-            uiComputeWrappedSize(pitem, 1);
+            uiComputeWrappedSize(ui_context, pitem, 1);
     } break;
     case UI_COLUMN:
     case UI_ROW: {
         // flex model
         if ((pitem->flags & 1) == (unsigned int)dim) // direction
-            uiComputeStackedSize(pitem, dim);
+            uiComputeStackedSize(ui_context, pitem, dim);
         else
-            uiComputeImposedSize(pitem, dim);
+            uiComputeImposedSize(ui_context, pitem, dim);
     } break;
     default: {
         // layout model
-        uiComputeImposedSize(pitem, dim);
+        uiComputeImposedSize(ui_context, pitem, dim);
     } break;
     }
 }
 
 // stack all items according to their alignment
-void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
+UI_INLINE void uiArrangeStacked(UIcontext *ui_context, UIitem *pitem, int dim, bool wrap) {
     int wdim = dim+2;
 
     short space = pitem->size[dim];
@@ -596,7 +607,7 @@ void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
         int kid = start_kid;
         int end_kid = -1;
         while (kid >= 0) {
-            UIitem *pkid = uiItemPtr(kid);
+            UIitem *pkid = uiItemPtr(ui_context, kid);
             int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
             int fflags = (pkid->flags & UI_ITEM_FIXED_MASK) >> dim;
             short extend = used;
@@ -617,7 +628,7 @@ void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
                 break;
             } else {
                 used = extend;
-                kid = uiNextSibling(kid);
+                kid = uiNextSibling(ui_context, kid);
             }
             total++;
         }
@@ -660,7 +671,7 @@ void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
         kid = start_kid;
         while (kid != end_kid) {
             short ix0,ix1;
-            UIitem *pkid = uiItemPtr(kid);
+            UIitem *pkid = uiItemPtr(ui_context, kid);
             int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
             int fflags = (pkid->flags & UI_ITEM_FIXED_MASK) >> dim;
 
@@ -682,7 +693,7 @@ void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
             pkid->size[dim] = ix1-ix0;
             x = x1 + (float)pkid->margins[wdim];
 
-            kid = uiNextSibling(kid);
+            kid = uiNextSibling(ui_context, kid);
             extra_margin = spacer;
         }
 
@@ -691,14 +702,13 @@ void uiArrangeStacked(UIitem *pitem, int dim, bool wrap) {
 }
 
 // superimpose all items according to their alignment
-static void uiArrangeImposedRange(UIitem *pitem, int dim,
+UI_INLINE void uiArrangeImposedRange(UIcontext *ui_context, UIitem *pitem, int dim,
         int start_kid, int end_kid, short offset, short space) {
-    (void)pitem; // unused
     int wdim = dim+2;
 
     int kid = start_kid;
     while (kid != end_kid) {
-        UIitem *pkid = uiItemPtr(kid);
+        UIitem *pkid = uiItemPtr(ui_context, kid);
 
         int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
 
@@ -716,24 +726,23 @@ static void uiArrangeImposedRange(UIitem *pitem, int dim,
         }
         pkid->margins[dim] += offset;
 
-        kid = uiNextSibling(kid);
+        kid = uiNextSibling(ui_context, kid);
     }
 }
 
-static void uiArrangeImposed(UIitem *pitem, int dim) {
-    uiArrangeImposedRange(pitem, dim, pitem->firstkid, -1, pitem->margins[dim], pitem->size[dim]);
+UI_INLINE void uiArrangeImposed(UIcontext *ui_context, UIitem *pitem, int dim) {
+    uiArrangeImposedRange(ui_context, pitem, dim, pitem->firstkid, -1, pitem->margins[dim], pitem->size[dim]);
 }
 
 // superimpose all items according to their alignment,
 // squeeze items that expand the available space
-static void uiArrangeImposedSqueezedRange(UIitem *pitem, int dim,
+UI_INLINE void uiArrangeImposedSqueezedRange(UIcontext *ui_context, UIitem *pitem, int dim,
         int start_kid, int end_kid, short offset, short space) {
-    (void)pitem; // unused
     int wdim = dim+2;
 
     int kid = start_kid;
     while (kid != end_kid) {
-        UIitem *pkid = uiItemPtr(kid);
+        UIitem *pkid = uiItemPtr(ui_context, kid);
 
         int flags = (pkid->flags & UI_ITEM_LAYOUT_MASK) >> dim;
 
@@ -756,16 +765,16 @@ static void uiArrangeImposedSqueezedRange(UIitem *pitem, int dim,
         }
         pkid->margins[dim] += offset;
 
-        kid = uiNextSibling(kid);
+        kid = uiNextSibling(ui_context, kid);
     }
 }
 
-static void uiArrangeImposedSqueezed(UIitem *pitem, int dim) {
-    uiArrangeImposedSqueezedRange(pitem, dim, pitem->firstkid, -1, pitem->margins[dim], pitem->size[dim]);
+UI_INLINE void uiArrangeImposedSqueezed(UIcontext *ui_context, UIitem *pitem, int dim) {
+    uiArrangeImposedSqueezedRange(ui_context, pitem, dim, pitem->firstkid, -1, pitem->margins[dim], pitem->size[dim]);
 }
 
 // superimpose all items according to their alignment
-short uiArrangeWrappedImposedSqueezed(UIitem *pitem, int dim) {
+UI_INLINE short uiArrangeWrappedImposedSqueezed(UIcontext *ui_context, UIitem *pitem, int dim) {
     int wdim = dim+2;
 
     short offset = pitem->margins[dim];
@@ -774,10 +783,10 @@ short uiArrangeWrappedImposedSqueezed(UIitem *pitem, int dim) {
     int kid = pitem->firstkid;
     int start_kid = kid;
     while (kid >= 0) {
-        UIitem *pkid = uiItemPtr(kid);
+        UIitem *pkid = uiItemPtr(ui_context, kid);
 
         if (pkid->flags & UI_BREAK) {
-            uiArrangeImposedSqueezedRange(pitem, dim, start_kid, kid, offset, need_size);
+            uiArrangeImposedSqueezedRange(ui_context, pitem, dim, start_kid, kid, offset, need_size);
             offset += need_size;
             start_kid = kid;
             // newline
@@ -787,69 +796,69 @@ short uiArrangeWrappedImposedSqueezed(UIitem *pitem, int dim) {
         // width = start margin + calculated width + end margin
         int kidsize = pkid->margins[dim] + pkid->size[dim] + pkid->margins[wdim];
         need_size = ui_max(need_size, kidsize);
-        kid = uiNextSibling(kid);
+        kid = uiNextSibling(ui_context, kid);
     }
 
-    uiArrangeImposedSqueezedRange(pitem, dim, start_kid, -1, offset, need_size);
+    uiArrangeImposedSqueezedRange(ui_context, pitem, dim, start_kid, -1, offset, need_size);
     offset += need_size;
     return offset;
 }
 
-static void uiArrange(int item, int dim) {
-    UIitem *pitem = uiItemPtr(item);
+static void uiArrange(UIcontext *ui_context, int item, int dim) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
 
     switch(pitem->flags & UI_ITEM_BOX_MODEL_MASK) {
     case UI_COLUMN|UI_WRAP: {
         // flex model, wrapping
         if (dim) { // direction
-            uiArrangeStacked(pitem, 1, true);
+            uiArrangeStacked(ui_context, pitem, 1, true);
             // this retroactive resize will not effect parent widths
-            short offset = uiArrangeWrappedImposedSqueezed(pitem, 0);
+            short offset = uiArrangeWrappedImposedSqueezed(ui_context, pitem, 0);
             pitem->size[0] = offset - pitem->margins[0];
         }
     } break;
     case UI_ROW|UI_WRAP: {
         // flex model, wrapping
         if (!dim) { // direction
-            uiArrangeStacked(pitem, 0, true);
+            uiArrangeStacked(ui_context, pitem, 0, true);
         } else {
-            uiArrangeWrappedImposedSqueezed(pitem, 1);
+            uiArrangeWrappedImposedSqueezed(ui_context, pitem, 1);
         }
     } break;
     case UI_COLUMN:
     case UI_ROW: {
         // flex model
         if ((pitem->flags & 1) == (unsigned int)dim) // direction
-            uiArrangeStacked(pitem, dim, false);
+            uiArrangeStacked(ui_context, pitem, dim, false);
         else
-            uiArrangeImposedSqueezed(pitem, dim);
+            uiArrangeImposedSqueezed(ui_context, pitem, dim);
     } break;
     default: {
         // layout model
-        uiArrangeImposed(pitem, dim);
+        uiArrangeImposed(ui_context, pitem, dim);
     } break;
     }
 
-    int kid = uiFirstChild(item);
+    int kid = uiFirstChild(ui_context, item);
     while (kid >= 0) {
-        uiArrange(kid, dim);
-        kid = uiNextSibling(kid);
+        uiArrange(ui_context, kid, dim);
+        kid = uiNextSibling(ui_context, kid);
     }
 }
 
-bool uiCompareItems(UIitem *item1, UIitem *item2) {
+UI_INLINE bool uiCompareItems(UIcontext *ui_context, UIitem *item1, UIitem *item2) {
     return ((item1->flags & UI_ITEM_COMPARE_MASK) == (item2->flags & UI_ITEM_COMPARE_MASK));
 
 }
 
-static bool uiMapItems(int item1, int item2) {
-    UIitem *pitem1 = uiLastItemPtr(item1);
+static bool uiMapItems(UIcontext *ui_context, int item1, int item2) {
+    UIitem *pitem1 = uiLastItemPtr(ui_context, item1);
     if (item2 == -1) {
         return false;
     }
 
-    UIitem *pitem2 = uiItemPtr(item2);
-    if (!uiCompareItems(pitem1, pitem2)) {
+    UIitem *pitem2 = uiItemPtr(ui_context, item2);
+    if (!uiCompareItems(ui_context, pitem1, pitem2)) {
         return false;
     }
 
@@ -858,15 +867,15 @@ static bool uiMapItems(int item1, int item2) {
     int kid1 = pitem1->firstkid;
     int kid2 = pitem2->firstkid;
     while (kid1 != -1) {
-        UIitem *pkid1 = uiLastItemPtr(kid1);
+        UIitem *pkid1 = uiLastItemPtr(ui_context, kid1);
         count++;
-        if (!uiMapItems(kid1, kid2)) {
+        if (!uiMapItems(ui_context, kid1, kid2)) {
             failed = count;
             break;
         }
         kid1 = pkid1->nextitem;
         if (kid2 != -1) {
-            kid2 = uiItemPtr(kid2)->nextitem;
+            kid2 = uiItemPtr(ui_context, kid2)->nextitem;
         }
     }
 
@@ -878,47 +887,47 @@ static bool uiMapItems(int item1, int item2) {
     return true;
 }
 
-int uiRecoverItem(int olditem) {
+int uiRecoverItem(UIcontext *ui_context, int olditem) {
     assert(ui_context);
     assert((olditem >= -1) && (olditem < ui_context->last_count));
     if (olditem == -1) return -1;
     return ui_context->item_map[olditem];
 }
 
-void uiRemapItem(int olditem, int newitem) {
+void uiRemapItem(UIcontext *ui_context, int olditem, int newitem) {
     assert(ui_context);
     assert((olditem >= 0) && (olditem < ui_context->last_count));
     assert((newitem >= -1) && (newitem < ui_context->count));
     ui_context->item_map[olditem] = newitem;
 }
 
-void uiEndLayout() {
+void uiEndLayout(UIcontext *ui_context) {
     assert(ui_context);
     assert(ui_context->stage == UI_STAGE_LAYOUT); // must run uiBeginLayout() first
 
     if (ui_context->count) {
-        uiComputeSize(0,0);
-        uiArrange(0,0);
-        uiComputeSize(0,1);
-        uiArrange(0,1);
+        uiComputeSize(ui_context, 0, 0);
+        uiArrange(ui_context, 0, 0);
+        uiComputeSize(ui_context, 0, 1);
+        uiArrange(ui_context, 0, 1);
 
         if (ui_context->last_count) {
             // map old item id to new item id
-            uiMapItems(0,0);
+            uiMapItems(ui_context, 0, 0);
         }
     }
 
-    uiValidateStateItems();
+    uiValidateStateItems(ui_context);
     if (ui_context->count) {
         // drawing routines may require this to be set already
-        uiUpdateHotItem();
+        uiUpdateHotItem(ui_context);
     }
 
     ui_context->stage = UI_STAGE_POST_LAYOUT;
 }
 
-UIrect uiGetRect(int item) {
-    UIitem *pitem = uiItemPtr(item);
+UIrect uiGetRect(UIcontext *ui_context, int item) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     UIrect rc = {{{
             pitem->margins[0], pitem->margins[1],
             pitem->size[0], pitem->size[1]
@@ -926,17 +935,17 @@ UIrect uiGetRect(int item) {
     return rc;
 }
 
-int uiFirstChild(int item) {
-    return uiItemPtr(item)->firstkid;
+int uiFirstChild(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->firstkid;
 }
 
-int uiNextSibling(int item) {
-    return uiItemPtr(item)->nextitem;
+int uiNextSibling(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->nextitem;
 }
 
-void *uiAllocHandle(int item, unsigned int size) {
+void *uiAllocHandle(UIcontext *ui_context, int item, unsigned int size) {
     assert((size > 0) && (size < UI_MAX_DATASIZE));
-    UIitem *pitem = uiItemPtr(item);
+    UIitem *pitem = uiItemPtr(ui_context, item);
     assert(pitem->handle == NULL);
     assert((ui_context->datasize+size) <= ui_context->buffer_capacity);
     pitem->handle = ui_context->data + ui_context->datasize;
@@ -945,48 +954,48 @@ void *uiAllocHandle(int item, unsigned int size) {
     return pitem->handle;
 }
 
-void uiSetHandle(int item, void *handle) {
-    UIitem *pitem = uiItemPtr(item);
+void uiSetHandle(UIcontext *ui_context, int item, void *handle) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     assert(pitem->handle == NULL);
     pitem->handle = handle;
 }
 
-void *uiGetHandle(int item) {
-    return uiItemPtr(item)->handle;
+void *uiGetHandle(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->handle;
 }
 
-void uiSetHandler(UIhandler handler) {
+void uiSetHandler(UIcontext *ui_context, UIhandler handler) {
     assert(ui_context);
     ui_context->handler = handler;
 }
 
-UIhandler uiGetHandler() {
+UIhandler uiGetHandler(UIcontext *ui_context) {
     assert(ui_context);
     return ui_context->handler;
 }
 
-void uiSetEvents(int item, unsigned int flags) {
-    UIitem *pitem = uiItemPtr(item);
+void uiSetEvents(UIcontext *ui_context, int item, unsigned int flags) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     pitem->flags &= ~UI_ITEM_EVENT_MASK;
     pitem->flags |= flags & UI_ITEM_EVENT_MASK;
 }
 
-unsigned int uiGetEvents(int item) {
-    return uiItemPtr(item)->flags & UI_ITEM_EVENT_MASK;
+unsigned int uiGetEvents(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->flags & UI_ITEM_EVENT_MASK;
 }
 
-void uiSetFlags(int item, unsigned int flags) {
-    UIitem *pitem = uiItemPtr(item);
+void uiSetFlags(UIcontext *ui_context, int item, unsigned int flags) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     pitem->flags &= ~UI_USERMASK;
     pitem->flags |= flags & UI_USERMASK;
 }
 
-unsigned int uiGetFlags(int item) {
-    return uiItemPtr(item)->flags & UI_USERMASK;
+unsigned int uiGetFlags(UIcontext *ui_context, int item) {
+    return uiItemPtr(ui_context, item)->flags & UI_USERMASK;
 }
 
-int uiContains(int item, int x, int y) {
-    UIrect rect = uiGetRect(item);
+int uiContains(UIcontext *ui_context, int item, int x, int y) {
+    UIrect rect = uiGetRect(ui_context, item);
     x -= rect.x;
     y -= rect.y;
     if ((x>=0)
@@ -996,18 +1005,18 @@ int uiContains(int item, int x, int y) {
     return 0;
 }
 
-int uiFindItem(int item, int x, int y, unsigned int flags, unsigned int mask) {
-    UIitem *pitem = uiItemPtr(item);
+int uiFindItem(UIcontext *ui_context, int item, int x, int y, unsigned int flags, unsigned int mask) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     if (pitem->flags & UI_ITEM_FROZEN) return -1;
-    if (uiContains(item, x, y)) {
+    if (uiContains(ui_context, item, x, y)) {
         int best_hit = -1;
-        int kid = uiFirstChild(item);
+        int kid = uiFirstChild(ui_context, item);
         while (kid >= 0) {
-            int hit = uiFindItem(kid, x, y, flags, mask);
+            int hit = uiFindItem(ui_context, kid, x, y, flags, mask);
             if (hit >= 0) {
                 best_hit = hit;
             }
-            kid = uiNextSibling(kid);
+            kid = uiNextSibling(ui_context, kid);
         }
         if (best_hit >= 0) {
             return best_hit;
@@ -1021,30 +1030,30 @@ int uiFindItem(int item, int x, int y, unsigned int flags, unsigned int mask) {
     return -1;
 }
 
-void uiUpdateHotItem() {
+void uiUpdateHotItem(UIcontext *ui_context) {
     assert(ui_context);
     if (!ui_context->count) return;
-    ui_context->hot_item = uiFindItem(0,
+    ui_context->hot_item = uiFindItem(ui_context, 0,
             ui_context->cursor.x, ui_context->cursor.y,
             UI_ANY_MOUSE_INPUT, UI_ANY);
 }
 
-int uiGetClicks() {
+int uiGetClicks(UIcontext *ui_context) {
     return ui_context->clicks;
 }
 
-void uiProcess(int timestamp) {
+void uiProcess(UIcontext *ui_context, int timestamp) {
     assert(ui_context);
 
     assert(ui_context->stage != UI_STAGE_LAYOUT); // must run uiBeginLayout(), uiEndLayout() first
 
     if (ui_context->stage == UI_STAGE_PROCESS) {
-        uiUpdateHotItem();
+        uiUpdateHotItem(ui_context);
     }
     ui_context->stage = UI_STAGE_PROCESS;
 
     if (!ui_context->count) {
-        uiClearInputEvents();
+        uiClearInputEvents(ui_context);
         return;
     }
 
@@ -1054,25 +1063,25 @@ void uiProcess(int timestamp) {
 
     // send all keyboard events
     if (focus_item >= 0) {
-        for (int i = 0; i < ui_context->eventcount; ++i) {
+        int i;
+        for (i = 0; i < ui_context->eventcount; ++i) {
             ui_context->active_key = ui_context->events[i].key;
             ui_context->active_modifier = ui_context->events[i].mod;
-            uiNotifyItem(focus_item,
-                    ui_context->events[i].event);
+            uiNotifyItem(ui_context, focus_item, ui_context->events[i].event);
         }
     } else {
         ui_context->focus_item = -1;
     }
     if (ui_context->scroll.x || ui_context->scroll.y) {
-        int scroll_item = uiFindItem(0,
+        int scroll_item = uiFindItem(ui_context, 0,
                 ui_context->cursor.x, ui_context->cursor.y,
                 UI_SCROLL, UI_ANY);
         if (scroll_item >= 0) {
-            uiNotifyItem(scroll_item, UI_SCROLL);
+            uiNotifyItem(ui_context, scroll_item, UI_SCROLL);
         }
     }
 
-    uiClearInputEvents();
+    uiClearInputEvents(ui_context);
 
     int hot = ui_context->hot_item;
 
@@ -1080,7 +1089,7 @@ void uiProcess(int timestamp) {
     default:
     case UI_STATE_IDLE: {
         ui_context->start_cursor = ui_context->cursor;
-        if (uiGetButton(0)) {
+        if (uiGetButton(ui_context, 0)) {
             hot_item = -1;
             active_item = hot;
 
@@ -1100,28 +1109,28 @@ void uiProcess(int timestamp) {
                 ui_context->last_click_timestamp = timestamp;
                 ui_context->last_click_item = active_item;
                 ui_context->active_modifier = ui_context->active_button_modifier;
-                uiNotifyItem(active_item, UI_BUTTON0_DOWN);
+                uiNotifyItem(ui_context, active_item, UI_BUTTON0_DOWN);
             }
             ui_context->state = UI_STATE_CAPTURE;
-        } else if (uiGetButton(2) && !uiGetLastButton(2)) {
+        } else if (uiGetButton(ui_context, 2) && !uiGetLastButton(ui_context, 2)) {
             hot_item = -1;
-            hot = uiFindItem(0, ui_context->cursor.x, ui_context->cursor.y,
+            hot = uiFindItem(ui_context, 0, ui_context->cursor.x, ui_context->cursor.y,
                     UI_BUTTON2_DOWN, UI_ANY);
             if (hot >= 0) {
                 ui_context->active_modifier = ui_context->active_button_modifier;
-                uiNotifyItem(hot, UI_BUTTON2_DOWN);
+                uiNotifyItem(ui_context, hot, UI_BUTTON2_DOWN);
             }
         } else {
             hot_item = hot;
         }
     } break;
     case UI_STATE_CAPTURE: {
-        if (!uiGetButton(0)) {
+        if (!uiGetButton(ui_context, 0)) {
             if (active_item >= 0) {
                 ui_context->active_modifier = ui_context->active_button_modifier;
-                uiNotifyItem(active_item, UI_BUTTON0_UP);
+                uiNotifyItem(ui_context, active_item, UI_BUTTON0_UP);
                 if (active_item == hot) {
-                    uiNotifyItem(active_item, UI_BUTTON0_HOT_UP);
+                    uiNotifyItem(ui_context, active_item, UI_BUTTON0_HOT_UP);
                 }
             }
             active_item = -1;
@@ -1129,7 +1138,7 @@ void uiProcess(int timestamp) {
         } else {
             if (active_item >= 0) {
                 ui_context->active_modifier = ui_context->active_button_modifier;
-                uiNotifyItem(active_item, UI_BUTTON0_CAPTURE);
+                uiNotifyItem(ui_context, active_item, UI_BUTTON0_CAPTURE);
             }
             if (hot == active_item)
                 hot_item = hot;
@@ -1147,33 +1156,33 @@ void uiProcess(int timestamp) {
     ui_context->last_buttons = ui_context->buttons;
 }
 
-static int uiIsActive(int item) {
+static int uiIsActive(UIcontext *ui_context, int item) {
     assert(ui_context);
     return ui_context->active_item == item;
 }
 
-static int uiIsHot(int item) {
+static int uiIsHot(UIcontext *ui_context, int item) {
     assert(ui_context);
     return ui_context->last_hot_item == item;
 }
 
-static int uiIsFocused(int item) {
+static int uiIsFocused(UIcontext *ui_context, int item) {
     assert(ui_context);
     return ui_context->focus_item == item;
 }
 
-UIitemState uiGetState(int item) {
-    UIitem *pitem = uiItemPtr(item);
+UIitemState uiGetState(UIcontext *ui_context, int item) {
+    UIitem *pitem = uiItemPtr(ui_context, item);
     if (pitem->flags & UI_ITEM_FROZEN) return UI_FROZEN;
-    if (uiIsFocused(item)) {
+    if (uiIsFocused(ui_context, item)) {
         if (pitem->flags & (UI_KEY_DOWN|UI_CHAR|UI_KEY_UP)) return UI_ACTIVE;
     }
-    if (uiIsActive(item)) {
+    if (uiIsActive(ui_context, item)) {
         if (pitem->flags & (UI_BUTTON0_CAPTURE|UI_BUTTON0_UP)) return UI_ACTIVE;
         if ((pitem->flags & UI_BUTTON0_HOT_UP)
-                && uiIsHot(item)) return UI_ACTIVE;
+                && uiIsHot(ui_context, item)) return UI_ACTIVE;
         return UI_COLD;
-    } else if (uiIsHot(item)) {
+    } else if (uiIsHot(ui_context, item)) {
         return UI_HOT;
     }
     return UI_COLD;

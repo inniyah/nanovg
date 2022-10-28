@@ -412,11 +412,11 @@ enum {
 };
 
 // handler callback; event is one of UI_EVENT_*
-typedef void (*UIhandler)(int item, UIevent event);
+typedef void (*UIhandler)(UIcontext* ui_context, int item, UIevent event);
 
 // for cursor positions, mainly
 typedef struct UIvec2 {
-#if OUI_USE_UNION_VECTORS || defined(OUI_IMPLEMENTATION)
+#if OUI_USE_UNION_VECTORS
     union {
         int v[2];
         struct { int x, y; };
@@ -428,7 +428,7 @@ typedef struct UIvec2 {
 
 // layout rectangle
 typedef struct UIrect {
-#if OUI_USE_UNION_VECTORS || defined(OUI_IMPLEMENTATION)
+#if OUI_USE_UNION_VECTORS
     union {
         int v[4];
         struct { int x, y, w, h; };
@@ -455,71 +455,68 @@ OUI_EXPORT UIcontext *uiCreateContext(
         unsigned int item_capacity,
         unsigned int buffer_capacity);
 
-// select an UI context as the current context; a context must always be
-// selected before using any of the other UI functions
-OUI_EXPORT void uiMakeCurrent(UIcontext *ctx);
-
 // release the memory of an UI context created with uiCreateContext(); if the
 // context is the current context, the current context will be set to NULL
 OUI_EXPORT void uiDestroyContext(UIcontext *ctx);
 
-// returns the currently selected context or NULL
-OUI_EXPORT UIcontext *uiGetContext();
+// User Data
+OUI_EXPORT void uiSetContextHandle(UIcontext *ui_context, void *handle);
+OUI_EXPORT void *uiGetContextHandle(UIcontext *ui_context);
 
 // Input Control
 // -------------
 
 // sets the current cursor position (usually belonging to a mouse) to the
 // screen coordinates at (x,y)
-OUI_EXPORT void uiSetCursor(int x, int y);
+OUI_EXPORT void uiSetCursor(UIcontext *ui_context, int x, int y);
 
 // returns the current cursor position in screen coordinates as set by
 // uiSetCursor()
-OUI_EXPORT UIvec2 uiGetCursor();
+OUI_EXPORT UIvec2 uiGetCursor(UIcontext *ui_context);
 
 // returns the offset of the cursor relative to the last call to uiProcess()
-OUI_EXPORT UIvec2 uiGetCursorDelta();
+OUI_EXPORT UIvec2 uiGetCursorDelta(UIcontext *ui_context);
 
 // returns the beginning point of a drag operation.
-OUI_EXPORT UIvec2 uiGetCursorStart();
+OUI_EXPORT UIvec2 uiGetCursorStart(UIcontext *ui_context);
 
 // returns the offset of the cursor relative to the beginning point of a drag
 // operation.
-OUI_EXPORT UIvec2 uiGetCursorStartDelta();
+OUI_EXPORT UIvec2 uiGetCursorStartDelta(UIcontext *ui_context);
 
 // sets a mouse or gamepad button as pressed/released
 // button is in the range 0..63 and maps to an application defined input
 // source.
 // mod is an application defined set of flags for modifier keys
 // enabled is 1 for pressed, 0 for released
-OUI_EXPORT void uiSetButton(unsigned int button, unsigned int mod, int enabled);
+OUI_EXPORT void uiSetButton(UIcontext *ui_context, unsigned int button, unsigned int mod, bool enabled);
 
 // returns the current state of an application dependent input button
 // as set by uiSetButton().
 // the function returns 1 if the button has been set to pressed, 0 for released.
-OUI_EXPORT int uiGetButton(unsigned int button);
+OUI_EXPORT int uiGetButton(UIcontext *ui_context, unsigned int button);
 
 // returns the number of chained clicks; 1 is a single click,
 // 2 is a double click, etc.
-OUI_EXPORT int uiGetClicks();
+OUI_EXPORT int uiGetClicks(UIcontext *ui_context);
 
 // sets a key as down/up; the key can be any application defined keycode
 // mod is an application defined set of flags for modifier keys
 // enabled is 1 for key down, 0 for key up
 // all key events are being buffered until the next call to uiProcess()
-OUI_EXPORT void uiSetKey(unsigned int key, unsigned int mod, int enabled);
+OUI_EXPORT void uiSetKey(UIcontext *ui_context, unsigned int key, unsigned int mod, bool enabled);
 
 // sends a single character for text input; the character is usually in the
 // unicode range, but can be application defined.
 // all char events are being buffered until the next call to uiProcess()
-OUI_EXPORT void uiSetChar(unsigned int value);
+OUI_EXPORT void uiSetChar(UIcontext *ui_context, unsigned int value);
 
 // accumulates scroll wheel offsets for the current frame
 // all offsets are being accumulated until the next call to uiProcess()
-OUI_EXPORT void uiSetScroll(int x, int y);
+OUI_EXPORT void uiSetScroll(UIcontext *ui_context, int x, int y);
 
 // returns the currently accumulated scroll wheel offsets for this frame
-OUI_EXPORT UIvec2 uiGetScroll();
+OUI_EXPORT UIvec2 uiGetScroll(UIcontext *ui_context);
 
 
 
@@ -534,18 +531,18 @@ OUI_EXPORT UIvec2 uiGetScroll();
 // After the call, all previously declared item IDs are invalid, and all
 // application dependent context data has been freed.
 // uiBeginLayout() must be followed by uiEndLayout().
-OUI_EXPORT void uiBeginLayout();
+OUI_EXPORT void uiBeginLayout(UIcontext *ui_context);
 
 // layout all added items starting from the root item 0.
 // after calling uiEndLayout(), no further modifications to the item tree should
 // be done until the next call to uiBeginLayout().
 // It is safe to immediately draw the items after a call to uiEndLayout().
 // this is an O(N) operation for N = number of declared items.
-OUI_EXPORT void uiEndLayout();
+OUI_EXPORT void uiEndLayout(UIcontext *ui_context);
 
 // update the current hot item; this only needs to be called if items are kept
 // for more than one frame and uiEndLayout() is not called
-OUI_EXPORT void uiUpdateHotItem();
+OUI_EXPORT void uiUpdateHotItem(UIcontext *ui_context);
 
 // update the internal state according to the current cursor position and
 // button states, and call all registered handlers.
@@ -555,18 +552,18 @@ OUI_EXPORT void uiUpdateHotItem();
 // be done until the next call to uiBeginLayout().
 // Items should be drawn before a call to uiProcess()
 // this is an O(N) operation for N = number of declared items.
-OUI_EXPORT void uiProcess(int timestamp);
+OUI_EXPORT void uiProcess(UIcontext *ui_context, int timestamp);
 
 // reset the currently stored hot/active etc. handles; this should be called when
 // a re-declaration of the UI changes the item indices, to avoid state
 // related glitches because item identities have changed.
-OUI_EXPORT void uiClearState();
+OUI_EXPORT void uiClearState(UIcontext *ui_context);
 
 // UI Declaration
 // --------------
 
 // create a new UI item and return the new items ID.
-OUI_EXPORT int uiItem();
+OUI_EXPORT int uiItem(UIcontext *ui_context);
 
 // set an items state to frozen; the UI will not recurse into frozen items
 // when searching for hot or active items; subsequently, frozen items and
@@ -575,30 +572,30 @@ OUI_EXPORT int uiItem();
 // UI_COLD for child items. Upon encountering a frozen item, the drawing
 // routine needs to handle rendering of child items appropriately.
 // see example.cpp for a demonstration.
-OUI_EXPORT void uiSetFrozen(int item, int enable);
+OUI_EXPORT void uiSetFrozen(UIcontext *ui_context, int item, bool enable);
 
 // set the application-dependent handle of an item.
 // handle is an application defined 64-bit handle. If handle is NULL, the item
 // will not be interactive.
-OUI_EXPORT void uiSetHandle(int item, void *handle);
+OUI_EXPORT void uiSetHandle(UIcontext *ui_context, int item, void *handle);
 
 // allocate space for application-dependent context data and assign it
 // as the handle to the item.
 // The memory of the pointer is managed by the UI context and released
 // upon the next call to uiBeginLayout()
-OUI_EXPORT void *uiAllocHandle(int item, unsigned int size);
+OUI_EXPORT void *uiAllocHandle(UIcontext *ui_context, int item, unsigned int size);
 
 // set the global handler callback for interactive items.
 // the handler will be called for each item whose event flags are set using
 // uiSetEvents.
-OUI_EXPORT void uiSetHandler(UIhandler handler);
+OUI_EXPORT void uiSetHandler(UIcontext *ui_context, UIhandler handler);
 
 // flags is a combination of UI_EVENT_* and designates for which events the
 // handler should be called.
-OUI_EXPORT void uiSetEvents(int item, unsigned int flags);
+OUI_EXPORT void uiSetEvents(UIcontext *ui_context, int item, unsigned int flags);
 
 // flags is a user-defined set of flags defined by UI_USERMASK.
-OUI_EXPORT void uiSetFlags(int item, unsigned int flags);
+OUI_EXPORT void uiSetFlags(UIcontext *ui_context, int item, unsigned int flags);
 
 // assign an item to a container.
 // an item ID of 0 refers to the root item.
@@ -608,40 +605,40 @@ OUI_EXPORT void uiSetFlags(int item, unsigned int flags);
 // O(N) operation for N siblings.
 // it is usually more efficient to call uiInsert() for the first child,
 // then chain additional siblings using uiAppend().
-OUI_EXPORT int uiInsert(int item, int child);
+OUI_EXPORT int uiInsert(UIcontext *ui_context, int item, int child);
 
 // assign an item to the same container as another item
 // sibling is inserted after item.
-OUI_EXPORT int uiAppend(int item, int sibling);
+OUI_EXPORT int uiAppend(UIcontext *ui_context, int item, int sibling);
 
 // insert child into container item like uiInsert(), but prepend
 // it to the first child item, effectively putting it in
 // the background.
 // it is efficient to call uiInsertBack() repeatedly
 // in cases where drawing or layout order doesn't matter.
-OUI_EXPORT int uiInsertBack(int item, int child);
+OUI_EXPORT int uiInsertBack(UIcontext *ui_context, int item, int child);
 
 // same as uiInsert()
-OUI_EXPORT int uiInsertFront(int item, int child);
+OUI_EXPORT int uiInsertFront(UIcontext *ui_context, int item, int child);
 
 // set the size of the item; a size of 0 indicates the dimension to be
 // dynamic; if the size is set, the item can not expand beyond that size.
-OUI_EXPORT void uiSetSize(int item, int w, int h);
+OUI_EXPORT void uiSetSize(UIcontext *ui_context, int item, int w, int h);
 
 // set the anchoring behavior of the item to one or multiple UIlayoutFlags
-OUI_EXPORT void uiSetLayout(int item, unsigned int flags);
+OUI_EXPORT void uiSetLayout(UIcontext *ui_context, int item, unsigned int flags);
 
 // set the box model behavior of the item to one or multiple UIboxFlags
-OUI_EXPORT void uiSetBox(int item, unsigned int flags);
+OUI_EXPORT void uiSetBox(UIcontext *ui_context, int item, unsigned int flags);
 
 // set the left, top, right and bottom margins of an item; when the item is
 // anchored to the parent or another item, the margin controls the distance
 // from the neighboring element.
-OUI_EXPORT void uiSetMargins(int item, short l, short t, short r, short b);
+OUI_EXPORT void uiSetMargins(UIcontext *ui_context, int item, short l, short t, short r, short b);
 
 // set item as recipient of all keyboard events; if item is -1, no item will
 // be focused.
-OUI_EXPORT void uiFocus(int item);
+OUI_EXPORT void uiFocus(UIcontext *ui_context, int item);
 
 // Iteration
 // ---------
@@ -649,35 +646,35 @@ OUI_EXPORT void uiFocus(int item);
 // returns the first child item of a container item. If the item is not
 // a container or does not contain any items, -1 is returned.
 // if item is 0, the first child item of the root item will be returned.
-OUI_EXPORT int uiFirstChild(int item);
+OUI_EXPORT int uiFirstChild(UIcontext *ui_context, int item);
 
 // returns an items next sibling in the list of the parent containers children.
 // if item is 0 or the item is the last child item, -1 will be returned.
-OUI_EXPORT int uiNextSibling(int item);
+OUI_EXPORT int uiNextSibling(UIcontext *ui_context, int item);
 
 // Querying
 // --------
 
 // return the total number of allocated items
-OUI_EXPORT int uiGetItemCount();
+OUI_EXPORT int uiGetItemCount(UIcontext *ui_context);
 
 // return the total bytes that have been allocated by uiAllocHandle()
-OUI_EXPORT unsigned int uiGetAllocSize();
+OUI_EXPORT unsigned int uiGetAllocSize(UIcontext *ui_context);
 
 // return the current state of the item. This state is only valid after
 // a call to uiProcess().
 // The returned value is one of UI_COLD, UI_HOT, UI_ACTIVE, UI_FROZEN.
-OUI_EXPORT UIitemState uiGetState(int item);
+OUI_EXPORT UIitemState uiGetState(UIcontext *ui_context, int item);
 
 // return the application-dependent handle of the item as passed to uiSetHandle()
 // or uiAllocHandle().
-OUI_EXPORT void *uiGetHandle(int item);
+OUI_EXPORT void *uiGetHandle(UIcontext *ui_context, int item);
 
 // return the item that is currently under the cursor or -1 for none
-OUI_EXPORT int uiGetHotItem();
+OUI_EXPORT int uiGetHotItem(UIcontext *ui_context);
 
 // return the item that is currently focused or -1 for none
-OUI_EXPORT int uiGetFocusedItem();
+OUI_EXPORT int uiGetFocusedItem(UIcontext *ui_context);
 
 // returns the topmost item containing absolute location (x,y), starting with
 // item as parent, using a set of flags and masks as filter:
@@ -686,48 +683,48 @@ OUI_EXPORT int uiGetFocusedItem();
 // otherwise the first item matching (item.flags & flags) == mask is returned.
 // you may combine box, layout, event and user flags.
 // frozen items will always be ignored.
-OUI_EXPORT int uiFindItem(int item, int x, int y,
+OUI_EXPORT int uiFindItem(UIcontext *ui_context, int item, int x, int y,
         unsigned int flags, unsigned int mask);
 
 // return the handler callback as passed to uiSetHandler()
-OUI_EXPORT UIhandler uiGetHandler();
+OUI_EXPORT UIhandler uiGetHandler(UIcontext *ui_context);
 // return the event flags for an item as passed to uiSetEvents()
-OUI_EXPORT unsigned int uiGetEvents(int item);
+OUI_EXPORT unsigned int uiGetEvents(UIcontext *ui_context, int item);
 // return the user-defined flags for an item as passed to uiSetFlags()
-OUI_EXPORT unsigned int uiGetFlags(int item);
+OUI_EXPORT unsigned int uiGetFlags(UIcontext *ui_context, int item);
 
 // when handling a KEY_DOWN/KEY_UP event: the key that triggered this event
-OUI_EXPORT unsigned int uiGetKey();
+OUI_EXPORT unsigned int uiGetKey(UIcontext *ui_context);
 // when handling a keyboard or mouse event: the active modifier keys
-OUI_EXPORT unsigned int uiGetModifier();
+OUI_EXPORT unsigned int uiGetModifier(UIcontext *ui_context);
 
 // returns the items layout rectangle in absolute coordinates. If
 // uiGetRect() is called before uiEndLayout(), the values of the returned
 // rectangle are undefined.
-OUI_EXPORT UIrect uiGetRect(int item);
+OUI_EXPORT UIrect uiGetRect(UIcontext *ui_context, int item);
 
 // returns 1 if an items absolute rectangle contains a given coordinate
 // otherwise 0
-OUI_EXPORT int uiContains(int item, int x, int y);
+OUI_EXPORT int uiContains(UIcontext *ui_context, int item, int x, int y);
 
 // return the width of the item as set by uiSetSize()
-OUI_EXPORT int uiGetWidth(int item);
+OUI_EXPORT int uiGetWidth(UIcontext *ui_context, int item);
 // return the height of the item as set by uiSetSize()
-OUI_EXPORT int uiGetHeight(int item);
+OUI_EXPORT int uiGetHeight(UIcontext *ui_context, int item);
 
 // return the anchoring behavior as set by uiSetLayout()
-OUI_EXPORT unsigned int uiGetLayout(int item);
+OUI_EXPORT unsigned int uiGetLayout(UIcontext *ui_context, int item);
 // return the box model as set by uiSetBox()
-OUI_EXPORT unsigned int uiGetBox(int item);
+OUI_EXPORT unsigned int uiGetBox(UIcontext *ui_context, int item);
 
 // return the left margin of the item as set with uiSetMargins()
-OUI_EXPORT short uiGetMarginLeft(int item);
+OUI_EXPORT short uiGetMarginLeft(UIcontext *ui_context, int item);
 // return the top margin of the item as set with uiSetMargins()
-OUI_EXPORT short uiGetMarginTop(int item);
+OUI_EXPORT short uiGetMarginTop(UIcontext *ui_context, int item);
 // return the right margin of the item as set with uiSetMargins()
-OUI_EXPORT short uiGetMarginRight(int item);
+OUI_EXPORT short uiGetMarginRight(UIcontext *ui_context, int item);
 // return the bottom margin of the item as set with uiSetMargins()
-OUI_EXPORT short uiGetMarginDown(int item);
+OUI_EXPORT short uiGetMarginDown(UIcontext *ui_context, int item);
 
 // when uiBeginLayout() is called, the most recently declared items are retained.
 // when uiEndLayout() completes, it matches the old item hierarchy to the new one
@@ -735,17 +732,17 @@ OUI_EXPORT short uiGetMarginDown(int item);
 // when passed an item Id from the previous frame, uiRecoverItem() returns the
 // items new assumed Id, or -1 if the item could not be mapped.
 // it is valid to pass -1 as item.
-OUI_EXPORT int uiRecoverItem(int olditem);
+OUI_EXPORT int uiRecoverItem(UIcontext *ui_context, int olditem);
 
 // in cases where it is important to recover old state over changes in
 // the view, and the built-in remapping fails, the UI declaration can manually
 // remap old items to new IDs in cases where e.g. the previous item ID has been
 // temporarily saved; uiRemapItem() would then be called after creating the
 // new item using uiItem().
-OUI_EXPORT void uiRemapItem(int olditem, int newitem);
+OUI_EXPORT void uiRemapItem(UIcontext *ui_context, int olditem, int newitem);
 
 // returns the number if items that have been allocated in the last frame
-OUI_EXPORT int uiGetLastItemCount();
+OUI_EXPORT int uiGetLastItemCount(UIcontext *ui_context);
 
 enum {
     // extra item flags
@@ -826,6 +823,8 @@ struct UIcontext {
 
     // handler
     UIhandler handler;
+    // User data
+    void *handle;
 
     // button state in this frame
     unsigned long long buttons;

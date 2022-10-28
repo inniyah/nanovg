@@ -27,13 +27,16 @@ THE SOFTWARE.
 #include <memory.h>
 #include <math.h>
 
-#include "android.h"
-
 #ifdef _MSC_VER
     #pragma warning (disable: 4996) // Switch off security warnings
     #pragma warning (disable: 4100) // Switch off unreferenced formal parameter warnings
     #pragma warning (disable: 4244)
     #pragma warning (disable: 4305)
+    #ifdef __cplusplus
+    #define BND_INLINE inline
+    #else
+    #define BND_INLINE
+    #endif
 
 #include <float.h>
 
@@ -54,6 +57,7 @@ static double bnd_fmax ( double a, double b ) {
 }
 
 #else
+    #define BND_INLINE inline
     #define bnd_fminf(a, b) fminf(a, b)
     #define bnd_fmaxf(a, b) fmaxf(a, b)
     #define bnd_fmin(a, b) fmin(a, b)
@@ -155,7 +159,7 @@ static double bnd_fmax ( double a, double b ) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static float bnd_clamp(float v, float mn, float mx) {
+BND_INLINE float bnd_clamp(float v, float mn, float mx) {
     return (v > mx)?mx:(v < mn)?mn:v;
 }
 
@@ -822,9 +826,7 @@ float bndLabelWidth(NVGcontext *ctx, int iconid, const char *label) {
     if (label && (bnd_font >= 0)) {
         nvgFontFaceId(ctx, bnd_font);
         nvgFontSize(ctx, BND_LABEL_FONT_SIZE);
-        float bounds[4];
-        nvgTextBoxBounds(ctx, 1, 1, INFINITY, label, NULL, bounds);
-        w += bounds[2];
+        w += nvgTextBounds(ctx, 1, 1, label, NULL, NULL);
     }
     return w;
 }
@@ -1309,3 +1311,9 @@ NVGcolor bndNodeWireColor(const BNDnodeTheme *theme, BNDwidgetState state) {
         case BND_ACTIVE: return theme->activeNodeColor;
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef BND_INLINE
+#undef BND_INLINE
+#endif
