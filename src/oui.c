@@ -25,6 +25,8 @@ THE SOFTWARE.
 #include "oui.h"
 
 #include <assert.h>
+#include <string.h>
+#include <stdlib.h>
 
 #ifdef _MSC_VER
     #pragma warning (disable: 4996) // Switch off security warnings
@@ -38,11 +40,7 @@ THE SOFTWARE.
     #define UI_INLINE
     #endif
 #else
-    #ifdef __clang__
     #define UI_INLINE static inline
-    #else
-    #define UI_INLINE inline
-    #endif
 #endif
 
 #define UI_MAX_KIND 16

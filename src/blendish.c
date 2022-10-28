@@ -57,7 +57,7 @@ static double bnd_fmax ( double a, double b ) {
 }
 
 #else
-    #define BND_INLINE inline
+    #define BND_INLINE static inline
     #define bnd_fminf(a, b) fminf(a, b)
     #define bnd_fmaxf(a, b) fmaxf(a, b)
     #define bnd_fmin(a, b) fmin(a, b)
