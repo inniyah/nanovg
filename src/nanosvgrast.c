@@ -100,7 +100,7 @@ struct NSVGrasterizer
 	int width, height, stride;
 };
 
-NSVGrasterizer* nsvgCreateRasterizer()
+NSVGrasterizer* nsvgCreateRasterizer(void)
 {
 	NSVGrasterizer* r = (NSVGrasterizer*)malloc(sizeof(NSVGrasterizer));
 	if (r == NULL) goto error;
