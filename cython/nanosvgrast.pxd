@@ -1,6 +1,7 @@
 cdef extern from "nanosvgrast.h":
 
     cpdef enum NSVGpaintType:
+        NSVG_PAINT_UNDEF
         NSVG_PAINT_NONE
         NSVG_PAINT_COLOR
         NSVG_PAINT_LINEAR_GRADIENT
@@ -41,7 +42,7 @@ cdef extern from "nanosvgrast.h":
         NSVGgradientStop stops[1]
 
     cdef struct NSVGpaint:
-        char type
+        signed char type
         unsigned int color
         NSVGgradient* gradient
 
@@ -67,6 +68,9 @@ cdef extern from "nanosvgrast.h":
         char fillRule
         unsigned char flags
         float bounds[4]
+        char fillGradient[64]
+        char strokeGradient[64]
+        float xform[6]
         NSVGpath* paths
         NSVGshape* next
 
