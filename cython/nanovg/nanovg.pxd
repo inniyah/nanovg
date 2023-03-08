@@ -1,4 +1,6 @@
 cdef extern from "nanovg.h":
+    cdef struct NVGcontext:
+        pass
 
     cdef struct NVGcolor:
         float rgba[4]
