@@ -127,12 +127,12 @@ def runTest():
         GL.glClearColor(0.0, 0.0, 0.0, 0.0)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 
-        #~ nvg.BeginFrame(vg, winWidth, winHeight, pxRatio)
-        #~ nvg.BeginPath(vg)
-        #~ nvg.Rect(vg, 300, 100, 120, 30)
-        #~ nvg.FillColor(vg, nvgRGBA(255, 192, 0, 255))
-        #~ nvg.Fill(vg)
-        #~ nvg.EndFrame(vg)
+        vg.BeginFrame(winWidth, winHeight, pxRatio)
+        vg.BeginPath()
+        vg.Rect(300, 100, 120, 30)
+        vg.FillColor(nvg.RGBA(255, 192, 0, 255))
+        vg.Fill()
+        vg.EndFrame()
 
         sdl2.SDL_GL_SwapWindow(window)
 
