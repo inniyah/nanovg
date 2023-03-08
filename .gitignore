@@ -32,3 +32,6 @@ example/_*
 
 ## cmake specific
 build
+
+## Python specific
+__pycache__
