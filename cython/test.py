@@ -36,13 +36,62 @@ import ctypes
 
 from OpenGL import GL, GLU
 import sdl2
+import nvg
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def runTest():
     if sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO) != 0:
+        logging.error(sdl2.SDL_GetError())
+        return False
+
+    #~ context = sdl2.SDL_GLContext()
+    sdl2.SDL_GL_SetAttribute(sdl2.SDL_GL_STENCIL_SIZE, 8);
+
+    sdl2.SDL_GL_SetAttribute(sdl2.SDL_GL_CONTEXT_MAJOR_VERSION, 2)
+    sdl2.SDL_GL_SetAttribute(sdl2.SDL_GL_CONTEXT_MINOR_VERSION, 0)
+    sdl2.SDL_GL_SetAttribute(sdl2.SDL_GL_CONTEXT_PROFILE_MASK, sdl2.SDL_GL_CONTEXT_PROFILE_CORE)
+
+    sdl2.SDL_GL_SetAttribute(sdl2.SDL_GL_DOUBLEBUFFER, 1)
+
+    sdl2.SDL_GL_SetAttribute(sdl2.SDL_GL_MULTISAMPLEBUFFERS, 1)
+    sdl2.SDL_GL_SetAttribute(sdl2.SDL_GL_MULTISAMPLESAMPLES, 8)
+    window = sdl2.SDL_CreateWindow(b'SDL2/OpenGL/NanoVG',
+                                   sdl2.SDL_WINDOWPOS_UNDEFINED,
+                                   sdl2.SDL_WINDOWPOS_UNDEFINED,
+                                   1024,
+                                   800,
+                                   sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_RESIZABLE | sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_ALLOW_HIGHDPI)
+
+    if not window:
+        logging.debug(sdl2.SDL_GetError())
+        logging.debug('fallback')
+        sdl2.SDL_GL_SetAttribute(sdl2.SDL_GL_MULTISAMPLEBUFFERS, 0)
+        sdl2.SDL_GL_SetAttribute(sdl2.SDL_GL_MULTISAMPLESAMPLES, 0)
+        window = sdl2.SDL_CreateWindow(b'SDL2/OpenGL/NanoVG',
+                                       sdl2.SDL_WINDOWPOS_UNDEFINED,
+                                       sdl2.SDL_WINDOWPOS_UNDEFINED,
+                                       1024,
+                                       800,
+                                       sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_RESIZABLE | sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_ALLOW_HIGHDPI)
+
+    if not window:
+        logging.error(sdl2.SDL_GetError())
+        return False
+
+    context = sdl2.SDL_GL_CreateContext(window)
+    sdl2.SDL_GL_MakeCurrent(window, context)
+
+
+    sdl2.SDL_GL_DeleteContext(context)
+    sdl2.SDL_DestroyWindow(window)
+    sdl2.SDL_Quit()
+    return True
+
+def runTestSDL2():
+    if sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO) != 0:
         print(sdl2.SDL_GetError())
-        return -1
+        return False
 
     window = sdl2.SDL_CreateWindow(b"OpenGL demo",
                                    sdl2.SDL_WINDOWPOS_UNDEFINED,
@@ -50,7 +99,7 @@ def runTest():
                                    sdl2.SDL_WINDOW_OPENGL)
     if not window:
         print(sdl2.SDL_GetError())
-        return -1
+        return False
 
     context = sdl2.SDL_GL_CreateContext(window)
 
@@ -85,7 +134,7 @@ def runTest():
     sdl2.SDL_GL_DeleteContext(context)
     sdl2.SDL_DestroyWindow(window)
     sdl2.SDL_Quit()
-    return 0
+    return True
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -149,14 +198,17 @@ def main():
     else:
         tests = args.test
 
+    ret = True
+
     for test in tests:
         logging.info(f"Running test: {test}")
         if test == 'test':
-            runTest()
+            if not runTest():
+                ret = False
         else:
             logging.warning(f"Unknown test: {test}")
 
-    return 0
+    return ret
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

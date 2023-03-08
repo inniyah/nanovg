@@ -91,30 +91,30 @@ PYX_SRCS= $(PYX_NAMES:%=./%.pyx)
 PYX_CPPS= $(subst .pyx,.cpp,$(PYX_SRCS))
 PYX_OBJS= $(subst .pyx,.o,$(PYX_SRCS))
 
-all: libs nanovg$(PYMOD_SUFFIX)
+all: libs nvg$(PYMOD_SUFFIX)
 
-libs: nanovg.$(ARCH_NAME).so
+libs: nvg.$(ARCH_NAME).so
 
 NANOVG_OBJS= \
-	nanovg/nanovg.o \
-	nanovg/android.o \
-	nanovg/nanovg_gl2.o \
-	nanovg/nanovg_gl2_utils.o \
-	nanovg/nanovg_gl3.o \
-	nanovg/nanovg_gl3_utils.o \
-	nanovg/nanovg_gles2.o \
-	nanovg/nanovg_gles2_utils.o \
-	nanovg/nanovg_gles3.o \
-	nanovg/nanovg_gles3_utils.o \
-	nanovg/nanosvg.o \
-	nanovg/nanosvgrast.o \
-	nanovg/oui.o \
-	nanovg/blendish.o
+	nvg/nanovg.o \
+	nvg/android.o \
+	nvg/nanovg_gl2.o \
+	nvg/nanovg_gl2_utils.o \
+	nvg/nanovg_gl3.o \
+	nvg/nanovg_gl3_utils.o \
+	nvg/nanovg_gles2.o \
+	nvg/nanovg_gles2_utils.o \
+	nvg/nanovg_gles3.o \
+	nvg/nanovg_gles3_utils.o \
+	nvg/nanosvg.o \
+	nvg/nanosvgrast.o \
+	nvg/oui.o \
+	nvg/blendish.o
 
-nanovg.$(ARCH_NAME).so: $(NANOVG_OBJS)
+nvg.$(ARCH_NAME).so: $(NANOVG_OBJS)
 	$(LD) -shared $(CPPSTD) $(CSTD) $(LDFLAGS) $(PKG_CONFIG_LDFLAGS) -o $@ $^ $(LIBS) $(PKG_CONFIG_LIBS)
 
-nanovg$(PYMOD_SUFFIX): nanovg.o
+nvg$(PYMOD_SUFFIX): nvg.o
 
 
 %.bin:
@@ -127,48 +127,63 @@ nanovg$(PYMOD_SUFFIX): nanovg.o
 	$(LD) -shared -Wl,-soname,$@ $(CPPSTD) $(CSTD) $(LDFLAGS) $(PKG_CONFIG_LDFLAGS) -o $@ $^ $(LIBS) $(PKG_CONFIG_LIBS)
 
 lib%.so:
+	@mkdir -p `dirname '$@'`
 	$(LD) -shared $(CPPSTD) $(CSTD) $(LDFLAGS) $(PKG_CONFIG_LDFLAGS) -o $@ $^ $(LIBS) $(PKG_CONFIG_LIBS)
 
 %.a:
+	@mkdir -p `dirname '$@'`
 	$(AR) $@ $^
 
 %.o: %.cpp
+	@mkdir -p `dirname '$@'`
 	$(CXX) $(CPPSTD) $(OPTS) -o $@ -c $< $(DEFS) $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
 %.o: %.c
+	@mkdir -p `dirname '$@'`
 	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
 %.cpp %.h %_api.h: %.pyx
+	@mkdir -p `dirname '$@'`
 	$(CYTHON) $(CYFLAGS) $(CYINCS) -o $*.cpp $<
 
-nanovg/nanovg_gl2.o: ../src/nanovg_gl.c
+nvg/nanovg_gl2.o: ../src/nanovg_gl.c
+	@mkdir -p `dirname '$@'`
 	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) -DNANOVG_GL2 -DNANOVG_USE_GLEW $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
-nanovg/nanovg_gl2_utils.o: ../src/nanovg_gl_utils.c
+nvg/nanovg_gl2_utils.o: ../src/nanovg_gl_utils.c
+	@mkdir -p `dirname '$@'`
 	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) -DNANOVG_GL2 -DNANOVG_USE_GLEW $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
-nanovg/nanovg_gl3.o: ../src/nanovg_gl.c
+nvg/nanovg_gl3.o: ../src/nanovg_gl.c
+	@mkdir -p `dirname '$@'`
 	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) -DNANOVG_GL3 -DNANOVG_USE_GLEW $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
-nanovg/nanovg_gl3_utils.o: ../src/nanovg_gl_utils.c
+nvg/nanovg_gl3_utils.o: ../src/nanovg_gl_utils.c
+	@mkdir -p `dirname '$@'`
 	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) -DNANOVG_GL3 -DNANOVG_USE_GLEW $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
-nanovg/nanovg_gles2.o: ../src/nanovg_gl.c
+nvg/nanovg_gles2.o: ../src/nanovg_gl.c
+	@mkdir -p `dirname '$@'`
 	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) -DNANOVG_GLES2 $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
-nanovg/nanovg_gles2_utils.o: ../src/nanovg_gl_utils.c
+nvg/nanovg_gles2_utils.o: ../src/nanovg_gl_utils.c
+	@mkdir -p `dirname '$@'`
 	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) -DNANOVG_GLES2 $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
-nanovg/nanovg_gles3.o: ../src/nanovg_gl.c
+nvg/nanovg_gles3.o: ../src/nanovg_gl.c
+	@mkdir -p `dirname '$@'`
 	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) -DNANOVG_GLES3 $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
-nanovg/nanovg_gles3_utils.o: ../src/nanovg_gl_utils.c
+nvg/nanovg_gles3_utils.o: ../src/nanovg_gl_utils.c
+	@mkdir -p `dirname '$@'`
 	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) -DNANOVG_GLES3 $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
-nanovg/%.o: ../src/%.cpp
+nvg/%.o: ../src/%.cpp
+	@mkdir -p `dirname '$@'`
 	$(CXX) $(CPPSTD) $(OPTS) -o $@ -c $< $(DEFS) $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
-nanovg/%.o: ../src/%.c
+nvg/%.o: ../src/%.c
+	@mkdir -p `dirname '$@'`
 	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) $(INCS) $(CFLAGS) $(PKG_CONFIG_CFLAGS)
 
 
