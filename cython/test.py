@@ -82,33 +82,23 @@ def runTest():
     context = sdl2.SDL_GL_CreateContext(window)
     sdl2.SDL_GL_MakeCurrent(window, context)
 
-
-    sdl2.SDL_GL_DeleteContext(context)
-    sdl2.SDL_DestroyWindow(window)
-    sdl2.SDL_Quit()
-    return True
-
-def runTestSDL2():
-    if sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO) != 0:
-        print(sdl2.SDL_GetError())
+    vg = nvg.CreateGL3(nvg.NVG_ANTIALIAS | nvg.NVG_STENCIL_STROKES | nvg.NVG_DEBUG)
+    if not vg.isValid():
+        logging.error('Error in CreateGL3')
         return False
 
-    window = sdl2.SDL_CreateWindow(b"OpenGL demo",
-                                   sdl2.SDL_WINDOWPOS_UNDEFINED,
-                                   sdl2.SDL_WINDOWPOS_UNDEFINED, 800, 600,
-                                   sdl2.SDL_WINDOW_OPENGL)
-    if not window:
-        print(sdl2.SDL_GetError())
-        return False
-
-    context = sdl2.SDL_GL_CreateContext(window)
-
-    GL.glMatrixMode(GL.GL_PROJECTION | GL.GL_MODELVIEW)
-    GL.glLoadIdentity()
-    GL.glOrtho(-400, 400, 300, -300, 0, 1)
-
-    x = 0.0
-    y = 30.0
+    w = ctypes.c_int()
+    h = ctypes.c_int()
+    sdl2.SDL_GetWindowSize(window, w, h)
+    # Window Width and Height
+    winWidth = w.value
+    winHeight = h.value
+    # Frame Buffer Width and Height
+    fbWidth = winWidth
+    fbHeight = winHeight
+    # Pixel Ratio
+    pxRatio = float(winWidth) / float(winWidth)
+    logging.info(f"W = {winWidth},  H = {winHeight}, Ratio = {pxRatio}")
 
     event = sdl2.SDL_Event()
     running = True
@@ -117,20 +107,35 @@ def runTestSDL2():
             if event.type == sdl2.SDL_QUIT:
                 running = False
 
-        GL.glClearColor(0, 0, 0, 1)
+            elif event.type == sdl2.SDL_MOUSEMOTION:
+                pass
+
+            elif event.type == sdl2.SDL_MOUSEBUTTONDOWN:
+                b = event.button.button
+                if b == sdl2.SDL_BUTTON_LEFT:
+                    pass
+                elif b == sdl2.SDL_BUTTON_RIGHT:
+                    pass
+                elif b == sdl2.SDL_BUTTON_MIDDLE:
+                    pass
+
+            elif event.type == sdl2.SDL_KEYDOWN:
+                k = event.key.keysym.sym
+                if k == sdl2.SDLK_ESCAPE:
+                    running = False
+
+        GL.glClearColor(0.0, 0.0, 0.0, 0.0)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-        GL.glRotatef(10.0, 0.0, 0.0, 1.0)
-        GL.glBegin(GL.GL_TRIANGLES)
-        GL.glColor3f(1.0, 0.0, 0.0)
-        GL.glVertex2f(x, y + 90.0)
-        GL.glColor3f(0.0, 1.0, 0.0)
-        GL.glVertex2f(x + 90.0, y - 90.0)
-        GL.glColor3f(0.0, 0.0, 1.0)
-        GL.glVertex2f(x - 90.0, y - 90.0)
-        GL.glEnd()
+
+        #~ nvg.BeginFrame(vg, winWidth, winHeight, pxRatio)
+        #~ nvg.BeginPath(vg)
+        #~ nvg.Rect(vg, 300, 100, 120, 30)
+        #~ nvg.FillColor(vg, nvgRGBA(255, 192, 0, 255))
+        #~ nvg.Fill(vg)
+        #~ nvg.EndFrame(vg)
 
         sdl2.SDL_GL_SwapWindow(window)
-        sdl2.SDL_Delay(10)
+
     sdl2.SDL_GL_DeleteContext(context)
     sdl2.SDL_DestroyWindow(window)
     sdl2.SDL_Quit()

@@ -83,7 +83,7 @@ INCS= \
 CYINCS= \
 	-I.
 
-LIBS= \
+LIBS= 
 
 PYX_NAMES= $(subst .pyx,,$(foreach F,$(shell find . -name *.pyx),$(lastword $(subst /, ,$F))))
 
@@ -114,7 +114,7 @@ NANOVG_OBJS= \
 nvg.$(ARCH_NAME).so: $(NANOVG_OBJS)
 	$(LD) -shared $(CPPSTD) $(CSTD) $(LDFLAGS) $(PKG_CONFIG_LDFLAGS) -o $@ $^ $(LIBS) $(PKG_CONFIG_LIBS)
 
-nvg$(PYMOD_SUFFIX): nvg.o
+nvg$(PYMOD_SUFFIX): nvg.o nvg.$(ARCH_NAME).so
 
 
 %.bin:
