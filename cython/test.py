@@ -40,6 +40,128 @@ import nvg
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+def draw1(vg):
+    vg.BeginPath()
+    vg.Rect(300, 100, 120, 30)
+    vg.FillColor(nvg.RGBA(255, 192, 0, 255))
+    vg.Fill()
+    vg.ClosePath()
+
+def draw2(vg): # Rectangle
+    vg.BeginPath()
+    vg.Rect(100,100,300,150)
+    vg.FillColor(nvg.RGBAf(1, 0, 0, 0.5))
+    vg.Fill()
+    vg.ClosePath()
+
+def draw3(vg): # Rounded rectangle
+    vg.BeginPath()
+    vg.RoundedRect(100, 100, 300, 150, 10)
+    vg.FillColor(nvg.RGBAf(1, 0, 0, 0.5))
+    vg.Fill()
+    vg.ClosePath()
+
+def draw4(vg): # Triangles
+    vg.BeginPath()
+    vg.MoveTo(100, 100) # Top left corner
+    vg.LineTo(400, 100) # Top right corner: 100 (x) + 300 (w), y remains
+    vg.LineTo(100, 250) # Bottom left corner: x remains, 100 (y) + 150 (h)
+    vg.LineTo(100, 100) # Back to top left
+    vg.FillColor(nvg.RGBAf(1, 0, 1, 0.5))
+    vg.Fill()
+    vg.ClosePath()
+
+def draw5(vg): # Triangle outline
+    vg.BeginPath()
+    vg.MoveTo(100, 100)
+    vg.LineTo(400, 100)
+    vg.LineTo(100, 250)
+    vg.LineTo(100, 100)
+    vg.StrokeColor(nvg.RGBAf(1, 0.5, 0, 0.5))
+    vg.StrokeWidth(5.5)
+    vg.Stroke()
+    vg.ClosePath()
+
+def draw6(vg): # Concave filling
+    vg.BeginPath()
+    vg.MoveTo(100, 100)
+    vg.LineTo(150, 150)
+    vg.LineTo(200, 100)
+    vg.LineTo(200, 200)
+    vg.LineTo(100, 200)
+    vg.LineTo(100, 100)
+    vg.StrokeColor(nvg.RGBAf(1, 0.5, 0, 0.5))
+    vg.StrokeWidth(5.5)
+    vg.Stroke()
+    vg.FillColor(nvg.RGBAf(1, 0, 0, 0.5))
+    vg.Fill()
+    vg.ClosePath()
+
+def draw7(vg): # Gradients and paints
+    vg.BeginPath()
+    vg.Rect(100, 100, 300, 500)
+    vg.FillPaint(vg.BoxGradient(100, 200, 300, 300, 150, 100, nvg.RGBAf(1, 0, 0, 1), nvg.RGBAf(1, 1, 0, 1)))
+    vg.Fill()
+    vg.ClosePath()
+    vg.BeginPath()
+    vg.Rect(500, 100, 300, 500)
+    vg.FillPaint(vg.LinearGradient(500, 100, 500, 600, nvg.RGBAf(1, 0, 0, 1), nvg.RGBAf(1, 1, 0, 1)))
+    vg.Fill()
+    vg.ClosePath()
+    vg.BeginPath()
+    vg.Rect(900, 100, 300, 500)
+    vg.FillPaint(vg.RadialGradient(1050, 350, 100, 200, nvg.RGBAf(1, 0, 0, 1), nvg.RGBAf(1, 1, 0, 1)))
+    vg.Fill()
+
+def draw8(vg): # Bezier Quad I
+    vg.BeginPath()
+    vg.MoveTo(100, 100) # Start point: (100, 100)
+    vg.QuadTo(200, 400, 300, 100) # Control point: (200, 400); End point: (300, 100)
+    vg.StrokeColor(nvg.RGBAf(1, 0.5, 0, 0.5))
+    vg.StrokeWidth(5.5)
+    vg.Stroke()
+    vg.ClosePath()
+
+def draw9(vg): # Bezier Quad II
+    vg.BeginPath()
+    vg.MoveTo(100, 100) # Start point: (100, 100)
+    vg.QuadTo(150, 400, 300, 300) # Control point: (150, 400); End point: (300, 300)
+    vg.StrokeColor(nvg.RGBAf(1, 0.5, 0, 0.5))
+    vg.StrokeWidth(5.5)
+    vg.Stroke()
+    vg.ClosePath()
+
+def draw10(vg): # Bezier Quad III
+    vg.BeginPath()
+    vg.MoveTo(100, 100)
+    vg.QuadTo(150, 400, 300, 300)
+    vg.QuadTo(450, 200, 300, 400)
+    vg.QuadTo(150, 600, 600, 600)
+    vg.QuadTo(800, 600, 600, 300)
+    vg.StrokeColor(nvg.RGBAf(1, 0.5, 0, 0.5))
+    vg.StrokeWidth(5.5)
+    vg.Stroke()
+    vg.ClosePath()
+
+def draw11(vg): # Bezier Cubic I
+    vg.BeginPath()
+    vg.MoveTo(100, 100)
+    vg.BezierTo(150, 400, 450, 200, 300, 400)
+    vg.StrokeColor(nvg.RGBAf(0, 0.5, 1, 0.5))
+    vg.StrokeWidth(5.5)
+    vg.Stroke()
+    vg.ClosePath()
+
+def draw12(vg): # Bézier Cubic II
+    vg.BeginPath()
+    vg.MoveTo(100, 100)
+    vg.BezierTo(150, 400, 450, 200, 300, 400)
+    vg.BezierTo(150, 600, 800, 600, 600, 300)
+    vg.StrokeColor(nvg.RGBAf(0, 0.5, 1, 0.5))
+    vg.StrokeWidth(5.5)
+    vg.Stroke()
+    vg.ClosePath()
+
 def runTest():
     if sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO) != 0:
         logging.error(sdl2.SDL_GetError())
@@ -128,10 +250,7 @@ def runTest():
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 
         vg.BeginFrame(winWidth, winHeight, pxRatio)
-        vg.BeginPath()
-        vg.Rect(300, 100, 120, 30)
-        vg.FillColor(nvg.RGBA(255, 192, 0, 255))
-        vg.Fill()
+        draw12(vg)
         vg.EndFrame()
 
         sdl2.SDL_GL_SwapWindow(window)
