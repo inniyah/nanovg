@@ -237,6 +237,14 @@ ADD_EXECUTABLE(example_svg2 example/example_svg2.c $<TARGET_OBJECTS:nanovg> $<TA
 TARGET_LINK_LIBRARIES(example_svg2 PRIVATE GLEW EGL GL glfw m)
 ENDIF()
 
+IF(NANOVG_BUILD_GL2 AND NANOVG_BUILD_SVG)
+  ADD_EXECUTABLE(example_svg_gl2
+    example/example_svg_gl2.c example/perf.c
+    $<TARGET_OBJECTS:nanosvg> $<TARGET_OBJECTS:nanovg> $<TARGET_OBJECTS:nanovg_gl2>)
+  TARGET_LINK_LIBRARIES(example_svg_gl2 PRIVATE nanovg nanovg_gl2 GLEW EGL GL glfw m)
+  TARGET_COMPILE_DEFINITIONS(example_svg_gl2 PRIVATE ${NANOVG_GL_DEFINES} NANOVG_GL2)
+ENDIF()
+
 IF(NANOVG_BUILD_GL3 AND NANOVG_BUILD_OUI)
   ADD_EXECUTABLE(example_oui
     example/example_oui.c
