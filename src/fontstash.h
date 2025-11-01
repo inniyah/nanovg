@@ -164,7 +164,7 @@ static void* fons__tmpalloc(size_t size, void* up);
 static void fons__tmpfree(void* ptr, void* up);
 #define STBTT_malloc(x,u)    fons__tmpalloc(x,u)
 #define STBTT_free(x,u)      fons__tmpfree(x,u)
-#include <stb/stb_truetype.h>
+#include <stb_truetype.h>
 
 struct FONSttFontImpl {
 	stbtt_fontinfo font;
@@ -429,7 +429,7 @@ void fons__tt_getFontVMetrics(FONSttFontImpl *font, int *ascent, int *descent, i
 
 float fons__tt_getPixelHeightScale(FONSttFontImpl *font, float size)
 {
-	return stbtt_ScaleForMappingEmToPixels(&font->font, size);
+ 	return stbtt_ScaleForPixelHeight(&font->font, size);
 }
 
 int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint)

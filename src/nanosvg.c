@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2013-14 Mikko Mononen memon@inside.org
  *
@@ -1500,6 +1501,7 @@ static int nsvg__parseRotate(float* xform, const char* str)
 static void nsvg__parseTransform(float* xform, const char* str)
 {
 	float t[6];
+	memset(t, 0, 6 * sizeof(float));
 	int len;
 	nsvg__xformIdentity(xform);
 	while (*str)

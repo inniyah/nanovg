@@ -28,10 +28,10 @@
 #define FONTSTASH_IMPLEMENTATION
 #include "fontstash.h"
 
-#ifndef NVG_NO_STB
+#ifndef NVG_NO_STB_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
 #endif
+#include "stb_image.h"
 
 #ifdef _MSC_VER
 #pragma warning(disable: 4100)  // unreferenced formal parameter
@@ -216,7 +216,7 @@ static void nvg__setDevicePixelRatio(NVGcontext* ctx, float ratio)
 
 static NVGcompositeOperationState nvg__compositeOperationState(int op)
 {
-	int sfactor, dfactor;
+	int sfactor = 0, dfactor = 0;
 
 	if (op == NVG_SOURCE_OVER)
 	{
@@ -370,6 +370,10 @@ void nvgDeleteInternal(NVGcontext* ctx)
 		ctx->params.renderDelete(ctx->params.userPtr);
 
 	free(ctx);
+}
+
+void nvgSetDevicePixelRatio(NVGcontext *ctx, float devicePixelRatio) {
+	nvg__setDevicePixelRatio(ctx, devicePixelRatio);
 }
 
 void nvgBeginFrame(NVGcontext* ctx, float windowWidth, float windowHeight, float devicePixelRatio)
@@ -797,7 +801,6 @@ void nvgFillPaint(NVGcontext* ctx, NVGpaint paint)
 	nvgTransformMultiply(state->fill.xform, state->xform);
 }
 
-#ifndef NVG_NO_STB
 int nvgCreateImage(NVGcontext* ctx, const char* filename, int imageFlags)
 {
 	int w, h, n, image;
@@ -826,7 +829,6 @@ int nvgCreateImageMem(NVGcontext* ctx, int imageFlags, unsigned char* data, int 
 	stbi_image_free(img);
 	return image;
 }
-#endif
 
 int nvgCreateImageRGBA(NVGcontext* ctx, int w, int h, int imageFlags, const unsigned char* data)
 {
@@ -1035,6 +1037,43 @@ void nvgResetScissor(NVGcontext* ctx)
 	memset(state->scissor.xform, 0, sizeof(state->scissor.xform));
 	state->scissor.extent[0] = -1.0f;
 	state->scissor.extent[1] = -1.0f;
+}
+
+int nvgCurrentScissor(NVGcontext* ctx, float* bounds)
+{
+	NVGstate* state = nvg__getState(ctx);
+	float ex, ey, tex, tey;
+	float invxform[6], pxform[6];
+
+	// Check if scissor is active
+	if (state->scissor.extent[0] < 0) {
+		if (bounds) {
+			bounds[0] = bounds[1] = bounds[2] = bounds[3] = 0;
+		}
+		return 0;
+	}
+
+	if (bounds) {
+		ex = state->scissor.extent[0];
+		ey = state->scissor.extent[1];
+
+		// Transform scissor rect from scissor transform space to current transform space
+		nvgTransformInverse(invxform, state->xform);
+		memcpy(pxform, state->scissor.xform, sizeof(float)*6);
+		nvgTransformMultiply(pxform, invxform);
+
+		// Calculate transformed extents (axis-aligned bounding box)
+		tex = ex*nvg__absf(pxform[0]) + ey*nvg__absf(pxform[2]);
+		tey = ex*nvg__absf(pxform[1]) + ey*nvg__absf(pxform[3]);
+
+		// Calculate bounds in current space
+		bounds[0] = pxform[4] - tex;
+		bounds[1] = pxform[5] - tey;
+		bounds[2] = tex * 2.0f;
+		bounds[3] = tey * 2.0f;
+	}
+
+	return 1;
 }
 
 // Global composite operation.
